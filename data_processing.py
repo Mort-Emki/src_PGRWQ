@@ -350,9 +350,68 @@ def build_sliding_windows_for_subset_5(
     Dates = np.array(date_track)
     return X_array, Y_array, COMIDs, Dates
 
+def build_sliding_windows_for_subset_6(
+    df: pd.DataFrame,
+    comid_list: List[str],
+    input_cols: Optional[List[str]] = None,
+    target_cols: List[str] = ["TN","TP"],
+    time_window: int = 10,
+    skip_missing_targets: bool = True
+):
+    """
+    构造滑动窗口数据切片（纯 Python 版本）
+    输入：
+        df: 包含日尺度数据的 DataFrame，必须包含 'COMID' 和 'date'
+        comid_list: 要构造数据切片的 COMID 列表
+        input_cols: 输入特征列名列表；若为 None，则除去 {"COMID", "date"} 与 target_cols 后的所有列
+        target_cols: 目标变量列名列表
+        time_window: 时间窗口长度
+        skip_missing_targets: 若为 True，则跳过目标变量包含缺失值的滑窗；若为 False，则保留这些滑窗
+    输出：
+        返回 (X_array, Y_array, COMIDs, Dates)
+            X_array: 形状为 (N, time_window, len(input_cols)) 的数组
+            Y_array: 形状为 (N, len(target_cols)) 的数组，通常取时间窗口最后一时刻的目标值
+            COMIDs: 形状为 (N,) 的数组，每个切片对应的 COMID
+            Dates: 形状为 (N,) 的数组，每个切片最后时刻的日期
+    """
+    sub_df = df[df["COMID"].isin(comid_list)].copy()
+    if input_cols is None:
+        exclude_cols = {"COMID", "date"}.union(target_cols)
+        input_cols = [col for col in df.columns if col not in exclude_cols]
+    X_list, Y_list, comid_track, date_track = [], [], [], []
+    
+    # 移除tqdm，使用普通的for循环
+    for comid, group_df in sub_df.groupby("COMID"):
+        group_df = group_df.sort_values("date").reset_index(drop=True)
+        needed_cols = input_cols + target_cols
+        sub_data = group_df[needed_cols].values  # shape=(n_rows, len(needed_cols))
+        
+        for start_idx in range(len(sub_data) - time_window + 1):
+            window_data = sub_data[start_idx : start_idx + time_window]
+            x_window = window_data[:, :len(input_cols)]
+            y_values = window_data[-1, len(input_cols):]
+            
+            # 根据 skip_missing_targets 参数决定是否跳过含有缺失值的滑窗
+            if skip_missing_targets and np.isnan(y_values).any():
+                continue  # 跳过包含缺失值的滑窗
+            
+            X_list.append(x_window)
+            Y_list.append(y_values)
+            comid_track.append(comid)
+            date_track.append(group_df.loc[start_idx + time_window - 1, "date"])
+    
+    if not X_list:
+        return None, None, None, None
+    
+    X_array = np.array(X_list, dtype=np.float32)
+    Y_array = np.array(Y_list, dtype=np.float32)
+    COMIDs = np.array(comid_track)
+    Dates = np.array(date_track)
+    return X_array, Y_array, COMIDs, Dates
+
 
 # 为方便引用，提供别名，_4的意思是第四版,其他地方很多地方用到这个函数名称，遗留问题
-build_sliding_windows_for_subset = build_sliding_windows_for_subset_3
+build_sliding_windows_for_subset = build_sliding_windows_for_subset_6
 
 
 ##主函数，使用随机数据来测试build_sliding_windows_for_subset_4和build_sliding_windows_for_subset_3，比较速度差距，以及观察结果一致性

@@ -225,39 +225,47 @@ def iterative_training_procedure(df: pd.DataFrame,
     # model.save_model("model_initial_A0.pth")
     # print("模型保存成功！")
     
-    
-    
-    
-    # 初始汇流计算：利用 A₀ 进行预测
-    def initial_model_func(group: pd.DataFrame, 
-                           attr_dict: dict, 
-                           model: CatchmentModel):
+    def initial_model_func(group: pd.DataFrame, attr_dict: dict, model: CatchmentModel):
         group_sorted = group.sort_values("date")
         X_ts_local, _, _, Dates_local = build_sliding_windows_for_subset(
-            df = group, 
-            comid_list = [group.iloc[0]['COMID']], 
+            df=group, 
+            comid_list=[group.iloc[0]['COMID']], 
             input_cols=None, 
             target_cols=target_cols, 
             time_window=10,
-            skip_missing_targets = False
+            skip_missing_targets=False
         )
+        
         if X_ts_local is None:
             print(f"警告：COMID {group.iloc[0]['COMID']} 数据不足，返回 0。")
             return pd.Series(0.0, index=group_sorted["date"])
-        else:
-            ##打印COMID和对应X_ts_local的shape
-            print(f"COMID {group.iloc[0]['COMID']} X_ts_local.shape =", X_ts_local.shape)
-            print(X_ts_local[:3])
-
-
+        
         comid_str = str(group.iloc[0]['COMID'])
         attr_vec = attr_dict.get(comid_str, np.zeros_like(next(iter(attr_dict.values()))))
         X_attr_local = np.tile(attr_vec, (X_ts_local.shape[0], 1))
         preds = model.predict(X_ts_local, X_attr_local)
-        return pd.Series(preds, index=pd.to_datetime(Dates_local))
+        
+        # 创建预测序列，使用实际预测日期做索引
+        pred_series = pd.Series(preds, index=pd.to_datetime(Dates_local))
+        
+        # 创建完整序列，使用原始数据的所有日期做索引，默认值为0
+        full_series = pd.Series(0.0, index=group_sorted["date"])
+        
+        # 用预测值更新完整序列中对应的日期
+        full_series.update(pred_series)
+        
+        return full_series   
     
+    
+
     print("初始汇流计算：使用 A₀ 进行预测。")
-    df_flow = flow_routing_calculation(df.copy(), iteration=0, model_func=initial_model_func, river_info=river_info, v_f=35.0)
+    df_flow = flow_routing_calculation(df = df.copy(), 
+                                       iteration=0, 
+                                       model_func=initial_model_func, 
+                                       river_info=river_info, 
+                                       v_f=35.0,
+                                       attr_dict=attr_dict,
+                                       model=model)
     
     # 迭代更新过程
     for it in range(max_iterations):
@@ -295,7 +303,7 @@ def iterative_training_procedure(df: pd.DataFrame,
         # 更新后的模型函数：利用真实切片数据和属性数据进行预测
         def updated_model_func(group: pd.DataFrame):
             group_sorted = group.sort_values("Date")
-            X_ts_local, _, _, Dates_local = build_sliding_windows_for_subset_4(
+            X_ts_local, _, _, Dates_local = build_sliding_windows_for_subset(
                 group, [group.iloc[0]['COMID']], input_cols=input_cols, target_cols=[target_col], time_window=5
             )
             if X_ts_local is None:

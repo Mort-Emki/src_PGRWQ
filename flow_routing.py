@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from model_training.models import CatchmentModel
+from tqdm import tqdm
 
 def compute_retainment_factor(v_f: float, Q_up: pd.Series, Q_down: pd.Series) -> pd.Series:
     """
@@ -50,19 +51,33 @@ def flow_routing_calculation(df: pd.DataFrame,
     # 按 COMID 分组并排序，构造每个河段的时间序列
     groups = {comid: group.sort_values("date").copy() for comid, group in df.groupby("COMID")}
     comid_data = {}
-    for comid, group in groups.items():
-        # 调用 model_func 预测局部贡献 E，返回 Series，索引为 Date
+    # for comid, group in groups.items():
+    #     # 调用 model_func 预测局部贡献 E，返回 Series，索引为 Date
 
-        # ######
-        # print('COMID:', comid)
-        # print(group.head())
+    #     # ######
+    #     # print('COMID:', comid)
+    #     # print(group.head())
 
-        # ######
+    #     # ######
 
 
 
-        E_series = model_func(group)
-        print(E_series.shape)
+    #     E_series = model_func(group,attr_dict, model)
+    #     print(E_series.shape)
+    #     group['E'] = E_series.values
+    #     group['y_up'] = 0.0
+    #     group['y_n'] = 0.0
+    #     group = group.set_index("date")
+    #     comid_data[comid] = group
+
+    # 使用tqdm包装groups.items()迭代，并添加描述信息
+    for comid, group in tqdm(groups.items(), desc="处理河段汇流计算", total=len(groups), unit="河段"):
+        # 调用model_func预测局部贡献E，返回Series，索引为Date
+        E_series = model_func(group, attr_dict, model)
+        
+        # 可选：在进度条内显示当前处理的COMID
+        tqdm.write(f"处理COMID: {comid}, 数据长度: {len(group)}, 预测结果长度: {len(E_series)}")
+        
         group['E'] = E_series.values
         group['y_up'] = 0.0
         group['y_n'] = 0.0
