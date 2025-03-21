@@ -275,45 +275,52 @@ class CatchmentModel:
                 import torch
                 self.base_model.eval()
                 
-                # Log memory before prediction
-                if self.device == 'cuda':
-                    log_memory_usage("[Prediction Start] ")
+                # Determine optimal batch size based on input size
+                total_samples = X_ts.shape[0]
                 
-                # Process in batches if data is large
-                if X_ts.shape[0] > 1000:
-                    batch_size = 1000
-                    all_preds = []
+                # Adaptive batch size based on data size and available memory
+                if torch.cuda.is_available():
+                    # Get memory info
+                    available_mem = torch.cuda.get_device_properties(0).total_memory
+                    allocated_mem = torch.cuda.memory_allocated()
+                    free_mem = available_mem - allocated_mem
                     
-                    for i in range(0, X_ts.shape[0], batch_size):
-                        end_idx = min(i + batch_size, X_ts.shape[0])
-                        X_ts_batch = X_ts[i:end_idx]
-                        X_attr_batch = X_attr[i:end_idx]
-                        
-                        X_ts_torch = torch.tensor(X_ts_batch, dtype=torch.float32, device=self.device)
-                        X_attr_torch = torch.tensor(X_attr_batch, dtype=torch.float32, device=self.device)
-                        
-                        with torch.no_grad():
-                            batch_preds = self.base_model(X_ts_torch, X_attr_torch)
-                        
-                        all_preds.append(batch_preds.cpu().numpy())
-                        
-                        # Clear cache after each batch
-                        if self.device == 'cuda':
-                            torch.cuda.empty_cache()
-                    
-                    return np.concatenate(all_preds)
+                    # Estimate how many samples we can process at once
+                    # This is an estimate - adjust these factors based on your model
+                    per_sample_memory = 4 * X_ts.shape[1] * X_ts.shape[2] * 4  # Approximate memory per sample
+                    optimal_batch_size = max(10, min(1000, int(free_mem * 0.7 / per_sample_memory)))
                 else:
-                    X_ts_torch = torch.tensor(X_ts, dtype=torch.float32, device=self.device)
-                    X_attr_torch = torch.tensor(X_attr, dtype=torch.float32, device=self.device)
+                    optimal_batch_size = 1000
+                
+                # Only log once per prediction call, not per batch
+                if self.device == 'cuda' and total_samples > 100:
+                    log_memory_usage(f"[Prediction Start] Processing {total_samples} samples")
+                
+                # Process in batches
+                all_preds = []
+                
+                for i in range(0, total_samples, optimal_batch_size):
+                    end_idx = min(i + optimal_batch_size, total_samples)
+                    X_ts_batch = X_ts[i:end_idx]
+                    X_attr_batch = X_attr[i:end_idx]
+                    
+                    X_ts_torch = torch.tensor(X_ts_batch, dtype=torch.float32, device=self.device)
+                    X_attr_torch = torch.tensor(X_attr_batch, dtype=torch.float32, device=self.device)
                     
                     with torch.no_grad():
-                        preds = self.base_model(X_ts_torch, X_attr_torch)
+                        batch_preds = self.base_model(X_ts_torch, X_attr_torch)
                     
-                    # Log memory after prediction
-                    if self.device == 'cuda':
-                        log_memory_usage("[Prediction Complete] ")
+                    all_preds.append(batch_preds.cpu().numpy())
                     
-                    return preds.cpu().numpy()
+                    # Only clear cache for very large batches
+                    if self.device == 'cuda' and X_ts_batch.shape[0] > 500:
+                        torch.cuda.empty_cache()
+                
+                # Only log once at the end of processing
+                if self.device == 'cuda' and total_samples > 100:
+                    log_memory_usage(f"[Prediction Complete] Processed {total_samples} samples")
+                
+                return np.concatenate(all_preds)
 
     def predict_single(self, X_ts_single, X_attr_single):
         """

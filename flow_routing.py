@@ -2,6 +2,13 @@ import numpy as np
 import pandas as pd
 from model_training.models import CatchmentModel
 import logging
+import time
+import os
+import sys
+import json
+import torch
+import torch.nn as nn
+
 
 # Import our custom tqdm that supports logging
 try:
@@ -60,20 +67,59 @@ def flow_routing_calculation(df: pd.DataFrame,
     groups = {comid: group.sort_values("date").copy() for comid, group in df.groupby("COMID")}
     comid_data = {}
 
-    # 使用tqdm包装groups.items()迭代，并添加描述信息
-    logging.info(f"Processing {len(groups)} river segments...")
-    for comid, group in tqdm(groups.items(), desc=f"Processing river segments for iteration {iteration}", total=len(groups)):
-        # 调用model_func预测局部贡献E，返回Series，索引为Date
-        E_series = model_func(group, attr_dict, model)
+    # Process in batches for better GPU utilization and less logging
+    logging.info(f"Processing {len(groups)} river segments in batches...")
+    
+    # Group COMIDs into batches
+    batch_size = 50  # Adjust based on your GPU memory
+    comid_list = list(groups.keys())
+    num_batches = (len(comid_list) + batch_size - 1) // batch_size
+    
+    # Use tqdm for progress tracking
+    for batch_idx in tqdm(range(num_batches), desc=f"Processing river segments for iteration {iteration}"):
+        start_idx = batch_idx * batch_size
+        end_idx = min((batch_idx + 1) * batch_size, len(comid_list))
+        batch_comids = comid_list[start_idx:end_idx]
         
-        # Log processing for specific COMID (using debug level to avoid log bloat)
-        logging.debug(f"Processing COMID: {comid}, data length: {len(group)}, prediction result length: {len(E_series)}")
+        # Process each COMID in the batch, but reduce logging
+        batch_start_time = time.time()
+        for comid in batch_comids:
+            group = groups[comid]
+            
+            # # Only log warnings, not regular processing info
+            # with logging.disable(logging.DEBUG):  # Temporarily disable debug logging
+
+            # Before processing
+            old_level = logging.getLogger().level
+            logging.getLogger().setLevel(logging.INFO)  # Temporarily disable DEBUG logs
+
+            E_series = model_func(group, attr_dict, model)
+            
+            # Restore original logging level
+            logging.getLogger().setLevel(old_level)
+            
+            group['E'] = E_series.values
+            group['y_up'] = 0.0
+            group['y_n'] = 0.0
+            group = group.set_index("date")
+            comid_data[comid] = group
+            
+        batch_time = time.time() - batch_start_time
         
-        group['E'] = E_series.values
-        group['y_up'] = 0.0
-        group['y_n'] = 0.0
-        group = group.set_index("date")
-        comid_data[comid] = group
+        # Log batch-level information periodically
+        if batch_idx % 5 == 0 or batch_idx == num_batches - 1:
+            logging.info(f"Batch {batch_idx+1}/{num_batches}: Processed {len(batch_comids)} COMIDs in {batch_time:.2f}s")
+            
+            # Log memory usage periodically
+            if torch.cuda.is_available():
+                allocated = torch.cuda.memory_allocated() / (1024 * 1024)
+                reserved = torch.cuda.memory_reserved() / (1024 * 1024)
+                logging.info(f"GPU Memory: {allocated:.2f}MB allocated, {reserved:.2f}MB reserved")
+                
+                # Clean up GPU memory when appropriate
+                if allocated > 2000:  # If using more than 2GB
+                    torch.cuda.empty_cache()
+                    logging.info("Cleared GPU cache")
 
     # 计算入度：若某个 COMID 出现在其他河段的 NextDownID 中，则其入度增加
     logging.info("Calculating node indegrees...")
