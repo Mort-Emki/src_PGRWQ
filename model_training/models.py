@@ -282,9 +282,10 @@ class CatchmentModel:
             if self.device == 'cuda':
                 log_memory_usage("[Training Complete] ")
     def predict(self, X_ts, X_attr):
-        """Batch prediction with improved GPU utilization"""
+        """Batch prediction with robust GPU memory handling"""
         with TimingAndMemoryContext("Batch Prediction"):
             if self.model_type == 'rf':
+                # RF implementation remains the same
                 N, T, D = X_ts.shape
                 X_ts_flat = X_ts.reshape(N, T * D)
                 X_combined = np.hstack([X_ts_flat, X_attr])
@@ -293,61 +294,87 @@ class CatchmentModel:
                 import torch
                 self.base_model.eval()
                 
-                # Force model to the right device
+                # Ensure model is on the right device
                 if self.device == 'cuda':
                     self.base_model = self.base_model.to(self.device)
                 
-                # Print model device information
-                print(f"Model prediction - model is on: {next(self.base_model.parameters()).device}")
-                
-                # Determine batch size - use much larger batches
                 total_samples = X_ts.shape[0]
                 
+                # Start with a conservative batch size
                 if torch.cuda.is_available():
-                    available_mem = torch.cuda.get_device_properties(0).total_memory
-                    allocated_mem = torch.cuda.memory_allocated()
-                    free_mem = available_mem - allocated_mem
+                    # Get GPU specs
+                    total_memory = torch.cuda.get_device_properties(0).total_memory / (1024**2)  # in MB
+                    # Start with 25% of total memory for safety
+                    safe_memory_usage = total_memory * 0.25  # MB
                     
-                    # More accurate estimation but much more aggressive memory usage
-                    bytes_per_float = 4
+                    # Estimate memory per sample (in MB)
+                    bytes_per_float = 4  # float32 is 4 bytes
                     sample_size = X_ts.shape[1] * X_ts.shape[2] + X_attr.shape[1]
-                    bytes_per_sample = sample_size * bytes_per_float * 3
+                    bytes_per_sample = sample_size * bytes_per_float * 3  # Input, output, gradients
+                    mb_per_sample = bytes_per_sample / (1024**2)
                     
-                    # Use up to 70% of available memory
-                    optimal_batch_size = max(5000, min(500000, int(free_mem * 0.7 / bytes_per_sample)))
-                    print(f"Using batch size: {optimal_batch_size} (estimated {optimal_batch_size * bytes_per_sample / (1024**2):.2f}MB)")
+                    # Calculate safe batch size
+                    initial_batch_size = int(safe_memory_usage / mb_per_sample)
+                    batch_size = max(100, min(1000, initial_batch_size))  # Reasonable bounds
+                    # batch_size = max(1000,initial_batch_size)
+                    print(f"Starting with batch size: {batch_size} (estimated {batch_size * mb_per_sample:.2f}MB)")
                 else:
-                    optimal_batch_size = 1000
+                    batch_size = 1000
                 
                 if self.device == 'cuda':
                     log_memory_usage(f"[Prediction Start] Processing {total_samples} samples")
                 
                 all_preds = []
+                current_batch_size = batch_size
                 
-                for i in range(0, total_samples, optimal_batch_size):
-                    end_idx = min(i + optimal_batch_size, total_samples)
-                    batch_size = end_idx - i
-                    
-                    # Create tensors directly on GPU
-                    X_ts_torch = torch.tensor(X_ts[i:end_idx], dtype=torch.float32, device=self.device)
-                    X_attr_torch = torch.tensor(X_attr[i:end_idx], dtype=torch.float32, device=self.device)
-                    
-                    print(f"Batch {i//optimal_batch_size + 1} - input tensors on: {X_ts_torch.device}")
-                    
-                    with torch.no_grad():
-                        batch_preds = self.base_model(X_ts_torch, X_attr_torch)
-                    
-                    # Only move results back to CPU at the end
-                    all_preds.append(batch_preds.cpu().numpy())
-                    
-                    # Explicitly delete GPU tensors
-                    del X_ts_torch
-                    del X_attr_torch
-                    torch.cuda.empty_cache()
-                    
-                    if i % (5 * optimal_batch_size) == 0 and i > 0:
-                        print(f"Processed {i}/{total_samples} samples")
+                i = 0
+                while i < total_samples:
+                    try:
+                        # Try with current batch size
+                        end_idx = min(i + current_batch_size, total_samples)
+                        
+                        # Create tensors on the right device
+                        X_ts_torch = torch.tensor(X_ts[i:end_idx], dtype=torch.float32, device=self.device)
+                        X_attr_torch = torch.tensor(X_attr[i:end_idx], dtype=torch.float32, device=self.device)
+                        
+                        # Get predictions
+                        with torch.no_grad():
+                            batch_preds = self.base_model(X_ts_torch, X_attr_torch)
+                        
+                        # Store predictions
+                        all_preds.append(batch_preds.cpu().numpy())
+                        
+                        # Free memory
+                        del X_ts_torch
+                        del X_attr_torch
+                        torch.cuda.empty_cache()
+                        
+                        # Move to next batch
+                        i = end_idx
+                        
+                        # Log progress periodically
+                        if i % (10 * current_batch_size) == 0 or i == total_samples:
+                            print(f"Processed {i}/{total_samples} samples ({i/total_samples*100:.1f}%)")
+                        
+                    except RuntimeError as e:
+                        # Check if this is an out-of-memory error
+                        if "CUDA out of memory" in str(e):
+                            # Reduce batch size and try again
+                            torch.cuda.empty_cache()
+                            old_batch_size = current_batch_size
+                            current_batch_size = max(10, current_batch_size // 2)
+                            print(f"⚠️ Out of memory with batch size {old_batch_size}. Reducing to {current_batch_size}")
+                            
+                            # If batch size is already very small, we might have other issues
+                            if current_batch_size < 100:
+                                print("⚠️ Warning: Very small batch size needed. Consider using CPU if this continues.")
+                        else:
+                            # Not a memory error, re-raise
+                            raise
                 
+                if len(all_preds) == 0:
+                    raise RuntimeError("Failed to process any batches successfully")
+                    
                 return np.concatenate(all_preds)
 
     def predict_single(self, X_ts_single, X_attr_single):

@@ -207,3 +207,41 @@ class TimingAndMemoryContext:
         if self.log_memory:
             log_memory_usage(f"[{self.name} END] ")
         print(f"[TIMING] {self.name} completed in {duration:.2f} seconds")
+
+
+def get_safe_batch_size(input_shape, attr_shape, memory_fraction=0.25):
+    """Calculate a safe batch size given input shapes and desired memory fraction"""
+    if not torch.cuda.is_available():
+        return 1000  # Default for CPU
+        
+    # Get GPU specs
+    total_memory_mb = torch.cuda.get_device_properties(0).total_memory / (1024**2)
+    safe_memory_mb = total_memory_mb * memory_fraction
+    
+    # Calculate memory per sample
+    ts_size = np.prod(input_shape[1:])  # Time steps × features
+    total_elements = ts_size + attr_shape[1]
+    bytes_per_sample = total_elements * 4 * 3  # float32 × input/output/gradients
+    mb_per_sample = bytes_per_sample / (1024**2)
+    
+    # Calculate batch size with safety margin
+    batch_size = int(safe_memory_mb / mb_per_sample)
+    return max(10, min(10000, batch_size))  # Reasonable bounds
+
+def force_cuda_memory_cleanup():
+    """Aggressive GPU memory cleanup"""
+    if torch.cuda.is_available():
+        # Release all memory
+        torch.cuda.empty_cache()
+        
+        # Force garbage collection
+        import gc
+        gc.collect()
+        
+        # Force CUDA synchronization
+        torch.cuda.synchronize()
+        
+        # Log current memory state
+        allocated = torch.cuda.memory_allocated() / (1024**2)
+        reserved = torch.cuda.memory_reserved() / (1024**2)
+        print(f"After cleanup: {allocated:.1f}MB allocated, {reserved:.1f}MB reserved")

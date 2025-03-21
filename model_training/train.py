@@ -13,7 +13,7 @@ import logging
 
 # Import memory monitoring utilities
 try:
-    from gpu_memory_utils import log_memory_usage, TimingAndMemoryContext, MemoryTracker
+    from gpu_memory_utils import log_memory_usage, TimingAndMemoryContext, MemoryTracker,force_cuda_memory_cleanup
 except ImportError:
     # Fallback implementation if the module is not available
     def log_memory_usage(prefix=""):
@@ -223,11 +223,11 @@ def iterative_training_procedure(df: pd.DataFrame,
 
     def batch_model_func(comid_batch, groups, attr_dict, model, target_cols):
         """
-        Improved batch processing for better GPU utilization
+        Batch processing with adaptive memory management
         """
         results = {}
         
-        # Pre-process: collect all prediction data points
+        # First collect all necessary data
         all_X_ts = []
         all_comids = []
         all_dates = []
@@ -236,7 +236,6 @@ def iterative_training_procedure(df: pd.DataFrame,
         current_idx = 0
         valid_comids = []
         
-        # First pass: collect all data
         for comid in comid_batch:
             group = groups[comid]
             group_sorted = group.sort_values("date")
@@ -254,63 +253,80 @@ def iterative_training_procedure(df: pd.DataFrame,
                 results[comid] = pd.Series(0.0, index=group_sorted["date"])
                 continue
             
-            # Track index ranges
             end_idx = current_idx + X_ts_local.shape[0]
             comid_indices[comid] = (current_idx, end_idx, Dates_local, group_sorted["date"])
             current_idx = end_idx
             valid_comids.append(comid)
             
-            # Collect data
             all_X_ts.append(X_ts_local)
             all_comids.extend([comid] * X_ts_local.shape[0])
             all_dates.extend(Dates_local)
         
-        # If no valid data, return empty results
         if not all_X_ts:
             return {comid: pd.Series(0.0, index=groups[comid].sort_values("date")["date"]) 
                     for comid in comid_batch}
         
-        # Process all data in a single GPU operation
         with TimingAndMemoryContext("GPU Batch Processing"):
-            # Combine all data
+            # Stack all data
             X_ts_batch = np.vstack(all_X_ts)
             
             # Build attribute matrix
             attr_dim = next(iter(attr_dict.values())).shape[0]
             X_attr_batch = np.zeros((X_ts_batch.shape[0], attr_dim), dtype=np.float32)
             
-            # Set attribute vectors
             for i, comid in enumerate(all_comids):
                 comid_str = str(comid)
                 attr_vec = attr_dict.get(comid_str, np.zeros(attr_dim, dtype=np.float32))
                 X_attr_batch[i] = attr_vec
             
-            # Log batch size
             batch_size = X_ts_batch.shape[0]
-            logging.info(f"Processing batch of {len(valid_comids)} COMIDs with {batch_size} total prediction points")
+            print(f"Processing batch of {len(valid_comids)} COMIDs with {batch_size} total prediction points")
             
-            # Single large GPU prediction
-            all_preds = model.predict(X_ts_batch, X_attr_batch)
-            
-            # Clean up memory
-            del X_ts_batch
-            del X_attr_batch
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
+            try:
+                # This prediction function now has built-in memory safety
+                all_preds = model.predict(X_ts_batch, X_attr_batch)
+                
+                # Clean up
+                del X_ts_batch
+                del X_attr_batch
+                if torch.cuda.is_available():
+                    force_cuda_memory_cleanup()
+                    
+            except Exception as e:
+                print(f"Error during prediction: {e}")
+                print("Trying to process COMIDs one by one instead...")
+                
+                # Fallback: process one COMID at a time
+                all_preds = np.zeros(batch_size)
+                for comid in valid_comids:
+                    start_idx, end_idx, _, _ = comid_indices[comid]
+                    comid_str = str(comid)
+                    X_ts_subset = X_ts_batch[start_idx:end_idx]
+                    X_attr_subset = np.tile(attr_dict.get(comid_str, np.zeros(attr_dim)), 
+                                        (X_ts_subset.shape[0], 1))
+                    
+                    try:
+                        preds_subset = model.predict(X_ts_subset, X_attr_subset)
+                        all_preds[start_idx:end_idx] = preds_subset
+                    except Exception as e2:
+                        print(f"Failed to process COMID {comid}: {e2}")
+                        all_preds[start_idx:end_idx] = 0.0
+                    
+                    # Clean up after each COMID
+                    if torch.cuda.is_available():
+                        force_cuda_memory_cleanup()
         
         # Map predictions back to COMIDs
         for comid in valid_comids:
             start_idx, end_idx, dates, all_dates = comid_indices[comid]
             preds = all_preds[start_idx:end_idx]
             
-            # Create prediction series
             pred_series = pd.Series(preds, index=pd.to_datetime(dates))
             full_series = pd.Series(0.0, index=all_dates)
             full_series.update(pred_series)
             
             results[comid] = full_series
         
-        # Handle any remaining COMIDs
         for comid in comid_batch:
             if comid not in valid_comids and comid not in results:
                 results[comid] = pd.Series(0.0, index=groups[comid].sort_values("date")["date"])

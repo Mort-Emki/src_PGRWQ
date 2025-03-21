@@ -65,7 +65,7 @@ def flow_routing_calculation(df: pd.DataFrame,
         print(f"Model is on device: {device}")
         print(f"Model type: {type(model.base_model)}")
         print(f"===============================")
-        
+
     df = df.copy()
     logging.info(f"Flow routing calculation for iteration {iteration} started")
     logging.debug(f"DataFrame head:\n{df.head()}")
@@ -83,7 +83,7 @@ def flow_routing_calculation(df: pd.DataFrame,
     logging.info(f"Processing {len(groups)} river segments in batches...")
     
     # 按批次处理COMID
-    batch_size = 1000  # 每批处理50个COMID
+    batch_size = 1000  # 每批处理1000个COMID
     comid_list = list(groups.keys())
     num_batches = (len(comid_list) + batch_size - 1) // batch_size
     

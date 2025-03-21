@@ -1,0 +1,456 @@
+2025-03-22 02:12:42,883 - INFO - Logging initialized at 2025-03-22 02:12:42
+2025-03-22 02:12:42,883 - INFO - Log file: logs\pgrwq_training_20250322_021242.log
+2025-03-22 02:12:42,883 - INFO - PG-RWQ Training Pipeline Starting
+2025-03-22 02:12:42,883 - INFO - System time: 2025-03-22 02:12:42
+2025-03-22 02:12:42,884 - INFO - Python version: 3.9.21 (main, Dec 11 2024, 16:35:24) [MSC v.1929 64 bit (AMD64)]
+2025-03-22 02:12:42,884 - INFO - PyTorch version: 2.5.1
+2025-03-22 02:12:42,886 - INFO - Started periodic memory monitoring (interval: 30s)
+2025-03-22 02:12:42,887 - INFO - [Periodic Check] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.1MB | System Memory: 14.1GB / 63.7GB (22.2%)
+2025-03-22 02:12:42,887 - INFO - Created/verified directory for GPU memory logs: D:\PGRWQ\src_PGRWQ\logs
+2025-03-22 02:12:42,888 - INFO - Created GPU memory log file: D:\PGRWQ\src_PGRWQ\logs\gpu_memory_log.csv
+2025-03-22 02:12:42,889 - INFO - [Initial GPU Status] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.2MB | System Memory: 14.1GB / 63.7GB (22.2%)
+2025-03-22 02:12:42,890 - INFO - [Setting Working Directory START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.2MB | System Memory: 14.1GB / 63.7GB (22.2%)
+2025-03-22 02:12:42,891 - INFO - [Setting Working Directory END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.3MB | System Memory: 14.1GB / 63.7GB (22.2%)
+2025-03-22 02:12:42,891 - INFO - [TIMING] Setting Working Directory completed in 0.00 seconds
+2025-03-22 02:12:42,892 - INFO - [Feature Definition START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.3MB | System Memory: 14.1GB / 63.7GB (22.2%)
+2025-03-22 02:12:42,893 - INFO - [Feature Definition END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.3MB | System Memory: 14.1GB / 63.7GB (22.2%)
+2025-03-22 02:12:42,893 - INFO - [TIMING] Feature Definition completed in 0.00 seconds
+2025-03-22 02:12:42,894 - INFO - 输入特征列表: ['surface_net_solar_radiation_mean', 'surface_pressure_mean', 'temperature_2m_mean', 'u_component_of_wind_10m_mean', 'v_component_of_wind_10m_mean', 'volumetric_soil_water_layer_1_mean', 'volumetric_soil_water_layer_2_mean', 'temperature_2m_min', 'temperature_2m_max', 'total_precipitation_sum', 'potential_evaporation_sum', 'Qout'] (维度: 12)
+2025-03-22 02:12:42,894 - INFO - 属性特征列表: ['pre_mm_syr', 'pet_mean', 'aridity', 'seasonality', 'high_prec_freq', 'crp_pc_sse', 'for_pc_sse', 'urb_pc_sse', 'wet_pc_s01', 'nli_ix_sav', 'pop_ct_usu', 'dis_m3_pyr', 'run_mm_syr', 'cly_pc_sav', 'soc_th_sav', 'ele_mt_sav', 'slp_dg_sav', 'sgr_dk_sav', 'moisture_index', 'ero_kh_sav'] (维度: 20)
+2025-03-22 02:12:42,895 - INFO - [Device Setup START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.3MB | System Memory: 14.1GB / 63.7GB (22.2%)
+2025-03-22 02:12:42,895 - INFO - 使用设备：cuda
+2025-03-22 02:12:42,896 - INFO - CUDA Device 0: NVIDIA GeForce RTX 3060 Ti
+2025-03-22 02:12:42,897 - INFO -   Total Memory: 8.00 GB
+2025-03-22 02:12:42,897 - INFO -   CUDA Capability: 8.6
+2025-03-22 02:12:42,898 - INFO - [Device Setup END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.3MB | System Memory: 14.1GB / 63.7GB (22.2%)
+2025-03-22 02:12:42,898 - INFO - [TIMING] Device Setup completed in 0.00 seconds
+2025-03-22 02:12:42,899 - INFO - [Loading Daily Data START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.4MB | System Memory: 14.1GB / 63.7GB (22.2%)
+2025-03-22 02:13:08,722 - INFO - 日尺度数据基本信息：
+2025-03-22 02:13:08,722 - INFO -   数据形状: (13325975, 43)
+2025-03-22 02:13:08,722 - INFO -   列名: ['date', 'snow_depth_water_equivalent_mean', 'surface_net_solar_radiation_mean', 'surface_net_thermal_radiation_mean', 'surface_pressure_mean', 'temperature_2m_mean', 'dewpoint_temperature_2m_mean', 'u_component_of_wind_10m_mean', 'v_component_of_wind_10m_mean', 'volumetric_soil_water_layer_1_mean', 'volumetric_soil_water_layer_2_mean', 'volumetric_soil_water_layer_3_mean', 'volumetric_soil_water_layer_4_mean', 'snow_depth_water_equivalent_min', 'surface_net_solar_radiation_min', 'surface_net_thermal_radiation_min', 'surface_pressure_min', 'temperature_2m_min', 'dewpoint_temperature_2m_min', 'u_component_of_wind_10m_min', 'v_component_of_wind_10m_min', 'volumetric_soil_water_layer_1_min', 'volumetric_soil_water_layer_2_min', 'volumetric_soil_water_layer_3_min', 'volumetric_soil_water_layer_4_min', 'snow_depth_water_equivalent_max', 'surface_net_solar_radiation_max', 'surface_net_thermal_radiation_max', 'surface_pressure_max', 'temperature_2m_max', 'dewpoint_temperature_2m_max', 'u_component_of_wind_10m_max', 'v_component_of_wind_10m_max', 'volumetric_soil_water_layer_1_max', 'volumetric_soil_water_layer_2_max', 'volumetric_soil_water_layer_3_max', 'volumetric_soil_water_layer_4_max', 'total_precipitation_sum', 'potential_evaporation_sum', 'Qout', 'COMID', 'TP', 'TN']
+2025-03-22 02:13:08,724 - INFO - [Loading Daily Data END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4924.8MB | System Memory: 18.4GB / 63.7GB (28.9%)
+2025-03-22 02:13:08,724 - INFO - [TIMING] Loading Daily Data completed in 25.82 seconds
+2025-03-22 02:13:08,725 - INFO - [Loading River Attributes START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4924.8MB | System Memory: 18.4GB / 63.7GB (28.9%)
+2025-03-22 02:13:08,848 - INFO - 
+2025-03-22 02:13:08,849 - INFO - 河段属性数据基本信息：
+2025-03-22 02:13:08,849 - INFO -   数据形状: (7825, 224)
+2025-03-22 02:13:08,849 - INFO -   列名: ['COMID', 'lengthkm', 'lengthdir', 'sinuosity', 'slope', 'uparea', 'order_', 'strmDrop_t', 'slope_taud', 'NextDownID', 'maxup', 'up1', 'up2', 'up3', 'up4', 'p_mean', 'pet_mean', 'aridity', 'frac_snow', 'moisture_index', 'seasonality', 'high_prec_freq', 'high_prec_dur', 'low_prec_freq', 'low_prec_dur', 'sgr_dk_sav', 'glc_pc_s06', 'glc_pc_s07', 'nli_ix_sav', 'glc_pc_s04', 'glc_pc_s05', 'glc_pc_s02', 'glc_pc_s03', 'glc_pc_s01', 'pet_mm_syr', 'glc_pc_s08', 'glc_pc_s09', 'swc_pc_s09', 'ele_mt_smx', 'tbi_cl_smj', 'swc_pc_s01', 'swc_pc_s02', 'swc_pc_s03', 'swc_pc_s04', 'swc_pc_s05', 'swc_pc_s06', 'swc_pc_s07', 'swc_pc_s08', 'crp_pc_sse', 'glc_pc_s22', 'glc_pc_s20', 'glc_pc_s21', 'wet_pc_sg1', 'wet_pc_sg2', 'pac_pc_sse', 'swc_pc_s10', 'swc_pc_s11', 'swc_pc_s12', 'clz_cl_smj', 'gwt_cm_sav', 'glc_pc_s17', 'glc_pc_s18', 'hft_ix_s93', 'glc_pc_s15', 'ire_pc_sse', 'glc_pc_s16', 'glc_pc_s13', 'prm_pc_sse', 'glc_pc_s14', 'glc_pc_s11', 'glc_pc_s12', 'glc_pc_s10', 'kar_pc_sse', 'slp_dg_sav', 'glc_pc_s19', 'tmp_dc_s07', 'tmp_dc_s08', 'tmp_dc_s05', 'tmp_dc_s06', 'tmp_dc_s09', 'for_pc_sse', 'aet_mm_s06', 'aet_mm_s05', 'aet_mm_s08', 'aet_mm_s07', 'aet_mm_s09', 'tmp_dc_s10', 'tmp_dc_s11', 'aet_mm_s02', 'aet_mm_s01', 'tmp_dc_s12', 'aet_mm_s04', 'aet_mm_s03', 'lit_cl_smj', 'tmp_dc_s03', 'tmp_dc_s04', 'tmp_dc_s01', 'tmp_dc_s02', 'cls_cl_smj', 'pre_mm_syr', 'pnv_pc_s01', 'pnv_pc_s04', 'pnv_pc_s05', 'pnv_pc_s02', 'rdd_mk_sav', 'ele_mt_smn', 'pnv_pc_s03', 'pnv_pc_s08', 'pnv_pc_s09', 'pnv_pc_s06', 'pnv_pc_s07', 'wet_cl_smj', 'snw_pc_syr', 'pnv_pc_s11', 'pnv_pc_s12', 'pnv_pc_s10', 'pnv_pc_s15', 'pnv_pc_s13', 'pnv_pc_s14', 'cmi_ix_syr', 'pet_mm_s11', 'pet_mm_s12', 'pet_mm_s10', 'tmp_dc_smn', 'wet_pc_s08', 'wet_pc_s09', 'slt_pc_sav', 'wet_pc_s02', 'wet_pc_s03', 'wet_pc_s01', 'hdi_ix_sav', 'wet_pc_s06', 'wet_pc_s07', 'wet_pc_s04', 'wet_pc_s05', 'fec_cl_smj', 'glc_cl_smj', 'swc_pc_syr', 'hft_ix_s09', 'soc_th_sav', 'gdp_ud_sav', 'gdp_ud_ssu', 'tmp_dc_smx', 'cly_pc_sav', 'pet_mm_s02', 'pet_mm_s03', 'pet_mm_s01', 'snw_pc_smx', 'ppd_pk_sav', 'pet_mm_s08', 'aet_mm_s11', 'pet_mm_s09', 'aet_mm_s10', 'pet_mm_s06', 'pet_mm_s07', 'aet_mm_s12', 'pet_mm_s04', 'pet_mm_s05', 'inu_pc_slt', 'ero_kh_sav', 'aet_mm_syr', 'cmi_ix_s10', 'cmi_ix_s11', 'cmi_ix_s12', 'ari_ix_sav', 'tmp_dc_syr', 'tec_cl_smj', 'fmh_cl_smj', 'inu_pc_smn', 'pnv_cl_smj', 'pre_mm_s08', 'pre_mm_s09', 'run_mm_syr', 'pre_mm_s06', 'pre_mm_s07', 'pre_mm_s04', 'pre_mm_s05', 'snd_pc_sav', 'pre_mm_s02', 'pre_mm_s03', 'ele_mt_sav', 'pre_mm_s01', 'urb_pc_sse', 'lka_pc_sse', 'pre_mm_s10', 'snw_pc_s01', 'snw_pc_s02', 'snw_pc_s03', 'snw_pc_s04', 'snw_pc_s05', 'snw_pc_s06', 'gla_pc_sse', 'snw_pc_s07', 'snw_pc_s08', 'snw_pc_s09', 'inu_pc_smx', 'pre_mm_s11', 'pre_mm_s12', 'cmi_ix_s07', 'cmi_ix_s08', 'cmi_ix_s05', 'cmi_ix_s06', 'cmi_ix_s09', 'snw_pc_s10', 'snw_pc_s11', 'snw_pc_s12', 'cmi_ix_s03', 'cmi_ix_s04', 'cmi_ix_s01', 'cmi_ix_s02', 'pst_pc_sse', 'dis_m3_pmn', 'dis_m3_pmx', 'dis_m3_pyr', 'lkv_mc_usu', 'rev_mc_usu', 'ria_ha_usu', 'riv_tc_usu', 'pop_ct_usu', 'dor_pc_pva', 'area', 'area_fraction_used_for_aggregation', 'WQ_exist', 'ERA5_exist']
+2025-03-22 02:13:08,850 - INFO - [Loading River Attributes END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4941.4MB | System Memory: 18.5GB / 63.7GB (29.0%)
+2025-03-22 02:13:08,850 - INFO - [TIMING] Loading River Attributes completed in 0.13 seconds
+2025-03-22 02:13:08,852 - INFO - [Extracting River Network Info START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4941.4MB | System Memory: 18.5GB / 63.7GB (29.0%)
+2025-03-22 02:13:08,859 - INFO - [Extracting River Network Info END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4943.4MB | System Memory: 18.5GB / 63.7GB (29.0%)
+2025-03-22 02:13:08,860 - INFO - [TIMING] Extracting River Network Info completed in 0.01 seconds
+2025-03-22 02:13:08,860 - INFO - [Iterative Training Process START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4943.4MB | System Memory: 18.5GB / 63.7GB (29.0%)
+2025-03-22 02:13:08,862 - INFO - Memory tracking started (interval: 10s)
+2025-03-22 02:13:08,864 - INFO - [Training Start] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4943.6MB | System Memory: 18.5GB / 63.7GB (29.0%)
+2025-03-22 02:13:08,864 - INFO - 选择头部河段进行初始模型训练。
+2025-03-22 02:13:08,865 - INFO - [Building Attribute Dictionary START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4943.6MB | System Memory: 18.5GB / 63.7GB (29.0%)
+2025-03-22 02:13:10,115 - INFO - [Building Attribute Dictionary END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8396.1MB | System Memory: 21.8GB / 63.7GB (34.3%)
+2025-03-22 02:13:10,115 - INFO - [TIMING] Building Attribute Dictionary completed in 1.25 seconds
+2025-03-22 02:13:10,116 - INFO - [Finding Head Stations START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8396.1MB | System Memory: 21.8GB / 63.7GB (34.3%)
+2025-03-22 02:13:10,157 - INFO -   选择的头部河段数量：27
+2025-03-22 02:13:10,159 - INFO - [Finding Head Stations END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8396.7MB | System Memory: 21.8GB / 63.7GB (34.3%)
+2025-03-22 02:13:10,159 - INFO - [TIMING] Finding Head Stations completed in 0.04 seconds
+2025-03-22 02:13:10,159 - INFO - 构造初始训练数据（滑窗切片）......
+2025-03-22 02:13:10,160 - INFO - [Building Sliding Windows START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8396.7MB | System Memory: 21.8GB / 63.7GB (34.3%)
+2025-03-22 02:13:11,148 - INFO - [Building Sliding Windows END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8450.1MB | System Memory: 21.9GB / 63.7GB (34.4%)
+2025-03-22 02:13:11,148 - INFO - [TIMING] Building Sliding Windows completed in 0.99 seconds
+2025-03-22 02:13:11,148 - INFO - X_ts_all.shape =
+2025-03-22 02:13:11,148 - INFO - (34413, 10, 39)
+2025-03-22 02:13:11,149 - INFO - Y.shape        =
+2025-03-22 02:13:11,149 - INFO - (34413,)
+2025-03-22 02:13:11,149 - INFO - COMID.shape    =
+2025-03-22 02:13:11,149 - INFO - (34413,)
+2025-03-22 02:13:11,149 - INFO - Date.shape     =
+2025-03-22 02:13:11,149 - INFO - (34413,)
+2025-03-22 02:13:11,150 - INFO - [Saving Training Data START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8450.1MB | System Memory: 21.9GB / 63.7GB (34.4%)
+2025-03-22 02:13:11,203 - INFO - 训练数据保存成功！
+2025-03-22 02:13:11,204 - INFO - [Saving Training Data END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8450.3MB | System Memory: 22.0GB / 63.7GB (34.4%)
+2025-03-22 02:13:11,204 - INFO - [TIMING] Saving Training Data completed in 0.05 seconds
+2025-03-22 02:13:11,205 - INFO - [Data Standardization START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8450.3MB | System Memory: 22.0GB / 63.7GB (34.4%)
+2025-03-22 02:13:11,354 - INFO - [After Standardization] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8451.8MB | System Memory: 22.0GB / 63.7GB (34.5%)
+2025-03-22 02:13:11,355 - INFO - [Data Standardization END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8451.8MB | System Memory: 22.0GB / 63.7GB (34.5%)
+2025-03-22 02:13:11,355 - INFO - [TIMING] Data Standardization completed in 0.15 seconds
+2025-03-22 02:13:11,356 - INFO - [Train/Validation Split START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8451.8MB | System Memory: 22.0GB / 63.7GB (34.5%)
+2025-03-22 02:13:11,372 - INFO - [Train/Validation Split END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8503.0MB | System Memory: 22.0GB / 63.7GB (34.5%)
+2025-03-22 02:13:11,372 - INFO - [TIMING] Train/Validation Split completed in 0.02 seconds
+2025-03-22 02:13:11,372 - INFO - 初始模型 A₀ 训练：头部河段训练数据构造完毕。
+2025-03-22 02:13:11,373 - INFO - [Model Creation START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8503.0MB | System Memory: 22.0GB / 63.7GB (34.5%)
+2025-03-22 02:13:11,374 - INFO - [Model Init] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8503.0MB | System Memory: 22.0GB / 63.7GB (34.5%)
+2025-03-22 02:13:11,376 - INFO - Model architecture initialized:
+2025-03-22 02:13:11,376 - INFO -  - LSTM: input_dim=39, hidden_size=64, num_layers=1
+2025-03-22 02:13:11,376 - INFO -  - Attribute network: attr_dim=20, fc_dim=32
+2025-03-22 02:13:11,376 - INFO -  - Output dimension: 1
+2025-03-22 02:13:11,378 - INFO - Total parameters: 28,705
+2025-03-22 02:13:11,452 - INFO - Model moved to cuda
+2025-03-22 02:13:11,491 - INFO - Model tested on cuda with dummy input
+2025-03-22 02:13:11,492 - INFO - Parameter devices:
+2025-03-22 02:13:11,492 - INFO -  - lstm.weight_ih_l0: cuda:0
+2025-03-22 02:13:11,492 - INFO -  - lstm.weight_hh_l0: cuda:0
+2025-03-22 02:13:11,492 - INFO -  - lstm.bias_ih_l0: cuda:0
+2025-03-22 02:13:11,493 - INFO -  - lstm.bias_hh_l0: cuda:0
+2025-03-22 02:13:11,493 - INFO -  - attr_fc.0.weight: cuda:0
+2025-03-22 02:13:11,493 - INFO -  - attr_fc.0.bias: cuda:0
+2025-03-22 02:13:11,493 - INFO -  - attr_fc.2.weight: cuda:0
+2025-03-22 02:13:11,493 - INFO -  - attr_fc.2.bias: cuda:0
+2025-03-22 02:13:11,493 - INFO -  - final_fc.weight: cuda:0
+2025-03-22 02:13:11,494 - INFO -  - final_fc.bias: cuda:0
+2025-03-22 02:13:11,494 - INFO - [Model Created] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8640.5MB | System Memory: 22.1GB / 63.7GB (34.7%)
+2025-03-22 02:13:11,496 - INFO - [Model Creation END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8640.5MB | System Memory: 22.1GB / 63.7GB (34.7%)
+2025-03-22 02:13:11,496 - INFO - [TIMING] Model Creation completed in 0.12 seconds
+2025-03-22 02:13:11,497 - INFO - [Model Loading START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8640.5MB | System Memory: 22.1GB / 63.7GB (34.7%)
+2025-03-22 02:13:11,498 - INFO - [Model Loading START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8640.5MB | System Memory: 22.1GB / 63.7GB (34.7%)
+2025-03-22 02:13:11,499 - ERROR - D:\PGRWQ\src_PGRWQ\model_training\models.py:418: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+2025-03-22 02:13:11,499 - ERROR -   self.base_model.load_state_dict(torch.load(path))
+2025-03-22 02:13:11,503 - INFO - [Model Loaded] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8641.0MB | System Memory: 22.1GB / 63.7GB (34.7%)
+2025-03-22 02:13:11,504 - INFO - [Model Loading END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8641.0MB | System Memory: 22.1GB / 63.7GB (34.7%)
+2025-03-22 02:13:11,504 - INFO - [TIMING] Model Loading completed in 0.01 seconds
+2025-03-22 02:13:11,504 - INFO - 模型加载成功！
+2025-03-22 02:13:11,505 - INFO - [Model Loading END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8641.0MB | System Memory: 22.1GB / 63.7GB (34.7%)
+2025-03-22 02:13:11,505 - INFO - [TIMING] Model Loading completed in 0.01 seconds
+2025-03-22 02:13:11,506 - INFO - 初始汇流计算：使用 A₀ 进行预测。
+2025-03-22 02:13:11,506 - INFO - [Flow Routing Calculation START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8641.0MB | System Memory: 22.1GB / 63.7GB (34.7%)
+2025-03-22 02:13:12,416 - INFO - ===== MODEL DEVICE CHECK =====
+2025-03-22 02:13:12,416 - INFO - Model is on device: cuda:0
+2025-03-22 02:13:12,416 - INFO - Model type: <class 'model_training.models.MultiBranchModel'>
+2025-03-22 02:13:12,416 - INFO - ===============================
+2025-03-22 02:13:12,893 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 15506.0MB | System Memory: 28.9GB / 63.7GB (45.3%)
+2025-03-22 02:13:13,287 - INFO - Flow routing calculation for iteration 0 started
+2025-03-22 02:13:22,091 - INFO - Processing 7825 river segments in batches...
+2025-03-22 02:13:22,095 - INFO - Processing river segments for iteration 0:   0%|       | 0/7825 [00:00<?, ?it/s]
+2025-03-22 02:13:32,098 - INFO - Processing river segments for iteration 0:   0%|       | 0/7825 [00:10<?, ?it/s]
+2025-03-22 02:13:42,909 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 23020.9MB | System Memory: 36.2GB / 63.7GB (56.8%)
+2025-03-22 02:14:12,916 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 24546.2MB | System Memory: 37.7GB / 63.7GB (59.2%)
+2025-03-22 02:14:15,838 - INFO - [GPU Batch Processing START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 24699.4MB | System Memory: 37.9GB / 63.7GB (59.4%)
+2025-03-22 02:14:17,790 - INFO - Processing batch of 1000 COMIDs with 1694000 total prediction points
+2025-03-22 02:14:17,791 - INFO - [Batch Prediction START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 27348.9MB | System Memory: 40.4GB / 63.7GB (63.5%)
+2025-03-22 02:14:17,792 - INFO - Starting with batch size: 5000 (estimated 23.46MB)
+2025-03-22 02:14:17,793 - INFO - [Prediction Start] Processing 1694000 samples[MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 27348.9MB | System Memory: 40.4GB / 63.7GB (63.5%)
+2025-03-22 02:14:18,116 - INFO - Processed 50000/1694000 samples (3.0%)
+2025-03-22 02:14:18,297 - INFO - Processed 100000/1694000 samples (5.9%)
+2025-03-22 02:14:18,465 - INFO - Processed 150000/1694000 samples (8.9%)
+2025-03-22 02:14:18,625 - INFO - Processed 200000/1694000 samples (11.8%)
+2025-03-22 02:14:18,789 - INFO - Processed 250000/1694000 samples (14.8%)
+2025-03-22 02:14:18,949 - INFO - Processed 300000/1694000 samples (17.7%)
+2025-03-22 02:14:19,110 - INFO - Processed 350000/1694000 samples (20.7%)
+2025-03-22 02:14:19,272 - INFO - Processed 400000/1694000 samples (23.6%)
+2025-03-22 02:14:19,438 - INFO - Processed 450000/1694000 samples (26.6%)
+2025-03-22 02:14:19,596 - INFO - Processed 500000/1694000 samples (29.5%)
+2025-03-22 02:14:19,757 - INFO - Processed 550000/1694000 samples (32.5%)
+2025-03-22 02:14:19,922 - INFO - Processed 600000/1694000 samples (35.4%)
+2025-03-22 02:14:20,088 - INFO - Processed 650000/1694000 samples (38.4%)
+2025-03-22 02:14:20,255 - INFO - Processed 700000/1694000 samples (41.3%)
+2025-03-22 02:14:20,427 - INFO - Processed 750000/1694000 samples (44.3%)
+2025-03-22 02:14:20,592 - INFO - Processed 800000/1694000 samples (47.2%)
+2025-03-22 02:14:20,758 - INFO - Processed 850000/1694000 samples (50.2%)
+2025-03-22 02:14:20,926 - INFO - Processed 900000/1694000 samples (53.1%)
+2025-03-22 02:14:21,090 - INFO - Processed 950000/1694000 samples (56.1%)
+2025-03-22 02:14:21,259 - INFO - Processed 1000000/1694000 samples (59.0%)
+2025-03-22 02:14:21,426 - INFO - Processed 1050000/1694000 samples (62.0%)
+2025-03-22 02:14:21,593 - INFO - Processed 1100000/1694000 samples (64.9%)
+2025-03-22 02:14:21,757 - INFO - Processed 1150000/1694000 samples (67.9%)
+2025-03-22 02:14:21,921 - INFO - Processed 1200000/1694000 samples (70.8%)
+2025-03-22 02:14:22,090 - INFO - Processed 1250000/1694000 samples (73.8%)
+2025-03-22 02:14:22,257 - INFO - Processed 1300000/1694000 samples (76.7%)
+2025-03-22 02:14:22,426 - INFO - Processed 1350000/1694000 samples (79.7%)
+2025-03-22 02:14:22,593 - INFO - Processed 1400000/1694000 samples (82.6%)
+2025-03-22 02:14:22,760 - INFO - Processed 1450000/1694000 samples (85.6%)
+2025-03-22 02:14:22,926 - INFO - Processed 1500000/1694000 samples (88.5%)
+2025-03-22 02:14:23,092 - INFO - Processed 1550000/1694000 samples (91.5%)
+2025-03-22 02:14:23,258 - INFO - Processed 1600000/1694000 samples (94.5%)
+2025-03-22 02:14:23,426 - INFO - Processed 1650000/1694000 samples (97.4%)
+2025-03-22 02:14:23,574 - INFO - Processed 1694000/1694000 samples (100.0%)
+2025-03-22 02:14:23,577 - INFO - [Batch Prediction END] [MEMORY] GPU Memory: 8.3MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 27370.0MB | System Memory: 40.5GB / 63.7GB (63.5%)
+2025-03-22 02:14:23,577 - INFO - [TIMING] Batch Prediction completed in 5.79 seconds
+2025-03-22 02:14:23,902 - INFO - After cleanup: 8.2MB allocated, 22.0MB reserved
+2025-03-22 02:14:23,904 - INFO - [GPU Batch Processing END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 24720.5MB | System Memory: 37.9GB / 63.7GB (59.4%)
+2025-03-22 02:14:23,904 - INFO - [TIMING] GPU Batch Processing completed in 8.07 seconds
+2025-03-22 02:14:27,302 - INFO - Batch 1/8: Processed 1000 COMIDs in 65.21s
+2025-03-22 02:14:27,303 - INFO - GPU Memory: 8.24MB allocated, 22.00MB reserved
+2025-03-22 02:14:27,304 - INFO - Processing river segments for iteration 0:  13%|1| 1000/7825 [01:05<07:25, 15.34
+2025-03-22 02:14:42,950 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 23476.7MB | System Memory: 36.7GB / 63.7GB (57.6%)
+2025-03-22 02:15:13,070 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 24910.4MB | System Memory: 38.1GB / 63.7GB (59.8%)
+2025-03-22 02:15:22,401 - INFO - [GPU Batch Processing START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 25404.3MB | System Memory: 38.6GB / 63.7GB (60.5%)
+2025-03-22 02:15:24,373 - INFO - Processing batch of 1000 COMIDs with 1694000 total prediction points
+2025-03-22 02:15:24,374 - INFO - [Batch Prediction START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 28053.8MB | System Memory: 41.1GB / 63.7GB (64.6%)
+2025-03-22 02:15:24,375 - INFO - Starting with batch size: 5000 (estimated 23.46MB)
+2025-03-22 02:15:24,376 - INFO - [Prediction Start] Processing 1694000 samples[MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 28053.8MB | System Memory: 41.1GB / 63.7GB (64.6%)
+2025-03-22 02:15:24,701 - INFO - Processed 50000/1694000 samples (3.0%)
+2025-03-22 02:15:24,872 - INFO - Processed 100000/1694000 samples (5.9%)
+2025-03-22 02:15:25,036 - INFO - Processed 150000/1694000 samples (8.9%)
+2025-03-22 02:15:25,196 - INFO - Processed 200000/1694000 samples (11.8%)
+2025-03-22 02:15:25,360 - INFO - Processed 250000/1694000 samples (14.8%)
+2025-03-22 02:15:25,525 - INFO - Processed 300000/1694000 samples (17.7%)
+2025-03-22 02:15:25,687 - INFO - Processed 350000/1694000 samples (20.7%)
+2025-03-22 02:15:25,850 - INFO - Processed 400000/1694000 samples (23.6%)
+2025-03-22 02:15:26,013 - INFO - Processed 450000/1694000 samples (26.6%)
+2025-03-22 02:15:26,174 - INFO - Processed 500000/1694000 samples (29.5%)
+2025-03-22 02:15:26,337 - INFO - Processed 550000/1694000 samples (32.5%)
+2025-03-22 02:15:26,504 - INFO - Processed 600000/1694000 samples (35.4%)
+2025-03-22 02:15:26,662 - INFO - Processed 650000/1694000 samples (38.4%)
+2025-03-22 02:15:26,824 - INFO - Processed 700000/1694000 samples (41.3%)
+2025-03-22 02:15:26,982 - INFO - Processed 750000/1694000 samples (44.3%)
+2025-03-22 02:15:27,147 - INFO - Processed 800000/1694000 samples (47.2%)
+2025-03-22 02:15:27,312 - INFO - Processed 850000/1694000 samples (50.2%)
+2025-03-22 02:15:27,473 - INFO - Processed 900000/1694000 samples (53.1%)
+2025-03-22 02:15:27,632 - INFO - Processed 950000/1694000 samples (56.1%)
+2025-03-22 02:15:27,791 - INFO - Processed 1000000/1694000 samples (59.0%)
+2025-03-22 02:15:27,945 - INFO - Processed 1050000/1694000 samples (62.0%)
+2025-03-22 02:15:28,106 - INFO - Processed 1100000/1694000 samples (64.9%)
+2025-03-22 02:15:28,268 - INFO - Processed 1150000/1694000 samples (67.9%)
+2025-03-22 02:15:28,428 - INFO - Processed 1200000/1694000 samples (70.8%)
+2025-03-22 02:15:28,585 - INFO - Processed 1250000/1694000 samples (73.8%)
+2025-03-22 02:15:28,738 - INFO - Processed 1300000/1694000 samples (76.7%)
+2025-03-22 02:15:28,891 - INFO - Processed 1350000/1694000 samples (79.7%)
+2025-03-22 02:15:29,048 - INFO - Processed 1400000/1694000 samples (82.6%)
+2025-03-22 02:15:29,209 - INFO - Processed 1450000/1694000 samples (85.6%)
+2025-03-22 02:15:29,370 - INFO - Processed 1500000/1694000 samples (88.5%)
+2025-03-22 02:15:29,529 - INFO - Processed 1550000/1694000 samples (91.5%)
+2025-03-22 02:15:29,688 - INFO - Processed 1600000/1694000 samples (94.5%)
+2025-03-22 02:15:29,847 - INFO - Processed 1650000/1694000 samples (97.4%)
+2025-03-22 02:15:29,993 - INFO - Processed 1694000/1694000 samples (100.0%)
+2025-03-22 02:15:29,997 - INFO - [Batch Prediction END] [MEMORY] GPU Memory: 8.3MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 28061.4MB | System Memory: 41.1GB / 63.7GB (64.6%)
+2025-03-22 02:15:29,998 - INFO - [TIMING] Batch Prediction completed in 5.62 seconds
+2025-03-22 02:15:30,346 - INFO - After cleanup: 8.2MB allocated, 22.0MB reserved
+2025-03-22 02:15:30,346 - INFO - [GPU Batch Processing END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 25408.0MB | System Memory: 38.6GB / 63.7GB (60.5%)
+2025-03-22 02:15:30,347 - INFO - [TIMING] GPU Batch Processing completed in 7.95 seconds
+2025-03-22 02:15:33,607 - INFO - Processing river segments for iteration 0:  26%|2| 2000/7825 [02:11<06:23, 15.19
+2025-03-22 02:15:43,088 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 23896.4MB | System Memory: 37.3GB / 63.7GB (58.6%)
+2025-03-22 02:16:13,131 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 25319.9MB | System Memory: 38.7GB / 63.7GB (60.7%)
+2025-03-22 02:16:28,064 - INFO - [GPU Batch Processing START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 26055.6MB | System Memory: 38.0GB / 63.7GB (59.7%)
+2025-03-22 02:16:30,008 - INFO - Processing batch of 1000 COMIDs with 1694000 total prediction points
+2025-03-22 02:16:30,009 - INFO - [Batch Prediction START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 28705.0MB | System Memory: 40.6GB / 63.7GB (63.7%)
+2025-03-22 02:16:30,010 - INFO - Starting with batch size: 5000 (estimated 23.46MB)
+2025-03-22 02:16:30,011 - INFO - [Prediction Start] Processing 1694000 samples[MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 28705.0MB | System Memory: 40.6GB / 63.7GB (63.7%)
+2025-03-22 02:16:30,318 - INFO - Processed 50000/1694000 samples (3.0%)
+2025-03-22 02:16:30,486 - INFO - Processed 100000/1694000 samples (5.9%)
+2025-03-22 02:16:30,645 - INFO - Processed 150000/1694000 samples (8.9%)
+2025-03-22 02:16:30,799 - INFO - Processed 200000/1694000 samples (11.8%)
+2025-03-22 02:16:30,954 - INFO - Processed 250000/1694000 samples (14.8%)
+2025-03-22 02:16:31,108 - INFO - Processed 300000/1694000 samples (17.7%)
+2025-03-22 02:16:31,267 - INFO - Processed 350000/1694000 samples (20.7%)
+2025-03-22 02:16:31,426 - INFO - Processed 400000/1694000 samples (23.6%)
+2025-03-22 02:16:31,582 - INFO - Processed 450000/1694000 samples (26.6%)
+2025-03-22 02:16:31,735 - INFO - Processed 500000/1694000 samples (29.5%)
+2025-03-22 02:16:31,894 - INFO - Processed 550000/1694000 samples (32.5%)
+2025-03-22 02:16:32,047 - INFO - Processed 600000/1694000 samples (35.4%)
+2025-03-22 02:16:32,200 - INFO - Processed 650000/1694000 samples (38.4%)
+2025-03-22 02:16:32,355 - INFO - Processed 700000/1694000 samples (41.3%)
+2025-03-22 02:16:32,518 - INFO - Processed 750000/1694000 samples (44.3%)
+2025-03-22 02:16:32,672 - INFO - Processed 800000/1694000 samples (47.2%)
+2025-03-22 02:16:32,832 - INFO - Processed 850000/1694000 samples (50.2%)
+2025-03-22 02:16:32,985 - INFO - Processed 900000/1694000 samples (53.1%)
+2025-03-22 02:16:33,146 - INFO - Processed 950000/1694000 samples (56.1%)
+2025-03-22 02:16:33,300 - INFO - Processed 1000000/1694000 samples (59.0%)
+2025-03-22 02:16:33,469 - INFO - Processed 1050000/1694000 samples (62.0%)
+2025-03-22 02:16:33,625 - INFO - Processed 1100000/1694000 samples (64.9%)
+2025-03-22 02:16:33,787 - INFO - Processed 1150000/1694000 samples (67.9%)
+2025-03-22 02:16:33,944 - INFO - Processed 1200000/1694000 samples (70.8%)
+2025-03-22 02:16:34,097 - INFO - Processed 1250000/1694000 samples (73.8%)
+2025-03-22 02:16:34,255 - INFO - Processed 1300000/1694000 samples (76.7%)
+2025-03-22 02:16:34,413 - INFO - Processed 1350000/1694000 samples (79.7%)
+2025-03-22 02:16:34,567 - INFO - Processed 1400000/1694000 samples (82.6%)
+2025-03-22 02:16:34,722 - INFO - Processed 1450000/1694000 samples (85.6%)
+2025-03-22 02:16:34,873 - INFO - Processed 1500000/1694000 samples (88.5%)
+2025-03-22 02:16:35,031 - INFO - Processed 1550000/1694000 samples (91.5%)
+2025-03-22 02:16:35,187 - INFO - Processed 1600000/1694000 samples (94.5%)
+2025-03-22 02:16:35,351 - INFO - Processed 1650000/1694000 samples (97.4%)
+2025-03-22 02:16:35,496 - INFO - Processed 1694000/1694000 samples (100.0%)
+2025-03-22 02:16:35,500 - INFO - [Batch Prediction END] [MEMORY] GPU Memory: 8.3MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 28714.3MB | System Memory: 40.6GB / 63.7GB (63.7%)
+2025-03-22 02:16:35,501 - INFO - [TIMING] Batch Prediction completed in 5.49 seconds
+2025-03-22 02:16:35,867 - INFO - After cleanup: 8.2MB allocated, 22.0MB reserved
+2025-03-22 02:16:35,867 - INFO - [GPU Batch Processing END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 26064.9MB | System Memory: 38.0GB / 63.7GB (59.7%)
+2025-03-22 02:16:35,867 - INFO - [TIMING] GPU Batch Processing completed in 7.80 seconds
+2025-03-22 02:16:38,892 - INFO - Processing river segments for iteration 0:  38%|3| 3000/7825 [03:16<05:16, 15.25
+2025-03-22 02:16:43,153 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 24331.8MB | System Memory: 36.3GB / 63.7GB (57.0%)
+2025-03-22 02:17:13,166 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 25777.6MB | System Memory: 37.8GB / 63.7GB (59.3%)
+2025-03-22 02:17:32,595 - INFO - [GPU Batch Processing START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 26714.4MB | System Memory: 38.7GB / 63.7GB (60.7%)
+2025-03-22 02:17:34,581 - INFO - Processing batch of 1000 COMIDs with 1694000 total prediction points
+2025-03-22 02:17:34,582 - INFO - [Batch Prediction START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 29363.8MB | System Memory: 41.3GB / 63.7GB (64.8%)
+2025-03-22 02:17:34,584 - INFO - Starting with batch size: 5000 (estimated 23.46MB)
+2025-03-22 02:17:34,585 - INFO - [Prediction Start] Processing 1694000 samples[MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 29363.8MB | System Memory: 41.3GB / 63.7GB (64.8%)
+2025-03-22 02:17:34,905 - INFO - Processed 50000/1694000 samples (3.0%)
+2025-03-22 02:17:35,074 - INFO - Processed 100000/1694000 samples (5.9%)
+2025-03-22 02:17:35,233 - INFO - Processed 150000/1694000 samples (8.9%)
+2025-03-22 02:17:35,396 - INFO - Processed 200000/1694000 samples (11.8%)
+2025-03-22 02:17:35,554 - INFO - Processed 250000/1694000 samples (14.8%)
+2025-03-22 02:17:35,717 - INFO - Processed 300000/1694000 samples (17.7%)
+2025-03-22 02:17:35,880 - INFO - Processed 350000/1694000 samples (20.7%)
+2025-03-22 02:17:36,041 - INFO - Processed 400000/1694000 samples (23.6%)
+2025-03-22 02:17:36,204 - INFO - Processed 450000/1694000 samples (26.6%)
+2025-03-22 02:17:36,368 - INFO - Processed 500000/1694000 samples (29.5%)
+2025-03-22 02:17:36,534 - INFO - Processed 550000/1694000 samples (32.5%)
+2025-03-22 02:17:36,692 - INFO - Processed 600000/1694000 samples (35.4%)
+2025-03-22 02:17:36,849 - INFO - Processed 650000/1694000 samples (38.4%)
+2025-03-22 02:17:37,002 - INFO - Processed 700000/1694000 samples (41.3%)
+2025-03-22 02:17:37,165 - INFO - Processed 750000/1694000 samples (44.3%)
+2025-03-22 02:17:37,324 - INFO - Processed 800000/1694000 samples (47.2%)
+2025-03-22 02:17:37,485 - INFO - Processed 850000/1694000 samples (50.2%)
+2025-03-22 02:17:37,646 - INFO - Processed 900000/1694000 samples (53.1%)
+2025-03-22 02:17:37,805 - INFO - Processed 950000/1694000 samples (56.1%)
+2025-03-22 02:17:37,967 - INFO - Processed 1000000/1694000 samples (59.0%)
+2025-03-22 02:17:38,122 - INFO - Processed 1050000/1694000 samples (62.0%)
+2025-03-22 02:17:38,274 - INFO - Processed 1100000/1694000 samples (64.9%)
+2025-03-22 02:17:38,435 - INFO - Processed 1150000/1694000 samples (67.9%)
+2025-03-22 02:17:38,589 - INFO - Processed 1200000/1694000 samples (70.8%)
+2025-03-22 02:17:38,749 - INFO - Processed 1250000/1694000 samples (73.8%)
+2025-03-22 02:17:38,904 - INFO - Processed 1300000/1694000 samples (76.7%)
+2025-03-22 02:17:39,063 - INFO - Processed 1350000/1694000 samples (79.7%)
+2025-03-22 02:17:39,218 - INFO - Processed 1400000/1694000 samples (82.6%)
+2025-03-22 02:17:39,378 - INFO - Processed 1450000/1694000 samples (85.6%)
+2025-03-22 02:17:39,535 - INFO - Processed 1500000/1694000 samples (88.5%)
+2025-03-22 02:17:39,691 - INFO - Processed 1550000/1694000 samples (91.5%)
+2025-03-22 02:17:39,842 - INFO - Processed 1600000/1694000 samples (94.5%)
+2025-03-22 02:17:39,998 - INFO - Processed 1650000/1694000 samples (97.4%)
+2025-03-22 02:17:40,135 - INFO - Processed 1694000/1694000 samples (100.0%)
+2025-03-22 02:17:40,139 - INFO - [Batch Prediction END] [MEMORY] GPU Memory: 8.3MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 29371.5MB | System Memory: 41.3GB / 63.7GB (64.9%)
+2025-03-22 02:17:40,139 - INFO - [TIMING] Batch Prediction completed in 5.56 seconds
+2025-03-22 02:17:40,563 - INFO - After cleanup: 8.2MB allocated, 22.0MB reserved
+2025-03-22 02:17:40,564 - INFO - [GPU Batch Processing END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 26718.1MB | System Memory: 38.8GB / 63.7GB (60.8%)
+2025-03-22 02:17:40,565 - INFO - [TIMING] GPU Batch Processing completed in 7.97 seconds
+2025-03-22 02:17:43,182 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 24594.4MB | System Memory: 36.7GB / 63.7GB (57.6%)
+2025-03-22 02:17:43,722 - INFO - Processing river segments for iteration 0:  51%|5| 4000/7825 [04:21<04:09, 15.32
+2025-03-22 02:18:13,189 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 26182.4MB | System Memory: 38.2GB / 63.7GB (60.0%)
+2025-03-22 02:18:38,376 - INFO - [GPU Batch Processing START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 27365.5MB | System Memory: 39.4GB / 63.7GB (61.8%)
+2025-03-22 02:18:40,537 - INFO - Processing batch of 1000 COMIDs with 1694000 total prediction points
+2025-03-22 02:18:40,539 - INFO - [Batch Prediction START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 30015.0MB | System Memory: 42.0GB / 63.7GB (65.9%)
+2025-03-22 02:18:40,540 - INFO - Starting with batch size: 5000 (estimated 23.46MB)
+2025-03-22 02:18:40,541 - INFO - [Prediction Start] Processing 1694000 samples[MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 30015.0MB | System Memory: 42.0GB / 63.7GB (65.9%)
+2025-03-22 02:18:40,854 - INFO - Processed 50000/1694000 samples (3.0%)
+2025-03-22 02:18:41,022 - INFO - Processed 100000/1694000 samples (5.9%)
+2025-03-22 02:18:41,183 - INFO - Processed 150000/1694000 samples (8.9%)
+2025-03-22 02:18:41,342 - INFO - Processed 200000/1694000 samples (11.8%)
+2025-03-22 02:18:41,504 - INFO - Processed 250000/1694000 samples (14.8%)
+2025-03-22 02:18:41,662 - INFO - Processed 300000/1694000 samples (17.7%)
+2025-03-22 02:18:41,820 - INFO - Processed 350000/1694000 samples (20.7%)
+2025-03-22 02:18:41,979 - INFO - Processed 400000/1694000 samples (23.6%)
+2025-03-22 02:18:42,139 - INFO - Processed 450000/1694000 samples (26.6%)
+2025-03-22 02:18:42,304 - INFO - Processed 500000/1694000 samples (29.5%)
+2025-03-22 02:18:42,469 - INFO - Processed 550000/1694000 samples (32.5%)
+2025-03-22 02:18:42,631 - INFO - Processed 600000/1694000 samples (35.4%)
+2025-03-22 02:18:42,793 - INFO - Processed 650000/1694000 samples (38.4%)
+2025-03-22 02:18:42,954 - INFO - Processed 700000/1694000 samples (41.3%)
+2025-03-22 02:18:43,112 - INFO - Processed 750000/1694000 samples (44.3%)
+2025-03-22 02:18:43,203 - INFO - [Periodic Check] [MEMORY] GPU Memory: 16.1MB / 8191.5MB (0.2%) | Peak: 323.7MB | Process Memory: 30015.0MB | System Memory: 41.9GB / 63.7GB (65.8%)
+2025-03-22 02:18:43,276 - INFO - Processed 800000/1694000 samples (47.2%)
+2025-03-22 02:18:43,439 - INFO - Processed 850000/1694000 samples (50.2%)
+2025-03-22 02:18:43,601 - INFO - Processed 900000/1694000 samples (53.1%)
+2025-03-22 02:18:43,759 - INFO - Processed 950000/1694000 samples (56.1%)
+2025-03-22 02:18:43,922 - INFO - Processed 1000000/1694000 samples (59.0%)
+2025-03-22 02:18:44,087 - INFO - Processed 1050000/1694000 samples (62.0%)
+2025-03-22 02:18:44,253 - INFO - Processed 1100000/1694000 samples (64.9%)
+2025-03-22 02:18:44,411 - INFO - Processed 1150000/1694000 samples (67.9%)
+2025-03-22 02:18:44,572 - INFO - Processed 1200000/1694000 samples (70.8%)
+2025-03-22 02:18:44,729 - INFO - Processed 1250000/1694000 samples (73.8%)
+2025-03-22 02:18:44,890 - INFO - Processed 1300000/1694000 samples (76.7%)
+2025-03-22 02:18:45,051 - INFO - Processed 1350000/1694000 samples (79.7%)
+2025-03-22 02:18:45,207 - INFO - Processed 1400000/1694000 samples (82.6%)
+2025-03-22 02:18:45,366 - INFO - Processed 1450000/1694000 samples (85.6%)
+2025-03-22 02:18:45,524 - INFO - Processed 1500000/1694000 samples (88.5%)
+2025-03-22 02:18:45,684 - INFO - Processed 1550000/1694000 samples (91.5%)
+2025-03-22 02:18:45,845 - INFO - Processed 1600000/1694000 samples (94.5%)
+2025-03-22 02:18:46,006 - INFO - Processed 1650000/1694000 samples (97.4%)
+2025-03-22 02:18:46,147 - INFO - Processed 1694000/1694000 samples (100.0%)
+2025-03-22 02:18:46,151 - INFO - [Batch Prediction END] [MEMORY] GPU Memory: 8.3MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 30024.2MB | System Memory: 41.9GB / 63.7GB (65.8%)
+2025-03-22 02:18:46,151 - INFO - [TIMING] Batch Prediction completed in 5.61 seconds
+2025-03-22 02:18:46,586 - INFO - After cleanup: 8.2MB allocated, 22.0MB reserved
+2025-03-22 02:18:46,587 - INFO - [GPU Batch Processing END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 27374.8MB | System Memory: 39.4GB / 63.7GB (61.8%)
+2025-03-22 02:18:46,587 - INFO - [TIMING] GPU Batch Processing completed in 8.21 seconds
+2025-03-22 02:18:49,892 - INFO - Processing river segments for iteration 0:  64%|6| 5000/7825 [05:27<03:05, 15.24
+2025-03-22 02:19:13,209 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 26519.9MB | System Memory: 38.5GB / 63.7GB (60.4%)
+2025-03-22 02:19:43,237 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 27908.6MB | System Memory: 39.9GB / 63.7GB (62.6%)
+2025-03-22 02:19:45,453 - INFO - [GPU Batch Processing START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 28023.0MB | System Memory: 40.0GB / 63.7GB (62.8%)
+2025-03-22 02:19:47,476 - INFO - Processing batch of 1000 COMIDs with 1694000 total prediction points
+2025-03-22 02:19:47,477 - INFO - [Batch Prediction START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 30672.5MB | System Memory: 42.5GB / 63.7GB (66.8%)
+2025-03-22 02:19:47,478 - INFO - Starting with batch size: 5000 (estimated 23.46MB)
+2025-03-22 02:19:47,479 - INFO - [Prediction Start] Processing 1694000 samples[MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 30672.5MB | System Memory: 42.5GB / 63.7GB (66.8%)
+2025-03-22 02:19:47,737 - INFO - Processed 50000/1694000 samples (3.0%)
+2025-03-22 02:19:47,901 - INFO - Processed 100000/1694000 samples (5.9%)
+2025-03-22 02:19:48,063 - INFO - Processed 150000/1694000 samples (8.9%)
+2025-03-22 02:19:48,223 - INFO - Processed 200000/1694000 samples (11.8%)
+2025-03-22 02:19:48,385 - INFO - Processed 250000/1694000 samples (14.8%)
+2025-03-22 02:19:48,545 - INFO - Processed 300000/1694000 samples (17.7%)
+2025-03-22 02:19:48,706 - INFO - Processed 350000/1694000 samples (20.7%)
+2025-03-22 02:19:48,865 - INFO - Processed 400000/1694000 samples (23.6%)
+2025-03-22 02:19:49,023 - INFO - Processed 450000/1694000 samples (26.6%)
+2025-03-22 02:19:49,179 - INFO - Processed 500000/1694000 samples (29.5%)
+2025-03-22 02:19:49,342 - INFO - Processed 550000/1694000 samples (32.5%)
+2025-03-22 02:19:49,502 - INFO - Processed 600000/1694000 samples (35.4%)
+2025-03-22 02:19:49,661 - INFO - Processed 650000/1694000 samples (38.4%)
+2025-03-22 02:19:49,827 - INFO - Processed 700000/1694000 samples (41.3%)
+2025-03-22 02:19:49,986 - INFO - Processed 750000/1694000 samples (44.3%)
+2025-03-22 02:19:50,147 - INFO - Processed 800000/1694000 samples (47.2%)
+2025-03-22 02:19:50,308 - INFO - Processed 850000/1694000 samples (50.2%)
+2025-03-22 02:19:50,472 - INFO - Processed 900000/1694000 samples (53.1%)
+2025-03-22 02:19:50,631 - INFO - Processed 950000/1694000 samples (56.1%)
+2025-03-22 02:19:50,791 - INFO - Processed 1000000/1694000 samples (59.0%)
+2025-03-22 02:19:50,947 - INFO - Processed 1050000/1694000 samples (62.0%)
+2025-03-22 02:19:51,106 - INFO - Processed 1100000/1694000 samples (64.9%)
+2025-03-22 02:19:51,267 - INFO - Processed 1150000/1694000 samples (67.9%)
+2025-03-22 02:19:51,431 - INFO - Processed 1200000/1694000 samples (70.8%)
+2025-03-22 02:19:51,591 - INFO - Processed 1250000/1694000 samples (73.8%)
+2025-03-22 02:19:51,745 - INFO - Processed 1300000/1694000 samples (76.7%)
+2025-03-22 02:19:51,905 - INFO - Processed 1350000/1694000 samples (79.7%)
+2025-03-22 02:19:52,060 - INFO - Processed 1400000/1694000 samples (82.6%)
+2025-03-22 02:19:52,216 - INFO - Processed 1450000/1694000 samples (85.6%)
+2025-03-22 02:19:52,375 - INFO - Processed 1500000/1694000 samples (88.5%)
+2025-03-22 02:19:52,536 - INFO - Processed 1550000/1694000 samples (91.5%)
+2025-03-22 02:19:52,696 - INFO - Processed 1600000/1694000 samples (94.5%)
+2025-03-22 02:19:52,859 - INFO - Processed 1650000/1694000 samples (97.4%)
+2025-03-22 02:19:52,998 - INFO - Processed 1694000/1694000 samples (100.0%)
+2025-03-22 02:19:53,002 - INFO - [Batch Prediction END] [MEMORY] GPU Memory: 8.3MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 30680.1MB | System Memory: 42.5GB / 63.7GB (66.7%)
+2025-03-22 02:19:53,002 - INFO - [TIMING] Batch Prediction completed in 5.52 seconds
+2025-03-22 02:19:53,484 - INFO - After cleanup: 8.2MB allocated, 22.0MB reserved
+2025-03-22 02:19:53,485 - INFO - [GPU Batch Processing END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 28026.7MB | System Memory: 40.0GB / 63.7GB (62.7%)
+2025-03-22 02:19:53,485 - INFO - [TIMING] GPU Batch Processing completed in 8.03 seconds
+2025-03-22 02:19:56,744 - INFO - Batch 6/8: Processed 1000 COMIDs in 66.85s
+2025-03-22 02:19:56,745 - INFO - GPU Memory: 8.24MB allocated, 22.00MB reserved
+2025-03-22 02:19:56,746 - INFO - Processing river segments for iteration 0:  77%|7| 6000/7825 [06:34<02:00, 15.14
+2025-03-22 02:20:13,277 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 26860.7MB | System Memory: 38.9GB / 63.7GB (61.0%)
+2025-03-22 02:20:43,308 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 28252.2MB | System Memory: 40.2GB / 63.7GB (63.2%)
+2025-03-22 02:20:51,440 - INFO - [GPU Batch Processing START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 28674.9MB | System Memory: 40.6GB / 63.7GB (63.8%)
+2025-03-22 02:20:53,287 - INFO - Processing batch of 1000 COMIDs with 1694000 total prediction points
+2025-03-22 02:20:53,288 - INFO - [Batch Prediction START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 31324.3MB | System Memory: 43.2GB / 63.7GB (67.9%)
+2025-03-22 02:20:53,290 - INFO - Starting with batch size: 5000 (estimated 23.46MB)
+2025-03-22 02:20:53,291 - INFO - [Prediction Start] Processing 1694000 samples[MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 31324.3MB | System Memory: 43.2GB / 63.7GB (67.9%)
+2025-03-22 02:20:53,595 - INFO - Processed 50000/1694000 samples (3.0%)
+2025-03-22 02:20:53,754 - INFO - Processed 100000/1694000 samples (5.9%)
+2025-03-22 02:20:53,904 - INFO - Processed 150000/1694000 samples (8.9%)
+2025-03-22 02:20:54,058 - INFO - Processed 200000/1694000 samples (11.8%)
+2025-03-22 02:20:54,207 - INFO - Processed 250000/1694000 samples (14.8%)
+2025-03-22 02:20:54,361 - INFO - Processed 300000/1694000 samples (17.7%)
+2025-03-22 02:20:54,518 - INFO - Processed 350000/1694000 samples (20.7%)
+2025-03-22 02:20:54,668 - INFO - Processed 400000/1694000 samples (23.6%)
+2025-03-22 02:20:54,818 - INFO - Processed 450000/1694000 samples (26.6%)
+2025-03-22 02:20:54,970 - INFO - Processed 500000/1694000 samples (29.5%)
+2025-03-22 02:20:55,124 - INFO - Processed 550000/1694000 samples (32.5%)
+2025-03-22 02:20:55,276 - INFO - Processed 600000/1694000 samples (35.4%)
+2025-03-22 02:20:55,423 - INFO - Processed 650000/1694000 samples (38.4%)
+2025-03-22 02:20:55,571 - INFO - Processed 700000/1694000 samples (41.3%)
+2025-03-22 02:20:55,719 - INFO - Processed 750000/1694000 samples (44.3%)
+2025-03-22 02:20:55,870 - INFO - Processed 800000/1694000 samples (47.2%)
+2025-03-22 02:20:56,021 - INFO - Processed 850000/1694000 samples (50.2%)
+2025-03-22 02:20:56,177 - INFO - Processed 900000/1694000 samples (53.1%)
+2025-03-22 02:20:56,328 - INFO - Processed 950000/1694000 samples (56.1%)
+2025-03-22 02:20:56,480 - INFO - Processed 1000000/1694000 samples (59.0%)
+2025-03-22 02:20:56,633 - INFO - Processed 1050000/1694000 samples (62.0%)
+2025-03-22 02:20:56,783 - INFO - Processed 1100000/1694000 samples (64.9%)
+2025-03-22 02:20:56,938 - INFO - Processed 1150000/1694000 samples (67.9%)
+2025-03-22 02:20:57,090 - INFO - Processed 1200000/1694000 samples (70.8%)
+2025-03-22 02:20:57,241 - INFO - Processed 1250000/1694000 samples (73.8%)
+2025-03-22 02:20:57,389 - INFO - Processed 1300000/1694000 samples (76.7%)
+2025-03-22 02:20:57,542 - INFO - Processed 1350000/1694000 samples (79.7%)
+2025-03-22 02:20:57,689 - INFO - Processed 1400000/1694000 samples (82.6%)
+2025-03-22 02:20:57,839 - INFO - Processed 1450000/1694000 samples (85.6%)
+2025-03-22 02:20:57,991 - INFO - Processed 1500000/1694000 samples (88.5%)
+2025-03-22 02:20:58,144 - INFO - Processed 1550000/1694000 samples (91.5%)
+2025-03-22 02:20:58,300 - INFO - Processed 1600000/1694000 samples (94.5%)
+2025-03-22 02:20:58,451 - INFO - Processed 1650000/1694000 samples (97.4%)
+2025-03-22 02:20:58,584 - INFO - Processed 1694000/1694000 samples (100.0%)
+2025-03-22 02:20:58,587 - INFO - [Batch Prediction END] [MEMORY] GPU Memory: 8.3MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 31333.6MB | System Memory: 43.2GB / 63.7GB (67.9%)
+2025-03-22 02:20:58,587 - INFO - [TIMING] Batch Prediction completed in 5.30 seconds
+2025-03-22 02:20:59,013 - INFO - After cleanup: 8.2MB allocated, 22.0MB reserved
+2025-03-22 02:20:59,014 - INFO - [GPU Batch Processing END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 28684.2MB | System Memory: 40.7GB / 63.7GB (63.8%)
+2025-03-22 02:20:59,014 - INFO - [TIMING] GPU Batch Processing completed in 7.57 seconds
+2025-03-22 02:21:02,034 - INFO - Processing river segments for iteration 0:  89%|8| 7000/7825 [07:39<00:54, 15.20
+2025-03-22 02:21:13,367 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 323.7MB | Process Memory: 27300.5MB | System Memory: 39.3GB / 63.7GB (61.6%)
