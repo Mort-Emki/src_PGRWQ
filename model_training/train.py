@@ -73,7 +73,7 @@ def iterative_training_procedure(df: pd.DataFrame,
                                  num_layers: int = 1,
                                  attr_dim: int = None,
                                  fc_dim: int = 32,
-                                 device: str = 'cpu',
+                                 device: str = 'cuda',
                                  comid_wq_list: list = None,
                                  comid_era5_list: list = None,
                                  input_cols: list = None):

@@ -1,9 +1,15 @@
 import pandas as pd
 import numpy as np
 from typing import List, Optional
-from tqdm import tqdm
 import numba
 import time
+import logging
+
+# Import our custom tqdm that supports logging
+try:
+    from tqdm_logging import tqdm
+except ImportError:
+    from tqdm import tqdm
 
 # 定义时间序列数据标准化函数
 def standardize_time_series(X_train, X_val):

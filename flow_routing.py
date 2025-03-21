@@ -1,7 +1,13 @@
 import numpy as np
 import pandas as pd
 from model_training.models import CatchmentModel
-from tqdm import tqdm
+import logging
+
+# Import our custom tqdm that supports logging
+try:
+    from tqdm_logging import tqdm
+except ImportError:
+    from tqdm import tqdm
 
 def compute_retainment_factor(v_f: float, Q_up: pd.Series, Q_down: pd.Series) -> pd.Series:
     """
@@ -42,7 +48,9 @@ def flow_routing_calculation(df: pd.DataFrame,
             'y_n_{iteration}'：汇流总预测值 = E + y_up
     """
     df = df.copy()
-    print(df.head())
+    logging.info(f"Flow routing calculation for iteration {iteration} started")
+    logging.debug(f"DataFrame head:\n{df.head()}")
+    
     df['date'] = pd.to_datetime(df['date'])
     
     # 从 river_info 中构造 NextDownID 字典
@@ -51,32 +59,15 @@ def flow_routing_calculation(df: pd.DataFrame,
     # 按 COMID 分组并排序，构造每个河段的时间序列
     groups = {comid: group.sort_values("date").copy() for comid, group in df.groupby("COMID")}
     comid_data = {}
-    # for comid, group in groups.items():
-    #     # 调用 model_func 预测局部贡献 E，返回 Series，索引为 Date
-
-    #     # ######
-    #     # print('COMID:', comid)
-    #     # print(group.head())
-
-    #     # ######
-
-
-
-    #     E_series = model_func(group,attr_dict, model)
-    #     print(E_series.shape)
-    #     group['E'] = E_series.values
-    #     group['y_up'] = 0.0
-    #     group['y_n'] = 0.0
-    #     group = group.set_index("date")
-    #     comid_data[comid] = group
 
     # 使用tqdm包装groups.items()迭代，并添加描述信息
-    for comid, group in tqdm(groups.items(), desc="处理河段汇流计算", total=len(groups), unit="河段"):
+    logging.info(f"Processing {len(groups)} river segments...")
+    for comid, group in tqdm(groups.items(), desc=f"Processing river segments for iteration {iteration}", total=len(groups)):
         # 调用model_func预测局部贡献E，返回Series，索引为Date
         E_series = model_func(group, attr_dict, model)
         
-        # 可选：在进度条内显示当前处理的COMID
-        tqdm.write(f"处理COMID: {comid}, 数据长度: {len(group)}, 预测结果长度: {len(E_series)}")
+        # Log processing for specific COMID (using debug level to avoid log bloat)
+        logging.debug(f"Processing COMID: {comid}, data length: {len(group)}, prediction result length: {len(E_series)}")
         
         group['E'] = E_series.values
         group['y_up'] = 0.0
@@ -85,6 +76,7 @@ def flow_routing_calculation(df: pd.DataFrame,
         comid_data[comid] = group
 
     # 计算入度：若某个 COMID 出现在其他河段的 NextDownID 中，则其入度增加
+    logging.info("Calculating node indegrees...")
     indegree = {comid: 0 for comid in comid_data.keys()}
     for comid in comid_data.keys():
         next_down = next_down_ids.get(comid, 0)
@@ -96,6 +88,7 @@ def flow_routing_calculation(df: pd.DataFrame,
 
     # 对入度为 0 的头部河段，令 y_n = E
     queue = [comid for comid, deg in indegree.items() if deg == 0]
+    logging.info(f"Found {len(queue)} headwater segments")
     for comid in queue:
         data = comid_data[comid]
         data['y_n'] = data['E'] 
@@ -105,8 +98,14 @@ def flow_routing_calculation(df: pd.DataFrame,
         return compute_retainment_factor(v_f, Q_up, Q_down)
 
     # 利用队列逐步处理上游，将贡献传递到下游
+    logging.info("Starting flow routing calculation...")
+    processed_count = 0
     while queue:
         current = queue.pop(0)
+        processed_count += 1
+        if processed_count % 1000 == 0:
+            logging.info(f"Processed {processed_count} segments so far")
+            
         current_data = comid_data[current]
         # 修正：直接从 next_down_ids 中获取下游，而不是从当前数据中读取
         next_down = next_down_ids.get(current, 0)
@@ -115,9 +114,9 @@ def flow_routing_calculation(df: pd.DataFrame,
         down_data = comid_data[next_down]
         common_dates = current_data.index.intersection(down_data.index)
         if len(common_dates) == 0:
-            print(f"Warning: 日期不对齐，COMID {current} 与 COMID {next_down}")
-            print(f"  当前日期: {current_data.index}")
-            print(f"  下游日期: {down_data.index}")
+            logging.warning(f"Warning: 日期不对齐，COMID {current} 与 COMID {next_down}")
+            logging.warning(f"  当前日期: {current_data.index}")
+            logging.warning(f"  下游日期: {down_data.index}")
         if len(common_dates) > 0:
             y_n_current = current_data['y_n'].reindex(common_dates)
             Q_current = current_data['Qout'].reindex(common_dates)
@@ -136,6 +135,7 @@ def flow_routing_calculation(df: pd.DataFrame,
             queue.append(next_down)
 
     # 合并所有 COMID 的时间序列为长格式 DataFrame，并重命名新列（带迭代标记）
+    logging.info("Merging results...")
     result_list = []
     for comid, data in comid_data.items():
         temp = data.reset_index()
@@ -147,4 +147,6 @@ def flow_routing_calculation(df: pd.DataFrame,
         'y_up': f'y_up_{iteration}',
         'y_n': f'y_n_{iteration}'
     })
+    
+    logging.info(f"Flow routing calculation for iteration {iteration} complete")
     return result_df

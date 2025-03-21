@@ -7,10 +7,18 @@ from data_processing import load_daily_data, load_river_attributes
 from model_training.train import iterative_training_procedure
 import os
 import time
+import sys
+import logging
+import datetime
+from logging_utils import setup_logging, restore_stdout_stderr, ensure_dir_exists
+from tqdm_logging import tqdm
+import threading
+import time
+import datetime
 
 # Import memory monitoring utilities or define fallback functions
 try:
-    from gpu_memory_utils import (
+    from model_training.gpu_memory_utils import (
         log_memory_usage, 
         TimingAndMemoryContext, 
         MemoryTracker, 
@@ -105,62 +113,102 @@ except ImportError:
             "usage_percent": usage_percent
         }
 
-def create_memory_monitor_file(interval_seconds=30):
+def create_memory_monitor_file(interval_seconds=30, log_dir="logs"):
     """Create a file to log memory usage at regular intervals."""
     import threading
     import time
     import datetime
+    import os
+    import logging
+    import torch
     
-    log_file = "gpu_memory_log.csv"
+    # Ensure the log directory exists before attempting to write
+    if not os.path.exists(log_dir):
+        try:
+            os.makedirs(log_dir)
+            logging.info(f"Created directory for GPU memory logs: {log_dir}")
+        except Exception as e:
+            logging.error(f"Error creating directory {log_dir}: {str(e)}")
+            # Fallback to current directory
+            log_dir = "."
+            logging.info(f"Using current directory for logs instead")
+    
+    log_file = os.path.join(log_dir, "gpu_memory_log.csv")
     
     # Create or clear the file with headers
-    with open(log_file, 'w') as f:
-        f.write("timestamp,allocated_mb,reserved_mb,max_allocated_mb,percent_used\n")
+    try:
+        with open(log_file, 'w', encoding='utf-8') as f:
+            f.write("timestamp,allocated_mb,reserved_mb,max_allocated_mb,percent_used\n")
+        logging.info(f"Created GPU memory log file: {log_file}")
+    except Exception as e:
+        logging.error(f"Error creating GPU memory log file: {str(e)}")
+        return None  # Return None if we can't create the file
     
     def _monitor_file():
         while True:
-            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            if torch.cuda.is_available():
-                info = get_gpu_memory_info()
-                with open(log_file, 'a') as f:
-                    f.write(f"{timestamp},{info['allocated_mb']:.2f},{info['reserved_mb']:.2f},"
-                           f"{info['max_allocated_mb']:.2f},{info['usage_percent']:.2f}\n")
+            try:
+                timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                if torch.cuda.is_available():
+                    info = get_gpu_memory_info()
+                    try:
+                        with open(log_file, 'a', encoding='utf-8') as f:
+                            f.write(f"{timestamp},{info['allocated_mb']:.2f},{info['reserved_mb']:.2f},"
+                                   f"{info['max_allocated_mb']:.2f},{info['usage_percent']:.2f}\n")
+                    except Exception as e:
+                        logging.error(f"Error writing to GPU memory log: {str(e)}")
+            except Exception as e:
+                logging.error(f"Error in GPU memory monitoring: {str(e)}")
+            
+            # Sleep even if there was an error
             time.sleep(interval_seconds)
     
     file_monitor = threading.Thread(target=_monitor_file, daemon=True)
     file_monitor.start()
-    print(f"Started GPU memory logging to {log_file} (interval: {interval_seconds}s)")
+    logging.info(f"Started GPU memory logging to {log_file} (interval: {interval_seconds}s)")
     return file_monitor
 
-def main():
-    with TimingAndMemoryContext("Argument Parsing"):
-        parser = argparse.ArgumentParser()
-        parser.add_argument("--max_iterations", type=int, default=5)
-        parser.add_argument("--epsilon", type=float, default=0.01)
-        parser.add_argument("--model_type", type=str, default="lstm", help="'rf' 或 'lstm'")
-        # 新增：指定输入特征列表（逗号分隔）
-        parser.add_argument("--input_features", type=str, default="Feature1,Feature2,Feature3,Feature4,Feature5",
-                            help="以逗号分隔的输入特征名称列表")
-        # 新增：指定属性特征列表（逗号分隔）
-        parser.add_argument("--attr_features", type=str, default="Attr1,Attr2,Attr3",
-                            help="以逗号分隔的属性特征名称列表")
-        # 新增：指定内存监控间隔（秒）
-        parser.add_argument("--memory_check_interval", type=int, default=30,
-                            help="GPU 内存使用情况检查间隔（秒）")
-        # 新增：批次大小
-        parser.add_argument("--batch_size", type=int, default=32,
-                            help="训练批次大小")
-        args = parser.parse_args()
 
+def main():
+    # Parse arguments first to get log_dir
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--max_iterations", type=int, default=5)
+    parser.add_argument("--epsilon", type=float, default=0.01)
+    parser.add_argument("--model_type", type=str, default="lstm", help="'rf' 或 'lstm'")
+    parser.add_argument("--input_features", type=str, default="Feature1,Feature2,Feature3,Feature4,Feature5",
+                        help="以逗号分隔的输入特征名称列表")
+    parser.add_argument("--attr_features", type=str, default="Attr1,Attr2,Attr3",
+                        help="以逗号分隔的属性特征名称列表")
+    parser.add_argument("--memory_check_interval", type=int, default=30,
+                        help="GPU 内存使用情况检查间隔（秒）")
+    parser.add_argument("--batch_size", type=int, default=32,
+                        help="训练批次大小")
+    parser.add_argument("--log_dir", type=str, default="logs",
+                        help="日志保存目录")
+    args = parser.parse_args()
+    
+    # Ensure log directory exists before any operation
+    log_dir = ensure_dir_exists(args.log_dir)
+    
+    # Initialize logging system
+    logger = setup_logging(log_dir=log_dir)
+    
+    # Log system information
+    logging.info(f"PG-RWQ Training Pipeline Starting")
+    logging.info(f"System time: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logging.info(f"Python version: {sys.version}")
+    logging.info(f"PyTorch version: {torch.__version__}")
+    
     # Start GPU memory monitoring
     if torch.cuda.is_available():
         # Start periodic memory check in console
         periodic_monitor = periodic_memory_check(interval_seconds=args.memory_check_interval)
         # Start file-based memory logging
-        file_monitor = create_memory_monitor_file(interval_seconds=args.memory_check_interval)
+        file_monitor = create_memory_monitor_file(interval_seconds=args.memory_check_interval, 
+                                                log_dir=log_dir)
         
         # Initial memory status
         log_memory_usage("[Initial GPU Status] ")
+
 
     # 设置数据根目录
     with TimingAndMemoryContext("Setting Working Directory"):
@@ -325,19 +373,29 @@ class GPUMemoryLogger:
                 print(f"[{self.name}] Warning: Significant memory usage detected")
 
 if __name__ == "__main__":
-    # Initialize overall memory tracking
-    overall_memory_tracker = MemoryTracker(interval_seconds=30)
-    overall_memory_tracker.start()
+    try:
+        # Initialize overall memory tracking
+        overall_memory_tracker = MemoryTracker(interval_seconds=30)
+        overall_memory_tracker.start()
+        
+        # Execute main function with memory monitoring
+        with TimingAndMemoryContext("PGRWQ Training Pipeline"):
+            main()
+        
+        # Get final memory report
+        overall_memory_tracker.stop()
+        stats = overall_memory_tracker.report()
+        
+        # Final cleanup
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            logging.info("Final GPU memory cleanup completed")
     
-    # Execute main function with memory monitoring
-    with TimingAndMemoryContext("PGRWQ Training Pipeline"):
-        main()
+    except Exception as e:
+        logging.exception(f"Error in main execution: {e}")
     
-    # Get final memory report
-    overall_memory_tracker.stop()
-    stats = overall_memory_tracker.report()
-    
-    # Final cleanup
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-        print("Final GPU memory cleanup completed")
+    finally:
+        # Ensure logs are properly flushed and stdout/stderr are restored
+        logging.info("Training process completed")
+        logging.shutdown()
+        restore_stdout_stderr()
