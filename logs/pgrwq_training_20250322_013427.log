@@ -237,3 +237,5 @@
 2025-03-22 01:43:39,181 - INFO - Using batch size: 500000 (estimated 2346.04MB)
 2025-03-22 01:43:39,181 - INFO - [Prediction Start] Processing 1694000 samples[MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 30615.3MB | Process Memory: 16656.1MB | System Memory: 29.9GB / 63.7GB (46.9%)
 2025-03-22 01:43:39,304 - INFO - Batch 1 - input tensors on: cuda:0
+2025-03-22 01:43:45,870 - INFO - Batch 2 - input tensors on: cuda:0
+2025-03-22 01:43:52,216 - INFO - Batch 3 - input tensors on: cuda:0
