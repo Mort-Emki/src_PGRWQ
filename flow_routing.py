@@ -9,6 +9,7 @@ import json
 import torch
 import torch.nn as nn
 from data_processing import build_sliding_windows_for_subset, standardize_time_series_all, standardize_attributes
+import logging 
 
 # Import our custom tqdm that supports logging
 try:
@@ -57,6 +58,14 @@ def flow_routing_calculation(df: pd.DataFrame,
             'y_up_{iteration}'：上游汇流贡献
             'y_n_{iteration}'：汇流总预测值 = E + y_up
     """
+        # Debug model device
+    if model and hasattr(model, 'base_model') and hasattr(model.base_model, 'parameters'):
+        device = next(model.base_model.parameters()).device
+        print(f"===== MODEL DEVICE CHECK =====")
+        print(f"Model is on device: {device}")
+        print(f"Model type: {type(model.base_model)}")
+        print(f"===============================")
+        
     df = df.copy()
     logging.info(f"Flow routing calculation for iteration {iteration} started")
     logging.debug(f"DataFrame head:\n{df.head()}")

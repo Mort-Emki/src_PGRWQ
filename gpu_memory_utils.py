@@ -207,3 +207,29 @@ class TimingAndMemoryContext:
         if self.log_memory:
             log_memory_usage(f"[{self.name} END] ")
         print(f"[TIMING] {self.name} completed in {duration:.2f} seconds")
+
+
+def diagnose_model_device(model):
+    """Diagnose if a PyTorch model is correctly on GPU."""
+    if not hasattr(model, 'parameters'):
+        print("Not a PyTorch model with parameters")
+        return False
+    
+    device_counts = {}
+    for name, param in model.named_parameters():
+        device = param.device
+        device_counts[str(device)] = device_counts.get(str(device), 0) + 1
+    
+    print(f"Model parameter device distribution:")
+    for device, count in device_counts.items():
+        print(f"  - {device}: {count} parameters")
+    
+    # Check if all parameters are on the same device
+    is_consistent = len(device_counts) == 1
+    print(f"Model has consistent device: {is_consistent}")
+    
+    # Check if model is on GPU
+    is_on_gpu = 'cuda' in next(iter(device_counts.keys()))
+    print(f"Model is on GPU: {is_on_gpu}")
+    
+    return is_on_gpu and is_consistent

@@ -4,7 +4,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 from .dataset import MyMultiBranchDataset
 import time
-
+import logging 
 # Import memory monitoring utilities
 try:
     from gpu_memory_utils import log_memory_usage, TimingAndMemoryContext
@@ -65,14 +65,8 @@ class MultiBranchModel(nn.Module):
     输出：
         模型输出为一个标量
     """
-    def __init__(self, 
-                 input_dim, 
-                 hidden_size, 
-                 num_layers, 
-                 attr_dim, 
-                 fc_dim, 
-                 output_dim=1, 
-                 use_attr=True):
+    # In model_training/models.py, modify MultiBranchModel.__init__
+    def __init__(self, input_dim, hidden_size, num_layers, attr_dim, fc_dim, output_dim=1, use_attr=True):
         super().__init__()
         self.use_attr = use_attr
 
@@ -95,6 +89,17 @@ class MultiBranchModel(nn.Module):
             self.final_fc = nn.Linear(hidden_size + fc_dim, output_dim)
         else:
             self.final_fc = nn.Linear(hidden_size, output_dim)
+        
+        # Print model architecture and parameter count
+        print(f"Model architecture initialized:")
+        print(f" - LSTM: input_dim={input_dim}, hidden_size={hidden_size}, num_layers={num_layers}")
+        if self.use_attr:
+            print(f" - Attribute network: attr_dim={attr_dim}, fc_dim={fc_dim}")
+        print(f" - Output dimension: {output_dim}")
+        
+        # Calculate and print parameter count
+        total_params = sum(p.numel() for p in self.parameters())
+        print(f"Total parameters: {total_params:,}")
 
     def forward(self, x_ts, x_attr):
         lstm_out, _ = self.lstm(x_ts)
@@ -120,7 +125,7 @@ class CatchmentModel:
         模型对象，提供 train_model、predict 和 predict_single 方法
     """
     def __init__(self, model_type='rf', input_dim=None, hidden_size=64, num_layers=1,
-                 attr_dim=None, fc_dim=32, device='cpu', memory_check_interval=5):
+                attr_dim=None, fc_dim=32, device='cpu', memory_check_interval=5):
         self.model_type = model_type
         self.device = device
         self.memory_check_interval = memory_check_interval
@@ -134,8 +139,31 @@ class CatchmentModel:
             self.base_model = RandomForestRegressor(n_estimators=50, random_state=42)
         elif self.model_type == 'lstm':
             assert input_dim is not None and attr_dim is not None, "LSTM 模式下必须指定 input_dim 和 attr_dim"
-            self.base_model = MultiBranchModel(input_dim=input_dim, hidden_size=hidden_size,
-                                                num_layers=num_layers, attr_dim=attr_dim, fc_dim=fc_dim).to(device)
+            # Create model
+            self.base_model = MultiBranchModel(
+                input_dim=input_dim, 
+                hidden_size=hidden_size,
+                num_layers=num_layers, 
+                attr_dim=attr_dim, 
+                fc_dim=fc_dim
+            )
+            
+            # Move model to device and print confirmation
+            self.base_model = self.base_model.to(device)
+            print(f"Model moved to {device}")
+            
+            # Force a small tensor through the model to ensure it's on GPU
+            if device == 'cuda':
+                dummy_ts = torch.zeros((1, 10, input_dim), device=device)
+                dummy_attr = torch.zeros((1, attr_dim), device=device)
+                with torch.no_grad():
+                    _ = self.base_model(dummy_ts, dummy_attr)
+                print(f"Model tested on {device} with dummy input")
+                
+                # Print device for each parameter to confirm
+                print("Parameter devices:")
+                for name, param in self.base_model.named_parameters():
+                    print(f" - {name}: {param.device}")
             
             # Log memory after model creation
             if self.device == 'cuda':
@@ -253,18 +281,8 @@ class CatchmentModel:
             # Final memory usage after training
             if self.device == 'cuda':
                 log_memory_usage("[Training Complete] ")
-
     def predict(self, X_ts, X_attr):
-        """
-        批量预测
-        输入：
-            X_ts: (N, T, input_dim) 时间序列数据
-            X_attr: (N, attr_dim) 属性数据
-        输出：
-            返回预测结果数组
-        """
-        import numpy as np  # Import numpy at function level for all code paths
-        
+        """Batch prediction with improved GPU utilization"""
         with TimingAndMemoryContext("Batch Prediction"):
             if self.model_type == 'rf':
                 N, T, D = X_ts.shape
@@ -275,50 +293,60 @@ class CatchmentModel:
                 import torch
                 self.base_model.eval()
                 
-                # Determine optimal batch size based on input size
+                # Force model to the right device
+                if self.device == 'cuda':
+                    self.base_model = self.base_model.to(self.device)
+                
+                # Print model device information
+                print(f"Model prediction - model is on: {next(self.base_model.parameters()).device}")
+                
+                # Determine batch size - use much larger batches
                 total_samples = X_ts.shape[0]
                 
-                # Adaptive batch size based on data size and available memory
                 if torch.cuda.is_available():
-                    # Get memory info
                     available_mem = torch.cuda.get_device_properties(0).total_memory
                     allocated_mem = torch.cuda.memory_allocated()
                     free_mem = available_mem - allocated_mem
                     
-                    # Estimate how many samples we can process at once
-                    # This is an estimate - adjust these factors based on your model
-                    per_sample_memory = 4 * X_ts.shape[1] * X_ts.shape[2] * 4  # Approximate memory per sample
-                    optimal_batch_size = max(10, min(1000, int(free_mem * 0.7 / per_sample_memory)))
+                    # More accurate estimation but much more aggressive memory usage
+                    bytes_per_float = 4
+                    sample_size = X_ts.shape[1] * X_ts.shape[2] + X_attr.shape[1]
+                    bytes_per_sample = sample_size * bytes_per_float * 3
+                    
+                    # Use up to 70% of available memory
+                    optimal_batch_size = max(5000, min(500000, int(free_mem * 0.7 / bytes_per_sample)))
+                    print(f"Using batch size: {optimal_batch_size} (estimated {optimal_batch_size * bytes_per_sample / (1024**2):.2f}MB)")
                 else:
                     optimal_batch_size = 1000
                 
-                # Only log once per prediction call, not per batch
-                if self.device == 'cuda' and total_samples > 100:
+                if self.device == 'cuda':
                     log_memory_usage(f"[Prediction Start] Processing {total_samples} samples")
                 
-                # Process in batches
                 all_preds = []
                 
                 for i in range(0, total_samples, optimal_batch_size):
                     end_idx = min(i + optimal_batch_size, total_samples)
-                    X_ts_batch = X_ts[i:end_idx]
-                    X_attr_batch = X_attr[i:end_idx]
+                    batch_size = end_idx - i
                     
-                    X_ts_torch = torch.tensor(X_ts_batch, dtype=torch.float32, device=self.device)
-                    X_attr_torch = torch.tensor(X_attr_batch, dtype=torch.float32, device=self.device)
+                    # Create tensors directly on GPU
+                    X_ts_torch = torch.tensor(X_ts[i:end_idx], dtype=torch.float32, device=self.device)
+                    X_attr_torch = torch.tensor(X_attr[i:end_idx], dtype=torch.float32, device=self.device)
+                    
+                    print(f"Batch {i//optimal_batch_size + 1} - input tensors on: {X_ts_torch.device}")
                     
                     with torch.no_grad():
                         batch_preds = self.base_model(X_ts_torch, X_attr_torch)
                     
+                    # Only move results back to CPU at the end
                     all_preds.append(batch_preds.cpu().numpy())
                     
-                    # Only clear cache for very large batches
-                    if self.device == 'cuda' and X_ts_batch.shape[0] > 500:
-                        torch.cuda.empty_cache()
-                
-                # Only log once at the end of processing
-                if self.device == 'cuda' and total_samples > 100:
-                    log_memory_usage(f"[Prediction Complete] Processed {total_samples} samples")
+                    # Explicitly delete GPU tensors
+                    del X_ts_torch
+                    del X_attr_torch
+                    torch.cuda.empty_cache()
+                    
+                    if i % (5 * optimal_batch_size) == 0 and i > 0:
+                        print(f"Processed {i}/{total_samples} samples")
                 
                 return np.concatenate(all_preds)
 

@@ -1,0 +1,27 @@
+2025-03-22 01:14:13,210 - INFO - Logging initialized at 2025-03-22 01:14:13
+2025-03-22 01:14:13,212 - INFO - Log file: logs\pgrwq_training_20250322_011413.log
+2025-03-22 01:14:13,212 - INFO - PG-RWQ Training Pipeline Starting
+2025-03-22 01:14:13,212 - INFO - System time: 2025-03-22 01:14:13
+2025-03-22 01:14:13,212 - INFO - Python version: 3.9.21 (main, Dec 11 2024, 16:35:24) [MSC v.1929 64 bit (AMD64)]
+2025-03-22 01:14:13,212 - INFO - PyTorch version: 2.5.1
+2025-03-22 01:14:13,214 - INFO - Started periodic memory monitoring (interval: 30s)
+2025-03-22 01:14:13,215 - INFO - [Periodic Check] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 449.6MB | System Memory: 15.0GB / 63.7GB (23.5%)
+2025-03-22 01:14:13,216 - INFO - Created/verified directory for GPU memory logs: D:\PGRWQ\src_PGRWQ\logs
+2025-03-22 01:14:13,216 - INFO - Created GPU memory log file: D:\PGRWQ\src_PGRWQ\logs\gpu_memory_log.csv
+2025-03-22 01:14:13,217 - INFO - [Initial GPU Status] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 449.7MB | System Memory: 15.0GB / 63.7GB (23.5%)
+2025-03-22 01:14:13,218 - INFO - [Setting Working Directory START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 449.7MB | System Memory: 15.0GB / 63.7GB (23.5%)
+2025-03-22 01:14:13,219 - INFO - [Setting Working Directory END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 449.8MB | System Memory: 15.0GB / 63.7GB (23.5%)
+2025-03-22 01:14:13,219 - INFO - [TIMING] Setting Working Directory completed in 0.00 seconds
+2025-03-22 01:14:13,220 - INFO - [Feature Definition START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 449.8MB | System Memory: 15.0GB / 63.7GB (23.5%)
+2025-03-22 01:14:13,221 - INFO - [Feature Definition END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 449.8MB | System Memory: 15.0GB / 63.7GB (23.5%)
+2025-03-22 01:14:13,221 - INFO - [TIMING] Feature Definition completed in 0.00 seconds
+2025-03-22 01:14:13,221 - INFO - 输入特征列表: ['surface_net_solar_radiation_mean', 'surface_pressure_mean', 'temperature_2m_mean', 'u_component_of_wind_10m_mean', 'v_component_of_wind_10m_mean', 'volumetric_soil_water_layer_1_mean', 'volumetric_soil_water_layer_2_mean', 'temperature_2m_min', 'temperature_2m_max', 'total_precipitation_sum', 'potential_evaporation_sum', 'Qout'] (维度: 12)
+2025-03-22 01:14:13,221 - INFO - 属性特征列表: ['pre_mm_syr', 'pet_mean', 'aridity', 'seasonality', 'high_prec_freq', 'crp_pc_sse', 'for_pc_sse', 'urb_pc_sse', 'wet_pc_s01', 'nli_ix_sav', 'pop_ct_usu', 'dis_m3_pyr', 'run_mm_syr', 'cly_pc_sav', 'soc_th_sav', 'ele_mt_sav', 'slp_dg_sav', 'sgr_dk_sav', 'moisture_index', 'ero_kh_sav'] (维度: 20)
+2025-03-22 01:14:13,222 - INFO - [Device Setup START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 449.8MB | System Memory: 15.0GB / 63.7GB (23.5%)
+2025-03-22 01:14:13,223 - INFO - 使用设备：cuda
+2025-03-22 01:14:13,223 - INFO - CUDA Device 0: NVIDIA GeForce RTX 3060 Ti
+2025-03-22 01:14:13,223 - INFO -   Total Memory: 8.00 GB
+2025-03-22 01:14:13,224 - INFO -   CUDA Capability: 8.6
+2025-03-22 01:14:13,225 - INFO - [Device Setup END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 449.8MB | System Memory: 15.0GB / 63.7GB (23.5%)
+2025-03-22 01:14:13,226 - INFO - [TIMING] Device Setup completed in 0.00 seconds
+2025-03-22 01:14:13,226 - INFO - [Loading Daily Data START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 449.9MB | System Memory: 15.0GB / 63.7GB (23.5%)

@@ -114,21 +114,13 @@ except ImportError:
         }
     
 def create_memory_monitor_file(interval_seconds=30, log_dir="logs"):
-    """Create a file to log memory usage at regular intervals."""
-    import threading
-    import time
-    import datetime
-    import os
-    import logging
-    import torch
-    
     # Use absolute path for the log directory
     original_dir = os.getcwd()
     log_dir = os.path.abspath(log_dir)
     
     # Create directory if it doesn't exist
     try:
-        os.makedirs(log_dir, exist_ok=True)  # exist_ok=True handles the case where the directory already exists
+        os.makedirs(log_dir, exist_ok=True)
         logging.info(f"Created/verified directory for GPU memory logs: {log_dir}")
     except Exception as e:
         logging.error(f"Error creating directory {log_dir}: {str(e)}")
@@ -146,7 +138,7 @@ def create_memory_monitor_file(interval_seconds=30, log_dir="logs"):
         logging.info(f"Created GPU memory log file: {log_file}")
     except Exception as e:
         logging.error(f"Error creating GPU memory log file: {str(e)}")
-        return None  # Return None if we can't create the file
+        return None
     
     def _monitor_file():
         while True:
@@ -164,13 +156,7 @@ def create_memory_monitor_file(interval_seconds=30, log_dir="logs"):
             except Exception as e:
                 logging.error(f"Error in GPU memory monitoring: {str(e)}")
             
-            # Sleep even if there was an error
             time.sleep(interval_seconds)
-    
-    file_monitor = threading.Thread(target=_monitor_file, daemon=True)
-    file_monitor.start()
-    logging.info(f"Started GPU memory logging to {log_file} (interval: {interval_seconds}s)")
-    return file_monitor
 
 def main():
     # Parse arguments first to get log_dir
