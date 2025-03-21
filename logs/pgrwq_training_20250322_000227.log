@@ -1,0 +1,146 @@
+2025-03-22 00:02:27,339 - INFO - Logging initialized at 2025-03-22 00:02:27
+2025-03-22 00:02:27,340 - INFO - Log file: logs\pgrwq_training_20250322_000227.log
+2025-03-22 00:02:27,340 - INFO - PG-RWQ Training Pipeline Starting
+2025-03-22 00:02:27,340 - INFO - System time: 2025-03-22 00:02:27
+2025-03-22 00:02:27,340 - INFO - Python version: 3.9.21 (main, Dec 11 2024, 16:35:24) [MSC v.1929 64 bit (AMD64)]
+2025-03-22 00:02:27,340 - INFO - PyTorch version: 2.5.1
+2025-03-22 00:02:27,342 - INFO - Started periodic memory monitoring (interval: 30s)
+2025-03-22 00:02:27,343 - INFO - [Periodic Check] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 449.4MB | System Memory: 16.0GB / 63.7GB (25.2%)
+2025-03-22 00:02:27,343 - INFO - Created GPU memory log file: logs\gpu_memory_log.csv
+2025-03-22 00:02:27,345 - INFO - Started GPU memory logging to logs\gpu_memory_log.csv (interval: 30s)
+2025-03-22 00:02:27,346 - INFO - [Initial GPU Status] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 449.9MB | System Memory: 16.1GB / 63.7GB (25.2%)
+2025-03-22 00:02:27,347 - INFO - [Setting Working Directory START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 449.9MB | System Memory: 16.1GB / 63.7GB (25.2%)
+2025-03-22 00:02:27,348 - INFO - [Setting Working Directory END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.0MB | System Memory: 16.1GB / 63.7GB (25.2%)
+2025-03-22 00:02:27,349 - INFO - [TIMING] Setting Working Directory completed in 0.00 seconds
+2025-03-22 00:02:27,351 - INFO - [Feature Definition START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.0MB | System Memory: 16.1GB / 63.7GB (25.2%)
+2025-03-22 00:02:27,351 - INFO - [Feature Definition END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.0MB | System Memory: 16.1GB / 63.7GB (25.2%)
+2025-03-22 00:02:27,352 - INFO - [TIMING] Feature Definition completed in 0.00 seconds
+2025-03-22 00:02:27,352 - INFO - 输入特征列表: ['surface_net_solar_radiation_mean', 'surface_pressure_mean', 'temperature_2m_mean', 'u_component_of_wind_10m_mean', 'v_component_of_wind_10m_mean', 'volumetric_soil_water_layer_1_mean', 'volumetric_soil_water_layer_2_mean', 'temperature_2m_min', 'temperature_2m_max', 'total_precipitation_sum', 'potential_evaporation_sum', 'Qout'] (维度: 12)
+2025-03-22 00:02:27,352 - INFO - 属性特征列表: ['pre_mm_syr', 'pet_mean', 'aridity', 'seasonality', 'high_prec_freq', 'crp_pc_sse', 'for_pc_sse', 'urb_pc_sse', 'wet_pc_s01', 'nli_ix_sav', 'pop_ct_usu', 'dis_m3_pyr', 'run_mm_syr', 'cly_pc_sav', 'soc_th_sav', 'ele_mt_sav', 'slp_dg_sav', 'sgr_dk_sav', 'moisture_index', 'ero_kh_sav'] (维度: 20)
+2025-03-22 00:02:27,353 - INFO - [Device Setup START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.1MB | System Memory: 16.1GB / 63.7GB (25.2%)
+2025-03-22 00:02:27,353 - INFO - 使用设备：cuda
+2025-03-22 00:02:27,354 - INFO - CUDA Device 0: NVIDIA GeForce RTX 3060 Ti
+2025-03-22 00:02:27,354 - INFO -   Total Memory: 8.00 GB
+2025-03-22 00:02:27,354 - INFO -   CUDA Capability: 8.6
+2025-03-22 00:02:27,355 - INFO - [Device Setup END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.2MB | System Memory: 16.1GB / 63.7GB (25.2%)
+2025-03-22 00:02:27,355 - INFO - [TIMING] Device Setup completed in 0.00 seconds
+2025-03-22 00:02:27,356 - INFO - [Loading Daily Data START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.2MB | System Memory: 16.1GB / 63.7GB (25.2%)
+2025-03-22 00:02:52,117 - INFO - 日尺度数据基本信息：
+2025-03-22 00:02:52,117 - INFO -   数据形状: (13325975, 43)
+2025-03-22 00:02:52,117 - INFO -   列名: ['date', 'snow_depth_water_equivalent_mean', 'surface_net_solar_radiation_mean', 'surface_net_thermal_radiation_mean', 'surface_pressure_mean', 'temperature_2m_mean', 'dewpoint_temperature_2m_mean', 'u_component_of_wind_10m_mean', 'v_component_of_wind_10m_mean', 'volumetric_soil_water_layer_1_mean', 'volumetric_soil_water_layer_2_mean', 'volumetric_soil_water_layer_3_mean', 'volumetric_soil_water_layer_4_mean', 'snow_depth_water_equivalent_min', 'surface_net_solar_radiation_min', 'surface_net_thermal_radiation_min', 'surface_pressure_min', 'temperature_2m_min', 'dewpoint_temperature_2m_min', 'u_component_of_wind_10m_min', 'v_component_of_wind_10m_min', 'volumetric_soil_water_layer_1_min', 'volumetric_soil_water_layer_2_min', 'volumetric_soil_water_layer_3_min', 'volumetric_soil_water_layer_4_min', 'snow_depth_water_equivalent_max', 'surface_net_solar_radiation_max', 'surface_net_thermal_radiation_max', 'surface_pressure_max', 'temperature_2m_max', 'dewpoint_temperature_2m_max', 'u_component_of_wind_10m_max', 'v_component_of_wind_10m_max', 'volumetric_soil_water_layer_1_max', 'volumetric_soil_water_layer_2_max', 'volumetric_soil_water_layer_3_max', 'volumetric_soil_water_layer_4_max', 'total_precipitation_sum', 'potential_evaporation_sum', 'Qout', 'COMID', 'TP', 'TN']
+2025-03-22 00:02:52,118 - INFO - [Loading Daily Data END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4924.9MB | System Memory: 20.5GB / 63.7GB (32.1%)
+2025-03-22 00:02:52,120 - INFO - [TIMING] Loading Daily Data completed in 24.76 seconds
+2025-03-22 00:02:52,121 - INFO - [Loading River Attributes START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4924.9MB | System Memory: 20.5GB / 63.7GB (32.1%)
+2025-03-22 00:02:52,251 - INFO - 
+2025-03-22 00:02:52,252 - INFO - 河段属性数据基本信息：
+2025-03-22 00:02:52,252 - INFO -   数据形状: (7825, 224)
+2025-03-22 00:02:52,252 - INFO -   列名: ['COMID', 'lengthkm', 'lengthdir', 'sinuosity', 'slope', 'uparea', 'order_', 'strmDrop_t', 'slope_taud', 'NextDownID', 'maxup', 'up1', 'up2', 'up3', 'up4', 'p_mean', 'pet_mean', 'aridity', 'frac_snow', 'moisture_index', 'seasonality', 'high_prec_freq', 'high_prec_dur', 'low_prec_freq', 'low_prec_dur', 'sgr_dk_sav', 'glc_pc_s06', 'glc_pc_s07', 'nli_ix_sav', 'glc_pc_s04', 'glc_pc_s05', 'glc_pc_s02', 'glc_pc_s03', 'glc_pc_s01', 'pet_mm_syr', 'glc_pc_s08', 'glc_pc_s09', 'swc_pc_s09', 'ele_mt_smx', 'tbi_cl_smj', 'swc_pc_s01', 'swc_pc_s02', 'swc_pc_s03', 'swc_pc_s04', 'swc_pc_s05', 'swc_pc_s06', 'swc_pc_s07', 'swc_pc_s08', 'crp_pc_sse', 'glc_pc_s22', 'glc_pc_s20', 'glc_pc_s21', 'wet_pc_sg1', 'wet_pc_sg2', 'pac_pc_sse', 'swc_pc_s10', 'swc_pc_s11', 'swc_pc_s12', 'clz_cl_smj', 'gwt_cm_sav', 'glc_pc_s17', 'glc_pc_s18', 'hft_ix_s93', 'glc_pc_s15', 'ire_pc_sse', 'glc_pc_s16', 'glc_pc_s13', 'prm_pc_sse', 'glc_pc_s14', 'glc_pc_s11', 'glc_pc_s12', 'glc_pc_s10', 'kar_pc_sse', 'slp_dg_sav', 'glc_pc_s19', 'tmp_dc_s07', 'tmp_dc_s08', 'tmp_dc_s05', 'tmp_dc_s06', 'tmp_dc_s09', 'for_pc_sse', 'aet_mm_s06', 'aet_mm_s05', 'aet_mm_s08', 'aet_mm_s07', 'aet_mm_s09', 'tmp_dc_s10', 'tmp_dc_s11', 'aet_mm_s02', 'aet_mm_s01', 'tmp_dc_s12', 'aet_mm_s04', 'aet_mm_s03', 'lit_cl_smj', 'tmp_dc_s03', 'tmp_dc_s04', 'tmp_dc_s01', 'tmp_dc_s02', 'cls_cl_smj', 'pre_mm_syr', 'pnv_pc_s01', 'pnv_pc_s04', 'pnv_pc_s05', 'pnv_pc_s02', 'rdd_mk_sav', 'ele_mt_smn', 'pnv_pc_s03', 'pnv_pc_s08', 'pnv_pc_s09', 'pnv_pc_s06', 'pnv_pc_s07', 'wet_cl_smj', 'snw_pc_syr', 'pnv_pc_s11', 'pnv_pc_s12', 'pnv_pc_s10', 'pnv_pc_s15', 'pnv_pc_s13', 'pnv_pc_s14', 'cmi_ix_syr', 'pet_mm_s11', 'pet_mm_s12', 'pet_mm_s10', 'tmp_dc_smn', 'wet_pc_s08', 'wet_pc_s09', 'slt_pc_sav', 'wet_pc_s02', 'wet_pc_s03', 'wet_pc_s01', 'hdi_ix_sav', 'wet_pc_s06', 'wet_pc_s07', 'wet_pc_s04', 'wet_pc_s05', 'fec_cl_smj', 'glc_cl_smj', 'swc_pc_syr', 'hft_ix_s09', 'soc_th_sav', 'gdp_ud_sav', 'gdp_ud_ssu', 'tmp_dc_smx', 'cly_pc_sav', 'pet_mm_s02', 'pet_mm_s03', 'pet_mm_s01', 'snw_pc_smx', 'ppd_pk_sav', 'pet_mm_s08', 'aet_mm_s11', 'pet_mm_s09', 'aet_mm_s10', 'pet_mm_s06', 'pet_mm_s07', 'aet_mm_s12', 'pet_mm_s04', 'pet_mm_s05', 'inu_pc_slt', 'ero_kh_sav', 'aet_mm_syr', 'cmi_ix_s10', 'cmi_ix_s11', 'cmi_ix_s12', 'ari_ix_sav', 'tmp_dc_syr', 'tec_cl_smj', 'fmh_cl_smj', 'inu_pc_smn', 'pnv_cl_smj', 'pre_mm_s08', 'pre_mm_s09', 'run_mm_syr', 'pre_mm_s06', 'pre_mm_s07', 'pre_mm_s04', 'pre_mm_s05', 'snd_pc_sav', 'pre_mm_s02', 'pre_mm_s03', 'ele_mt_sav', 'pre_mm_s01', 'urb_pc_sse', 'lka_pc_sse', 'pre_mm_s10', 'snw_pc_s01', 'snw_pc_s02', 'snw_pc_s03', 'snw_pc_s04', 'snw_pc_s05', 'snw_pc_s06', 'gla_pc_sse', 'snw_pc_s07', 'snw_pc_s08', 'snw_pc_s09', 'inu_pc_smx', 'pre_mm_s11', 'pre_mm_s12', 'cmi_ix_s07', 'cmi_ix_s08', 'cmi_ix_s05', 'cmi_ix_s06', 'cmi_ix_s09', 'snw_pc_s10', 'snw_pc_s11', 'snw_pc_s12', 'cmi_ix_s03', 'cmi_ix_s04', 'cmi_ix_s01', 'cmi_ix_s02', 'pst_pc_sse', 'dis_m3_pmn', 'dis_m3_pmx', 'dis_m3_pyr', 'lkv_mc_usu', 'rev_mc_usu', 'ria_ha_usu', 'riv_tc_usu', 'pop_ct_usu', 'dor_pc_pva', 'area', 'area_fraction_used_for_aggregation', 'WQ_exist', 'ERA5_exist']
+2025-03-22 00:02:52,253 - INFO - [Loading River Attributes END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4941.8MB | System Memory: 20.5GB / 63.7GB (32.2%)
+2025-03-22 00:02:52,253 - INFO - [TIMING] Loading River Attributes completed in 0.13 seconds
+2025-03-22 00:02:52,254 - INFO - [Extracting River Network Info START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4941.8MB | System Memory: 20.5GB / 63.7GB (32.2%)
+2025-03-22 00:02:52,263 - INFO - [Extracting River Network Info END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4944.6MB | System Memory: 20.5GB / 63.7GB (32.2%)
+2025-03-22 00:02:52,263 - INFO - [TIMING] Extracting River Network Info completed in 0.01 seconds
+2025-03-22 00:02:52,264 - INFO - [Iterative Training Process START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4944.6MB | System Memory: 20.5GB / 63.7GB (32.2%)
+2025-03-22 00:02:52,266 - INFO - Memory tracking started (interval: 10s)
+2025-03-22 00:02:52,268 - INFO - [Training Start] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4944.8MB | System Memory: 20.5GB / 63.7GB (32.2%)
+2025-03-22 00:02:52,268 - INFO - 选择头部河段进行初始模型训练。
+2025-03-22 00:02:52,269 - INFO - [Building Attribute Dictionary START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4944.8MB | System Memory: 20.5GB / 63.7GB (32.2%)
+2025-03-22 00:02:53,611 - INFO - [Building Attribute Dictionary END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8397.3MB | System Memory: 24.0GB / 63.7GB (37.6%)
+2025-03-22 00:02:53,611 - INFO - [TIMING] Building Attribute Dictionary completed in 1.34 seconds
+2025-03-22 00:02:53,612 - INFO - [Finding Head Stations START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8397.3MB | System Memory: 24.0GB / 63.7GB (37.6%)
+2025-03-22 00:02:53,653 - INFO -   选择的头部河段数量：27
+2025-03-22 00:02:53,653 - INFO - [Finding Head Stations END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8398.0MB | System Memory: 24.0GB / 63.7GB (37.6%)
+2025-03-22 00:02:53,654 - INFO - [TIMING] Finding Head Stations completed in 0.04 seconds
+2025-03-22 00:02:53,654 - INFO - 构造初始训练数据（滑窗切片）......
+2025-03-22 00:02:53,655 - INFO - [Building Sliding Windows START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8398.0MB | System Memory: 24.0GB / 63.7GB (37.6%)
+2025-03-22 00:02:54,642 - INFO - [Building Sliding Windows END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8453.3MB | System Memory: 24.0GB / 63.7GB (37.7%)
+2025-03-22 00:02:54,642 - INFO - [TIMING] Building Sliding Windows completed in 0.99 seconds
+2025-03-22 00:02:54,642 - INFO - X_ts_all.shape =
+2025-03-22 00:02:54,642 - INFO - (34413, 10, 39)
+2025-03-22 00:02:54,643 - INFO - Y.shape        =
+2025-03-22 00:02:54,643 - INFO - (34413,)
+2025-03-22 00:02:54,643 - INFO - COMID.shape    =
+2025-03-22 00:02:54,643 - INFO - (34413,)
+2025-03-22 00:02:54,644 - INFO - Date.shape     =
+2025-03-22 00:02:54,644 - INFO - (34413,)
+2025-03-22 00:02:54,645 - INFO - [Saving Training Data START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8453.3MB | System Memory: 24.0GB / 63.7GB (37.7%)
+2025-03-22 00:02:54,698 - INFO - 训练数据保存成功！
+2025-03-22 00:02:54,699 - INFO - [Saving Training Data END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8453.4MB | System Memory: 24.1GB / 63.7GB (37.8%)
+2025-03-22 00:02:54,699 - INFO - [TIMING] Saving Training Data completed in 0.05 seconds
+2025-03-22 00:02:54,700 - INFO - [Data Standardization START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8453.4MB | System Memory: 24.1GB / 63.7GB (37.8%)
+2025-03-22 00:02:54,843 - INFO - [After Standardization] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8455.3MB | System Memory: 24.1GB / 63.7GB (37.8%)
+2025-03-22 00:02:54,844 - INFO - [Data Standardization END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8455.3MB | System Memory: 24.1GB / 63.7GB (37.8%)
+2025-03-22 00:02:54,844 - INFO - [TIMING] Data Standardization completed in 0.14 seconds
+2025-03-22 00:02:54,845 - INFO - [Train/Validation Split START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8455.3MB | System Memory: 24.1GB / 63.7GB (37.8%)
+2025-03-22 00:02:54,861 - INFO - [Train/Validation Split END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8506.6MB | System Memory: 24.1GB / 63.7GB (37.9%)
+2025-03-22 00:02:54,861 - INFO - [TIMING] Train/Validation Split completed in 0.02 seconds
+2025-03-22 00:02:54,861 - INFO - 初始模型 A₀ 训练：头部河段训练数据构造完毕。
+2025-03-22 00:02:54,862 - INFO - [Model Creation START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8506.6MB | System Memory: 24.1GB / 63.7GB (37.9%)
+2025-03-22 00:02:54,863 - INFO - [Model Init] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8506.6MB | System Memory: 24.1GB / 63.7GB (37.9%)
+2025-03-22 00:02:54,935 - INFO - [Model Created] [MEMORY] GPU Memory: 0.1MB / 8191.5MB (0.0%) | Peak: 0.2MB | Process Memory: 8605.5MB | System Memory: 24.2GB / 63.7GB (38.0%)
+2025-03-22 00:02:54,936 - INFO - [Model Creation END] [MEMORY] GPU Memory: 0.1MB / 8191.5MB (0.0%) | Peak: 0.2MB | Process Memory: 8605.5MB | System Memory: 24.2GB / 63.7GB (38.0%)
+2025-03-22 00:02:54,936 - INFO - [TIMING] Model Creation completed in 0.07 seconds
+2025-03-22 00:02:54,937 - INFO - [Model Loading START] [MEMORY] GPU Memory: 0.1MB / 8191.5MB (0.0%) | Peak: 0.2MB | Process Memory: 8605.6MB | System Memory: 24.2GB / 63.7GB (38.0%)
+2025-03-22 00:02:54,938 - INFO - [Model Loading START] [MEMORY] GPU Memory: 0.1MB / 8191.5MB (0.0%) | Peak: 0.2MB | Process Memory: 8605.6MB | System Memory: 24.2GB / 63.7GB (38.0%)
+2025-03-22 00:02:54,938 - ERROR - D:\PGRWQ\src_PGRWQ\model_training\models.py:363: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+2025-03-22 00:02:54,939 - ERROR -   self.base_model.load_state_dict(torch.load(path))
+2025-03-22 00:02:54,942 - INFO - [Model Loaded] [MEMORY] GPU Memory: 0.1MB / 8191.5MB (0.0%) | Peak: 0.2MB | Process Memory: 8606.0MB | System Memory: 24.2GB / 63.7GB (38.0%)
+2025-03-22 00:02:54,942 - INFO - [Model Loading END] [MEMORY] GPU Memory: 0.1MB / 8191.5MB (0.0%) | Peak: 0.2MB | Process Memory: 8606.0MB | System Memory: 24.2GB / 63.7GB (38.0%)
+2025-03-22 00:02:54,943 - INFO - [TIMING] Model Loading completed in 0.01 seconds
+2025-03-22 00:02:54,943 - INFO - 模型加载成功！
+2025-03-22 00:02:54,944 - INFO - [Model Loading END] [MEMORY] GPU Memory: 0.1MB / 8191.5MB (0.0%) | Peak: 0.2MB | Process Memory: 8606.0MB | System Memory: 24.2GB / 63.7GB (38.0%)
+2025-03-22 00:02:54,944 - INFO - [TIMING] Model Loading completed in 0.01 seconds
+2025-03-22 00:02:54,944 - INFO - 初始汇流计算：使用 A₀ 进行预测。
+2025-03-22 00:02:54,945 - INFO - [Flow Routing Calculation START] [MEMORY] GPU Memory: 0.1MB / 8191.5MB (0.0%) | Peak: 0.2MB | Process Memory: 8606.0MB | System Memory: 24.2GB / 63.7GB (38.0%)
+2025-03-22 00:02:56,618 - INFO - Flow routing calculation for iteration 0 started
+2025-03-22 00:02:58,573 - INFO - [Periodic Check] [MEMORY] GPU Memory: 0.1MB / 8191.5MB (0.0%) | Peak: 0.2MB | Process Memory: 17451.9MB | System Memory: 32.9GB / 63.7GB (51.6%)
+2025-03-22 00:02:58,573 - ERROR - Error writing to GPU memory log: [Errno 2] No such file or directory: 'logs\\gpu_memory_log.csv'
+2025-03-22 00:03:04,382 - INFO - Processing 7825 river segments in batches...
+2025-03-22 00:03:04,385 - INFO - Processing river segments for iteration 0:   0%|       | 0/7825 [00:00<?, ?it/s]
+2025-03-22 00:03:14,411 - INFO - Processing river segments for iteration 0:   0%|       | 0/7825 [00:10<?, ?it/s]
+2025-03-22 00:03:28,581 - INFO - [Periodic Check] [MEMORY] GPU Memory: 0.1MB / 8191.5MB (0.0%) | Peak: 0.2MB | Process Memory: 23228.2MB | System Memory: 38.5GB / 63.7GB (60.4%)
+2025-03-22 00:03:28,581 - ERROR - Error writing to GPU memory log: [Errno 2] No such file or directory: 'logs\\gpu_memory_log.csv'
+2025-03-22 00:03:58,586 - ERROR - Error writing to GPU memory log: [Errno 2] No such file or directory: 'logs\\gpu_memory_log.csv'
+2025-03-22 00:03:58,587 - INFO - [Periodic Check] [MEMORY] GPU Memory: 0.1MB / 8191.5MB (0.0%) | Peak: 0.2MB | Process Memory: 27270.8MB | System Memory: 42.4GB / 63.7GB (66.6%)
+2025-03-22 00:04:00,465 - INFO - [Batch Prediction START] [MEMORY] GPU Memory: 0.1MB / 8191.5MB (0.0%) | Peak: 0.2MB | Process Memory: 27310.6MB | System Memory: 42.5GB / 63.7GB (66.7%)
+2025-03-22 00:04:00,466 - INFO - [Prediction Start] Processing 1694000 samples[MEMORY] GPU Memory: 0.1MB / 8191.5MB (0.0%) | Peak: 0.2MB | Process Memory: 27310.6MB | System Memory: 42.5GB / 63.7GB (66.7%)
+2025-03-22 00:04:06,991 - INFO - [Prediction Complete] Processed 1694000 samples[MEMORY] GPU Memory: 9.8MB / 8191.5MB (0.1%) | Peak: 77.5MB | Process Memory: 27360.8MB | System Memory: 42.5GB / 63.7GB (66.7%)
+2025-03-22 00:04:06,994 - INFO - [Batch Prediction END] [MEMORY] GPU Memory: 9.8MB / 8191.5MB (0.1%) | Peak: 77.5MB | Process Memory: 27367.3MB | System Memory: 42.5GB / 63.7GB (66.7%)
+2025-03-22 00:04:06,994 - INFO - [TIMING] Batch Prediction completed in 6.53 seconds
+2025-03-22 00:04:09,684 - INFO - Batch 1/8: Processed 1000 COMIDs in 65.30s
+2025-03-22 00:04:09,685 - INFO - GPU Memory: 8.24MB allocated, 22.00MB reserved
+2025-03-22 00:04:09,685 - INFO - Processing river segments for iteration 0:  13%|1| 1000/7825 [01:05<07:25, 15.31
+2025-03-22 00:04:28,630 - ERROR - Error writing to GPU memory log: [Errno 2] No such file or directory: 'logs\\gpu_memory_log.csv'
+2025-03-22 00:04:28,641 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 77.5MB | Process Memory: 23760.3MB | System Memory: 38.9GB / 63.7GB (61.1%)
+2025-03-22 00:04:58,652 - ERROR - Error writing to GPU memory log: [Errno 2] No such file or directory: 'logs\\gpu_memory_log.csv'
+2025-03-22 00:04:58,652 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 77.5MB | Process Memory: 25802.4MB | System Memory: 41.0GB / 63.7GB (64.3%)
+2025-03-22 00:05:05,193 - INFO - [Batch Prediction START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 77.5MB | Process Memory: 28047.8MB | System Memory: 43.2GB / 63.7GB (67.8%)
+2025-03-22 00:05:05,194 - INFO - [Prediction Start] Processing 1694000 samples[MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 77.5MB | Process Memory: 28047.8MB | System Memory: 43.2GB / 63.7GB (67.8%)
+2025-03-22 00:05:11,717 - INFO - [Prediction Complete] Processed 1694000 samples[MEMORY] GPU Memory: 9.8MB / 8191.5MB (0.1%) | Peak: 77.5MB | Process Memory: 28051.9MB | System Memory: 43.2GB / 63.7GB (67.8%)
+2025-03-22 00:05:11,720 - INFO - [Batch Prediction END] [MEMORY] GPU Memory: 9.8MB / 8191.5MB (0.1%) | Peak: 77.5MB | Process Memory: 28058.3MB | System Memory: 43.2GB / 63.7GB (67.8%)
+2025-03-22 00:05:11,720 - INFO - [TIMING] Batch Prediction completed in 6.53 seconds
+2025-03-22 00:05:14,688 - INFO - Processing river segments for iteration 0:  26%|2| 2000/7825 [02:10<06:19, 15.36
+2025-03-22 00:05:28,698 - ERROR - Error writing to GPU memory log: [Errno 2] No such file or directory: 'logs\\gpu_memory_log.csv'
+2025-03-22 00:05:28,709 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 77.5MB | Process Memory: 24182.1MB | System Memory: 39.4GB / 63.7GB (61.8%)
+2025-03-22 00:05:58,733 - ERROR - Error writing to GPU memory log: [Errno 2] No such file or directory: 'logs\\gpu_memory_log.csv'
+2025-03-22 00:05:58,734 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 77.5MB | Process Memory: 25758.7MB | System Memory: 41.0GB / 63.7GB (64.4%)
+2025-03-22 00:06:11,194 - INFO - [Batch Prediction START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 77.5MB | Process Memory: 28706.4MB | System Memory: 41.4GB / 63.7GB (65.0%)
+2025-03-22 00:06:11,195 - INFO - [Prediction Start] Processing 1694000 samples[MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 77.5MB | Process Memory: 28706.4MB | System Memory: 41.4GB / 63.7GB (65.0%)
+2025-03-22 00:06:17,626 - INFO - [Prediction Complete] Processed 1694000 samples[MEMORY] GPU Memory: 9.8MB / 8191.5MB (0.1%) | Peak: 77.5MB | Process Memory: 28707.8MB | System Memory: 41.3GB / 63.7GB (64.9%)
+2025-03-22 00:06:17,630 - INFO - [Batch Prediction END] [MEMORY] GPU Memory: 9.8MB / 8191.5MB (0.1%) | Peak: 77.5MB | Process Memory: 28714.3MB | System Memory: 41.3GB / 63.7GB (64.9%)
+2025-03-22 00:06:17,630 - INFO - [TIMING] Batch Prediction completed in 6.44 seconds
+2025-03-22 00:06:20,351 - INFO - Processing river segments for iteration 0:  38%|3| 3000/7825 [03:15<05:15, 15.30
+2025-03-22 00:06:28,749 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 77.5MB | Process Memory: 24542.5MB | System Memory: 37.3GB / 63.7GB (58.5%)
+2025-03-22 00:06:28,749 - ERROR - Error writing to GPU memory log: [Errno 2] No such file or directory: 'logs\\gpu_memory_log.csv'
+2025-03-22 00:06:58,775 - ERROR - Error writing to GPU memory log: [Errno 2] No such file or directory: 'logs\\gpu_memory_log.csv'
+2025-03-22 00:06:58,775 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 77.5MB | Process Memory: 26113.9MB | System Memory: 38.8GB / 63.7GB (60.8%)
+2025-03-22 00:07:16,309 - INFO - [Batch Prediction START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 77.5MB | Process Memory: 29359.1MB | System Memory: 41.9GB / 63.7GB (65.8%)
+2025-03-22 00:07:16,311 - INFO - [Prediction Start] Processing 1694000 samples[MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 77.5MB | Process Memory: 29359.1MB | System Memory: 41.9GB / 63.7GB (65.8%)
+2025-03-22 00:07:22,754 - INFO - [Prediction Complete] Processed 1694000 samples[MEMORY] GPU Memory: 9.8MB / 8191.5MB (0.1%) | Peak: 77.5MB | Process Memory: 29361.9MB | System Memory: 41.9GB / 63.7GB (65.8%)
+2025-03-22 00:07:22,757 - INFO - [Batch Prediction END] [MEMORY] GPU Memory: 9.8MB / 8191.5MB (0.1%) | Peak: 77.5MB | Process Memory: 29368.4MB | System Memory: 42.0GB / 63.7GB (65.8%)
+2025-03-22 00:07:22,757 - INFO - [TIMING] Batch Prediction completed in 6.45 seconds
+2025-03-22 00:07:25,481 - INFO - Processing river segments for iteration 0:  51%|5| 4000/7825 [04:21<04:09, 15.32
+2025-03-22 00:07:28,783 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 77.5MB | Process Memory: 24957.4MB | System Memory: 37.6GB / 63.7GB (59.1%)
+2025-03-22 00:07:28,783 - ERROR - Error writing to GPU memory log: [Errno 2] No such file or directory: 'logs\\gpu_memory_log.csv'
+2025-03-22 00:07:58,817 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 77.5MB | Process Memory: 26505.6MB | System Memory: 39.2GB / 63.7GB (61.4%)
+2025-03-22 00:07:58,817 - ERROR - Error writing to GPU memory log: [Errno 2] No such file or directory: 'logs\\gpu_memory_log.csv'

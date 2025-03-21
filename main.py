@@ -112,7 +112,7 @@ except ImportError:
             "total_memory_mb": total_memory / (1024 * 1024),
             "usage_percent": usage_percent
         }
-
+    
 def create_memory_monitor_file(interval_seconds=30, log_dir="logs"):
     """Create a file to log memory usage at regular intervals."""
     import threading
@@ -122,17 +122,21 @@ def create_memory_monitor_file(interval_seconds=30, log_dir="logs"):
     import logging
     import torch
     
-    # Ensure the log directory exists before attempting to write
-    if not os.path.exists(log_dir):
-        try:
-            os.makedirs(log_dir)
-            logging.info(f"Created directory for GPU memory logs: {log_dir}")
-        except Exception as e:
-            logging.error(f"Error creating directory {log_dir}: {str(e)}")
-            # Fallback to current directory
-            log_dir = "."
-            logging.info(f"Using current directory for logs instead")
+    # Use absolute path for the log directory
+    original_dir = os.getcwd()
+    log_dir = os.path.abspath(log_dir)
     
+    # Create directory if it doesn't exist
+    try:
+        os.makedirs(log_dir, exist_ok=True)  # exist_ok=True handles the case where the directory already exists
+        logging.info(f"Created/verified directory for GPU memory logs: {log_dir}")
+    except Exception as e:
+        logging.error(f"Error creating directory {log_dir}: {str(e)}")
+        # Use absolute path to current directory as fallback
+        log_dir = original_dir
+        logging.info(f"Using current directory for logs instead: {log_dir}")
+    
+    # Create log file with absolute path
     log_file = os.path.join(log_dir, "gpu_memory_log.csv")
     
     # Create or clear the file with headers
@@ -151,11 +155,12 @@ def create_memory_monitor_file(interval_seconds=30, log_dir="logs"):
                 if torch.cuda.is_available():
                     info = get_gpu_memory_info()
                     try:
+                        # Open with absolute path
                         with open(log_file, 'a', encoding='utf-8') as f:
                             f.write(f"{timestamp},{info['allocated_mb']:.2f},{info['reserved_mb']:.2f},"
                                    f"{info['max_allocated_mb']:.2f},{info['usage_percent']:.2f}\n")
                     except Exception as e:
-                        logging.error(f"Error writing to GPU memory log: {str(e)}")
+                        logging.error(f"Error writing to GPU memory log ({log_file}): {str(e)}")
             except Exception as e:
                 logging.error(f"Error in GPU memory monitoring: {str(e)}")
             
@@ -166,7 +171,6 @@ def create_memory_monitor_file(interval_seconds=30, log_dir="logs"):
     file_monitor.start()
     logging.info(f"Started GPU memory logging to {log_file} (interval: {interval_seconds}s)")
     return file_monitor
-
 
 def main():
     # Parse arguments first to get log_dir

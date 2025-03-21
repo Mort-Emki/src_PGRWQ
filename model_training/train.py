@@ -3,7 +3,7 @@ import pandas as pd
 from typing import List
 from data_processing import build_sliding_windows_for_subset, standardize_time_series_all, standardize_attributes
 from model_training.models import CatchmentModel
-from flow_routing import flow_routing_calculation
+from flow_routing import flow_routing_calculation ##目录层次问题
 from tqdm import tqdm
 import numba
 import time
@@ -219,6 +219,97 @@ def iterative_training_procedure(df: pd.DataFrame,
         with TimingAndMemoryContext("Model Loading"):
             model.load_model(model_path)
             print("模型加载成功！")
+
+    def batch_model_func(comid_batch, groups, attr_dict, model, target_cols):
+        """
+        批量处理多个COMID河段的预测函数
+        
+        参数:
+            comid_batch: 需要处理的COMID列表
+            groups: 按COMID分组的数据字典
+            attr_dict: 属性字典
+            model: 模型对象
+            target_cols: 目标列名列表
+            
+        返回:
+            字典，键为COMID，值为预测的Series
+        """
+        results = {}
+        
+        # 收集所有COMID的数据
+        all_X_ts = []
+        all_comids = []
+        all_dates = []
+        comid_indices = {}
+        
+        current_idx = 0
+        
+        # 为每个COMID准备数据
+        for comid in comid_batch:
+            group = groups[comid]
+            group_sorted = group.sort_values("date")
+            
+            # 保持与原始model_func相同的数据处理逻辑
+            X_ts_local, _, _, Dates_local = build_sliding_windows_for_subset(
+                df=group, 
+                comid_list=[comid], 
+                input_cols=None, 
+                target_cols=target_cols, 
+                time_window=10,
+                skip_missing_targets=False
+            )
+            
+            if X_ts_local is None or X_ts_local.shape[0] == 0:
+                # 如果没有有效数据，返回全0的Series
+                results[comid] = pd.Series(0.0, index=group_sorted["date"])
+                continue
+            
+            # 记录当前COMID数据的索引范围
+            end_idx = current_idx + X_ts_local.shape[0]
+            comid_indices[comid] = (current_idx, end_idx, Dates_local, group_sorted["date"])
+            current_idx = end_idx
+            
+            # 添加到批处理数组
+            all_X_ts.append(X_ts_local)
+            all_comids.extend([comid] * X_ts_local.shape[0])
+            all_dates.extend(Dates_local)
+        
+        # 如果批次中没有有效数据，直接返回空结果
+        if not all_X_ts:
+            return {comid: pd.Series(0.0, index=groups[comid].sort_values("date")["date"]) 
+                    for comid in comid_batch}
+        
+        # 合并所有数据并构建属性矩阵
+        X_ts_batch = np.vstack(all_X_ts)
+        X_attr_batch = np.zeros((X_ts_batch.shape[0], next(iter(attr_dict.values())).shape[0]), dtype=np.float32)
+        
+        # 为每个样本设置正确的属性向量
+        for i, comid in enumerate(all_comids):
+            comid_str = str(comid)
+            attr_vec = attr_dict.get(comid_str, np.zeros_like(next(iter(attr_dict.values()))))
+            X_attr_batch[i] = attr_vec
+        
+        # 批量进行预测
+        all_preds = model.predict(X_ts_batch, X_attr_batch)
+        
+        # 将预测结果映射回各个COMID
+        for comid in comid_batch:
+            if comid not in comid_indices:
+                # 如果COMID无有效数据，返回全0
+                results[comid] = pd.Series(0.0, index=groups[comid].sort_values("date")["date"])
+                continue
+                
+            start_idx, end_idx, dates, all_dates = comid_indices[comid]
+            preds = all_preds[start_idx:end_idx]
+            
+            # 创建预测Series
+            pred_series = pd.Series(preds, index=pd.to_datetime(dates))
+            full_series = pd.Series(0.0, index=all_dates)
+            full_series.update(pred_series)
+            
+            results[comid] = full_series
+        
+        return results 
     
     def initial_model_func(group: pd.DataFrame, attr_dict: dict, model: CatchmentModel):
         with TimingAndMemoryContext("Model Prediction Function", log_memory=False):
@@ -258,7 +349,7 @@ def iterative_training_procedure(df: pd.DataFrame,
     with TimingAndMemoryContext("Flow Routing Calculation"):
         df_flow = flow_routing_calculation(df = df.copy(), 
                                           iteration=0, 
-                                          model_func=initial_model_func, 
+                                          model_func=batch_model_func, 
                                           river_info=river_info, 
                                           v_f=35.0,
                                           attr_dict=attr_dict,
