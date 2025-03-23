@@ -10,6 +10,7 @@ import time
 import os
 import torch
 import logging 
+from logging_utils import setup_logging, restore_stdout_stderr, ensure_dir_exists
 
 # Import memory monitoring utilities
 try:
@@ -79,7 +80,7 @@ def iterative_training_procedure(df: pd.DataFrame,
                                  comid_era5_list: list = None,
                                  input_cols: list = None):
     """
-    迭代训练过程
+    PG-RWQ 迭代训练过程
     输入：
         df: 日尺度数据 DataFrame，包含 'COMID'、'Date'、target_col、'Qout' 等字段
         attr_dict: 河段属性字典，键为 str(COMID)，值为属性数组（已标准化）
@@ -95,17 +96,34 @@ def iterative_training_procedure(df: pd.DataFrame,
     输出：
         返回训练好的模型对象
     """
-    # Start memory tracking
+    #===========================================================================
+    # 初始化与内存监控
+    # - 启动内存跟踪器
+    # - 记录初始内存状态
+    # - 确保结果保存目录存在
+    #===========================================================================
+    # 启动内存跟踪
     memory_tracker = MemoryTracker(interval_seconds=10)
     memory_tracker.start()
     
-    # Initial memory status
+    # 初始内存状态记录
     if device == 'cuda' and torch.cuda.is_available():
         log_memory_usage("[Training Start] ")
     
+    # 创建结果保存目录
+    output_dir = ensure_dir_exists("flow_results")
+    logging.info(f"Flow routing results will be saved to {output_dir}")
+    
     print('选择头部河段进行初始模型训练。')
     
-    # Create a context manager to time and monitor memory for building the attribute dictionary
+    #===========================================================================
+    # 阶段1: 数据准备
+    # - 构建河段属性字典
+    # - 选择头部河段
+    # - 构造训练数据
+    # - 标准化数据
+    #===========================================================================
+    # 构建河段属性字典
     with TimingAndMemoryContext("Building Attribute Dictionary"):
         attr_df_head_upstream = attr_df[attr_df['order_'] <= 2]
         df_head_upstream = df[df['COMID'].isin(attr_df_head_upstream['COMID'])]
@@ -123,12 +141,13 @@ def iterative_training_procedure(df: pd.DataFrame,
                     attrs.append(0.0)
             attr_dict[comid] = np.array(attrs, dtype=np.float32)
 
-    # Check for comid lists
+    # 检查COMID列表
     if comid_wq_list is None:
         comid_wq_list = []
     if comid_era5_list is None:
         comid_era5_list = []
     
+    # 识别头部河段
     with TimingAndMemoryContext("Finding Head Stations"):
         comid_list_head = list(set(df_head_upstream['COMID'].unique().tolist()) & set(comid_wq_list) & set(comid_era5_list))
         if len(comid_list_head) == 0:
@@ -136,11 +155,10 @@ def iterative_training_procedure(df: pd.DataFrame,
             memory_tracker.stop()
             memory_tracker.report()
             return None
-        print(f"  选择的头部河段数量：{ len(comid_list_head)}")
+        print(f"  选择的头部河段数量：{len(comid_list_head)}")
 
+    # 构造训练数据
     print('构造初始训练数据（滑窗切片）......')
-    
-    # Build sliding windows with memory monitoring
     with TimingAndMemoryContext("Building Sliding Windows"):
         X_ts_head, Y_head_orig, COMIDs_head, Dates_head = build_sliding_windows_for_subset(
             df, 
@@ -151,17 +169,18 @@ def iterative_training_procedure(df: pd.DataFrame,
         )
         Y_head = Y_head_orig[:,0]
 
+    # 输出数据维度信息
     print("X_ts_all.shape =", X_ts_head.shape)
     print("Y.shape        =", Y_head.shape)
     print("COMID.shape    =", COMIDs_head.shape)  
     print("Date.shape     =", Dates_head.shape)
 
-    # Save to npz file
+    # 保存训练数据
     with TimingAndMemoryContext("Saving Training Data"):
         np.savez("upstreams_trainval_mainsrc.npz", X=X_ts_head, Y=Y_head_orig, COMID=COMIDs_head, Date=Dates_head)
         print("训练数据保存成功！")
 
-    # Standardize data
+    # 标准化数据
     with TimingAndMemoryContext("Data Standardization"):
         X_ts_head_scaled, ts_scaler = standardize_time_series_all(X_ts_head)
         attr_dict_scaled, attr_scaler = standardize_attributes(attr_dict)
@@ -172,11 +191,15 @@ def iterative_training_procedure(df: pd.DataFrame,
         N, T, input_dim = X_ts_head.shape
         attr_dim = len(next(iter(attr_dict.values())))
         
-        # Log memory after standardization
+        # 标准化后内存记录
         if device == 'cuda':
             log_memory_usage("[After Standardization] ")
 
-    # Split into train and validation sets
+    #===========================================================================
+    # 阶段2: 训练/验证集划分
+    # - 随机划分训练集和验证集
+    # - 准备模型训练
+    #===========================================================================
     with TimingAndMemoryContext("Train/Validation Split"):
         N = len(X_ts_head)
         indices = np.random.permutation(N)
@@ -194,7 +217,11 @@ def iterative_training_procedure(df: pd.DataFrame,
 
     print("初始模型 A₀ 训练：头部河段训练数据构造完毕。")
     
-    # Create model with memory monitoring
+    #===========================================================================
+    # 阶段3: 初始模型训练或加载
+    # - 创建模型实例
+    # - 训练新模型或加载已有模型
+    #===========================================================================
     with TimingAndMemoryContext("Model Creation"):
         model = CatchmentModel(model_type=model_type,
                                input_dim=input_dim,
@@ -203,9 +230,9 @@ def iterative_training_procedure(df: pd.DataFrame,
                                attr_dim=attr_dim,
                                fc_dim=fc_dim,
                                device=device,
-                               memory_check_interval=2)  # Check memory every 2 epochs
+                               memory_check_interval=2)  # 每2个epoch检查一次内存
 
-    # Train or load model
+    # 训练或加载模型
     model_path = "model_initial_A0_0320_new.pth"
     if not os.path.exists(model_path):
         with TimingAndMemoryContext("Model Training"):
@@ -223,11 +250,11 @@ def iterative_training_procedure(df: pd.DataFrame,
 
     def batch_model_func(comid_batch, groups, attr_dict, model, target_cols):
         """
-        Batch processing with adaptive memory management
+        批量处理河段预测函数（带自适应内存管理）
         """
         results = {}
         
-        # First collect all necessary data
+        # 首先收集所有必要数据
         all_X_ts = []
         all_comids = []
         all_dates = []
@@ -267,10 +294,10 @@ def iterative_training_procedure(df: pd.DataFrame,
                     for comid in comid_batch}
         
         with TimingAndMemoryContext("GPU Batch Processing"):
-            # Stack all data
+            # 堆叠所有数据
             X_ts_batch = np.vstack(all_X_ts)
             
-            # Build attribute matrix
+            # 构建属性矩阵
             attr_dim = next(iter(attr_dict.values())).shape[0]
             X_attr_batch = np.zeros((X_ts_batch.shape[0], attr_dim), dtype=np.float32)
             
@@ -280,23 +307,23 @@ def iterative_training_procedure(df: pd.DataFrame,
                 X_attr_batch[i] = attr_vec
             
             batch_size = X_ts_batch.shape[0]
-            print(f"Processing batch of {len(valid_comids)} COMIDs with {batch_size} total prediction points")
+            print(f"处理 {len(valid_comids)} 个河段，共 {batch_size} 个预测点")
             
             try:
-                # This prediction function now has built-in memory safety
+                # 该预测函数内置内存安全机制
                 all_preds = model.predict(X_ts_batch, X_attr_batch)
                 
-                # Clean up
+                # 清理资源
                 del X_ts_batch
                 del X_attr_batch
                 if torch.cuda.is_available():
                     force_cuda_memory_cleanup()
                     
             except Exception as e:
-                print(f"Error during prediction: {e}")
-                print("Trying to process COMIDs one by one instead...")
+                print(f"预测过程中出错: {e}")
+                print("尝试逐个处理河段...")
                 
-                # Fallback: process one COMID at a time
+                # 降级策略：逐个处理河段
                 all_preds = np.zeros(batch_size)
                 for comid in valid_comids:
                     start_idx, end_idx, _, _ = comid_indices[comid]
@@ -309,14 +336,14 @@ def iterative_training_procedure(df: pd.DataFrame,
                         preds_subset = model.predict(X_ts_subset, X_attr_subset)
                         all_preds[start_idx:end_idx] = preds_subset
                     except Exception as e2:
-                        print(f"Failed to process COMID {comid}: {e2}")
+                        print(f"处理河段 {comid} 失败: {e2}")
                         all_preds[start_idx:end_idx] = 0.0
                     
-                    # Clean up after each COMID
+                    # 每处理完一个河段都清理资源
                     if torch.cuda.is_available():
                         force_cuda_memory_cleanup()
         
-        # Map predictions back to COMIDs
+        # 将预测结果映射回河段
         for comid in valid_comids:
             start_idx, end_idx, dates, all_dates = comid_indices[comid]
             preds = all_preds[start_idx:end_idx]
@@ -334,6 +361,9 @@ def iterative_training_procedure(df: pd.DataFrame,
         return results
     
     def initial_model_func(group: pd.DataFrame, attr_dict: dict, model: CatchmentModel):
+        """
+        单河段模型预测函数
+        """
         with TimingAndMemoryContext("Model Prediction Function", log_memory=False):
             group_sorted = group.sort_values("date")
             X_ts_local, _, _, Dates_local = build_sliding_windows_for_subset(
@@ -353,19 +383,25 @@ def iterative_training_procedure(df: pd.DataFrame,
             attr_vec = attr_dict.get(comid_str, np.zeros_like(next(iter(attr_dict.values()))))
             X_attr_local = np.tile(attr_vec, (X_ts_local.shape[0], 1))
             
-            # Periodic memory check for large predictions
+            # 大规模预测的定期内存检查
             if device == 'cuda' and X_ts_local.shape[0] > 100:
                 log_memory_usage(f"[Prediction for COMID {comid_str}] ")
                 
             preds = model.predict(X_ts_local, X_attr_local)
             
-            # Create prediction series
+            # 创建预测序列
             pred_series = pd.Series(preds, index=pd.to_datetime(Dates_local))
             full_series = pd.Series(0.0, index=group_sorted["date"])
             full_series.update(pred_series)
             
             return full_series   
     
+    #===========================================================================
+    # 阶段4: 初始汇流计算
+    # - 使用初始模型A₀进行预测
+    # - 执行汇流计算
+    # - 保存结果到CSV
+    #===========================================================================
     print("初始汇流计算：使用 A₀ 进行预测。")
     
     with TimingAndMemoryContext("Flow Routing Calculation"):
@@ -373,21 +409,37 @@ def iterative_training_procedure(df: pd.DataFrame,
                                           iteration=0, 
                                           model_func=batch_model_func, 
                                           river_info=river_info, 
-                                          v_f=35.0,
+                                          v_f_TN=35.0,
+                                          v_f_TP=44.5,
                                           attr_dict=attr_dict,
-                                          model=model)
+                                          model=model,
+                                          target_cols=target_cols)
+        
+        # 保存初始汇流计算结果
+        initial_result_path = os.path.join(output_dir, f"flow_routing_iteration_0.csv")
+        df_flow.to_csv(initial_result_path, index=False)
+        logging.info(f"初始汇流计算结果已保存至 {initial_result_path}")
+        print(f"初始汇流计算结果已保存至 {initial_result_path}")
     
-    # 迭代更新过程
+    #===========================================================================
+    # 阶段5: 迭代训练与汇流计算
+    # - 计算残差并检查收敛性
+    # - 构建更新训练数据
+    # - 训练更新模型
+    # - 执行新一轮汇流计算
+    # - 保存每轮迭代结果
+    #===========================================================================
     for it in range(max_iterations):
         with TimingAndMemoryContext(f"Iteration {it+1}/{max_iterations}"):
             print(f"\n迭代 {it+1}/{max_iterations}")
             col_y_n = f'y_n_{it}'    
             col_y_up = f'y_up_{it}'
             
-            # Check memory at iteration start
+            # 每轮迭代开始时检查内存
             if device == 'cuda':
                 log_memory_usage(f"[Iteration {it+1} Start] ")
             
+            # 计算残差并检查收敛性
             merged = pd.merge(df, df_flow[['COMID', 'Date', col_y_n, col_y_up]], on=['COMID', 'Date'], how='left')
             y_true = merged[target_col].values
             y_pred = merged[col_y_n].values
@@ -399,6 +451,7 @@ def iterative_training_procedure(df: pd.DataFrame,
                 print("收敛！")
                 break
                 
+            # 为下一轮训练准备数据
             merged["E_label"] = merged[target_col] - merged[col_y_up]
             comid_list_iter = merged["COMID"].unique().tolist()
             
@@ -422,6 +475,7 @@ def iterative_training_procedure(df: pd.DataFrame,
             
             print("  更新模型训练：使用更新后的 E_label。")
             
+            # 训练更新模型
             with TimingAndMemoryContext(f"Model Training for Iteration {it+1}"):
                 model.train_model(X_ts_iter, X_attr_iter, Y_label_iter, epochs=5, lr=1e-3, patience=2, batch_size=32)
             
@@ -439,22 +493,42 @@ def iterative_training_procedure(df: pd.DataFrame,
                 attr_vec = attr_dict.get(comid_str, np.zeros_like(next(iter(attr_dict.values()))))
                 X_attr_local = np.tile(attr_vec, (X_ts_local.shape[0], 1))
                 
-                # Memory check for large predictions
+                # 大规模预测的内存检查
                 if device == 'cuda' and X_ts_local.shape[0] > 100:
                     log_memory_usage(f"[Updated Prediction for COMID {comid_str}] ")
                     
                 preds = model.predict(X_ts_local, X_attr_local)
                 return pd.Series(preds, index=pd.to_datetime(Dates_local))
             
+            # 执行新一轮汇流计算
             with TimingAndMemoryContext(f"Flow Routing for Iteration {it+1}"):
                 df_flow = flow_routing_calculation(df.copy(), iteration=it+1, model_func=updated_model_func, 
-                                                 river_info=river_info, v_f=35.0)
+                                                 river_info=river_info, v_f_TN=35.0, v_f_TP=44.5,
+                                                 target_cols=target_cols)
+                
+                # 保存当前迭代结果
+                iter_result_path = os.path.join(output_dir, f"flow_routing_iteration_{it+1}.csv")
+                df_flow.to_csv(iter_result_path, index=False)
+                logging.info(f"迭代 {it+1} 汇流计算结果已保存至 {iter_result_path}")
+                print(f"迭代 {it+1} 汇流计算结果已保存至 {iter_result_path}")
     
-    # Final memory report
+    #===========================================================================
+    # 阶段6: 完成与清理
+    # - 停止内存跟踪
+    # - 输出内存使用报告
+    # - 返回训练好的模型
+    #===========================================================================
+    # 生成内存报告
     memory_tracker.stop()
     memory_stats = memory_tracker.report()
     
     if device == 'cuda':
         log_memory_usage("[Training Complete] ")
+    
+    # 保存最终模型
+    final_model_path = os.path.join(output_dir, f"final_model_iteration_{min(it+1, max_iterations)}.pth")
+    model.save_model(final_model_path)
+    logging.info(f"最终模型已保存至 {final_model_path}")
+    print(f"最终模型已保存至 {final_model_path}")
     
     return model

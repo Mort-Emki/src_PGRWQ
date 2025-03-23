@@ -31,16 +31,16 @@ def extract_e_values(df_flow, iteration=None, target_col="TN"):
     
     # If iteration is not specified, find the last iteration
     if iteration is None:
-        e_cols = [col for col in df_flow.columns if col.startswith('E_')]
+        e_cols = [col for col in df_flow.columns if col.startswith(f'E_') and col.endswith(f'_{target_col}')]
         if not e_cols:
-            raise ValueError("No E values found in the DataFrame")
+            raise ValueError(f"No E values found for {target_col} in the DataFrame")
         
-        e_cols.sort(key=lambda x: int(x.split('_')[1]) if len(x.split('_')) > 1 and x.split('_')[1].isdigit() else 0)
+        e_cols.sort(key=lambda x: int(x.split('_')[1]) if len(x.split('_')) > 2 and x.split('_')[1].isdigit() else 0)
         latest_e_col = e_cols[-1]
-        iteration = int(latest_e_col.split('_')[1]) if len(latest_e_col.split('_')) > 1 else 0
+        iteration = int(latest_e_col.split('_')[1]) if len(latest_e_col.split('_')) > 2 else 0
         logging.info(f"Using latest iteration: {iteration}")
     else:
-        latest_e_col = f'E_{iteration}'
+        latest_e_col = f'E_{iteration}_{target_col}'
         
     # Check if the column exists
     if latest_e_col not in df_flow.columns:
@@ -50,15 +50,18 @@ def extract_e_values(df_flow, iteration=None, target_col="TN"):
     # Aggregate by COMID and take the mean E value (since there may be multiple dates)
     e_values = df_flow.groupby('COMID')[latest_e_col].mean().reset_index()
     
+    # Rename the column to the format expected by visualization functions
+    e_values = e_values.rename(columns={latest_e_col: f'E_{iteration}'})
+    
     logging.info(f"Extracted E values for {len(e_values)} river segments")
     
     # Add some statistics for logging
     e_stats = {
-        'min': e_values[latest_e_col].min(),
-        'max': e_values[latest_e_col].max(),
-        'mean': e_values[latest_e_col].mean(),
-        'median': e_values[latest_e_col].median(),
-        'std': e_values[latest_e_col].std()
+        'min': e_values[f'E_{iteration}'].min(),
+        'max': e_values[f'E_{iteration}'].max(),
+        'mean': e_values[f'E_{iteration}'].mean(),
+        'median': e_values[f'E_{iteration}'].median(),
+        'std': e_values[f'E_{iteration}'].std()
     }
     
     logging.info(f"E value statistics: {e_stats}")
