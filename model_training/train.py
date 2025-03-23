@@ -413,7 +413,8 @@ def iterative_training_procedure(df: pd.DataFrame,
                                           v_f_TP=44.5,
                                           attr_dict=attr_dict,
                                           model=model,
-                                          target_cols=target_cols)
+                                          target_cols=target_cols,
+                                          attr_df=attr_df)
         
         # 保存初始汇流计算结果
         initial_result_path = os.path.join(output_dir, f"flow_routing_iteration_0.csv")
