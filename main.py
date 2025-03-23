@@ -304,7 +304,7 @@ def main():
             input_features=input_features,
             attr_features=attr_features,
             river_info=river_info,
-            target_cols=['TN','TP'],
+            target_cols=['TN'],
             max_iterations=args.max_iterations,
             epsilon=args.epsilon,
             model_type=args.model_type,

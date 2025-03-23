@@ -286,6 +286,19 @@ def flow_routing_calculation(df: pd.DataFrame,
                         group[f'y_n_{param}'] = 0.0
                 else:
                     # 计算河道宽度
+
+                    #观察Qout的分布，打印。检查Qout是否存在零值。如果存在，打印出当前的comid，然后中断程序。
+                    if group['Qout'].isnull().values.any():
+                        print(f"Qout存在零值，comid={comid}")
+                        sys.exit()
+                    #观察Qout的分布，打印。检查Qout是否存在负值。如果存在，打印出当前的comid，然后中断程序。
+                    if (group['Qout']<0).values.any():
+                        print(f"Qout存在负值，comid={comid}")
+                        sys.exit()
+
+
+
+                    # 计算河道宽度
                     group['width'] = calculate_river_width(group['Qout'])
                     
                     # 初始化所有参数的E、y_up和y_n值

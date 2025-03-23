@@ -315,8 +315,8 @@ class CatchmentModel:
                     
                     # Calculate safe batch size
                     initial_batch_size = int(safe_memory_usage / mb_per_sample)
-                    batch_size = max(100, min(1000, initial_batch_size))  # Reasonable bounds
-                    # batch_size = max(1000,initial_batch_size)
+                    # batch_size = max(100, min(1000, initial_batch_size))  # Reasonable bounds
+                    batch_size = max(1000,initial_batch_size)
                     print(f"Starting with batch size: {batch_size} (estimated {batch_size * mb_per_sample:.2f}MB)")
                 else:
                     batch_size = 1000

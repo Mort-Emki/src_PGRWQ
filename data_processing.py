@@ -360,7 +360,8 @@ def build_sliding_windows_for_subset_6(
     df: pd.DataFrame,
     comid_list: List[str],
     input_cols: Optional[List[str]] = None,
-    target_cols: List[str] = ["TN","TP"],
+    target_cols: List[str] = ["TN"],
+    all_target_cols: List[str] = ["TN","TP"],
     time_window: int = 10,
     skip_missing_targets: bool = True
 ):
@@ -382,14 +383,14 @@ def build_sliding_windows_for_subset_6(
     """
     sub_df = df[df["COMID"].isin(comid_list)].copy()
     if input_cols is None:
-        exclude_cols = {"COMID", "date"}.union(target_cols)
+        exclude_cols = {"COMID", "date"}.union(all_target_cols)
         input_cols = [col for col in df.columns if col not in exclude_cols]
     X_list, Y_list, comid_track, date_track = [], [], [], []
     
     # 移除tqdm，使用普通的for循环
     for comid, group_df in sub_df.groupby("COMID"):
         group_df = group_df.sort_values("date").reset_index(drop=True)
-        needed_cols = input_cols + target_cols
+        needed_cols = input_cols + all_target_cols
         sub_data = group_df[needed_cols].values  # shape=(n_rows, len(needed_cols))
         
         for start_idx in range(len(sub_data) - time_window + 1):
