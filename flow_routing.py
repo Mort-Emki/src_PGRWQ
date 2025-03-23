@@ -126,7 +126,8 @@ def flow_routing_calculation(df: pd.DataFrame,
                              v_f_TP: float = 44.5,
                              attr_dict: dict = None, 
                              model: CatchmentModel = None,
-                             target_cols=["TN", "TP"]) -> pd.DataFrame:
+                             target_cols=["TN", "TP"],
+                             attr_df: pd.DataFrame = None) -> pd.DataFrame:
     """
     汇流计算函数
     输入：
@@ -141,6 +142,7 @@ def flow_routing_calculation(df: pd.DataFrame,
         attr_dict: 河段属性字典
         model: 预测模型
         target_cols: 目标列列表，默认为 ["TN", "TP"]
+        attr_df: 河段属性 DataFrame，用于识别标记为 'ERA5_exist'=0 的缺失数据河段
     输出：
         返回 DataFrame，增加了新列：
             'E_{iteration}_{param}'：局部贡献（预测值）
@@ -171,8 +173,57 @@ def flow_routing_calculation(df: pd.DataFrame,
     # 确保日期列为datetime格式
     df['date'] = pd.to_datetime(df['date'])
     
+    # 标识缺失数据的河段
+    missing_data_comids = set()
+    if attr_df is not None and 'ERA5_exist' in attr_df.columns:
+        # 获取 ERA5_exist=0 的河段 ID
+        missing_df = attr_df[attr_df['ERA5_exist'] == 0]
+        missing_data_comids = set(str(comid) for comid in missing_df['COMID'])
+        logging.info(f"标识出 {len(missing_data_comids)} 个缺失数据的河段")
+    
     # 从河网信息中构建下游河段映射
     next_down_ids = river_info.set_index('COMID')['NextDownID'].to_dict()
+    
+    # 递归查找下一个可用的下游河段（跳过缺失的河段）
+    def find_next_available_downstream(comid, visited=None):
+        """递归查找下一个非缺失的下游河段"""
+        if visited is None:
+            visited = set()
+        
+        if comid in visited:  # 检测循环引用
+            return 0
+        visited.add(comid)
+        
+        next_down = next_down_ids.get(comid, 0)
+        if next_down == 0:  # 已到末端
+            return 0
+        
+        if str(next_down) not in missing_data_comids:  # 下游河段有数据
+            return next_down
+        
+        # 下游河段无数据，继续查找其下游
+        return find_next_available_downstream(next_down, visited)
+    
+    # 绕过缺失数据的河段
+    if missing_data_comids:
+        # 处理所有河段，查找下一个可用下游
+        bypassed_count = 0
+        modified_next_down = {}
+        
+        for comid in list(next_down_ids.keys()):
+            if str(comid) in missing_data_comids:
+                continue  # 跳过处理缺失数据的河段
+            
+            next_down = next_down_ids.get(comid, 0)
+            if next_down != 0 and str(next_down) in missing_data_comids:
+                # 查找下一个可用的非缺失数据的下游
+                next_available = find_next_available_downstream(next_down)
+                modified_next_down[comid] = next_available
+                bypassed_count += 1
+        
+        # 更新下游映射
+        next_down_ids.update(modified_next_down)
+        logging.info(f"在河网拓扑中绕过了 {bypassed_count} 个缺失数据的河段")
     
     # 检查是否有温度数据可用
     has_temperature_data = 'temperature_2m_mean' in df.columns
@@ -209,31 +260,48 @@ def flow_routing_calculation(df: pd.DataFrame,
             end_idx = min((batch_idx + 1) * batch_size, len(comid_list))
             batch_comids = comid_list[start_idx:end_idx]
             
-            # 批量计算当前批次所有河段的E值
-            batch_results = model_func(batch_comids, groups, attr_dict, model, target_cols)
+            # 过滤掉缺失数据的河段
+            valid_batch_comids = [comid for comid in batch_comids if str(comid) not in missing_data_comids]
+            if len(valid_batch_comids) < len(batch_comids):
+                logging.debug(f"批次 {batch_idx+1}: 过滤掉 {len(batch_comids) - len(valid_batch_comids)} 个缺失数据的河段")
+            
+            # 批量计算当前批次所有有效河段的E值
+            batch_results = model_func(valid_batch_comids, groups, attr_dict, model, target_cols)
             
             # 处理结果并存入数据字典
             for comid in batch_comids:
+                # 跳过缺失数据的河段
+                if str(comid) in missing_data_comids:
+                    continue
+                    
                 group = groups[comid]
-                E_series = batch_results[comid]
+                E_series = batch_results.get(comid)
                 
-                # 计算河道宽度
-                group['width'] = calculate_river_width(group['Qout'])
-                
-                # 初始化所有参数的E、y_up和y_n值
-                # 如果结果包含多个目标参数（如TN和TP），分别处理
-                if isinstance(E_series, pd.DataFrame) and len(target_cols) > 1:
+                if E_series is None:
+                    logging.warning(f"河段 {comid} 的模型结果为 None，设置为 0")
+                    # 为此河段的所有时间设置 E 为 0
                     for param in target_cols:
-                        if param in E_series.columns:
-                            group[f'E_{param}'] = E_series[param].values
-                            group[f'y_up_{param}'] = 0.0
-                            group[f'y_n_{param}'] = 0.0
+                        group[f'E_{param}'] = 0.0
+                        group[f'y_up_{param}'] = 0.0
+                        group[f'y_n_{param}'] = 0.0
                 else:
-                    # 单一参数情况
-                    param = target_cols[0]
-                    group[f'E_{param}'] = E_series.values
-                    group[f'y_up_{param}'] = 0.0
-                    group[f'y_n_{param}'] = 0.0
+                    # 计算河道宽度
+                    group['width'] = calculate_river_width(group['Qout'])
+                    
+                    # 初始化所有参数的E、y_up和y_n值
+                    # 如果结果包含多个目标参数（如TN和TP），分别处理
+                    if isinstance(E_series, pd.DataFrame) and len(target_cols) > 1:
+                        for param in target_cols:
+                            if param in E_series.columns:
+                                group[f'E_{param}'] = E_series[param].values
+                                group[f'y_up_{param}'] = 0.0
+                                group[f'y_n_{param}'] = 0.0
+                    else:
+                        # 单一参数情况
+                        param = target_cols[0]
+                        group[f'E_{param}'] = E_series.values
+                        group[f'y_up_{param}'] = 0.0
+                        group[f'y_n_{param}'] = 0.0
                 
                 group = group.set_index("date")
                 comid_data[comid] = group
@@ -243,7 +311,7 @@ def flow_routing_calculation(df: pd.DataFrame,
             
             # 定期记录批次处理信息和内存使用情况
             if batch_idx % 5 == 0 or batch_idx == num_batches - 1:
-                logging.info(f"Batch {batch_idx+1}/{num_batches}: Processed {len(batch_comids)} COMIDs in {batch_time:.2f}s")
+                logging.info(f"Batch {batch_idx+1}/{num_batches}: Processed {len(valid_batch_comids)} COMIDs in {batch_time:.2f}s")
                 
                 # 监控GPU内存使用
                 if torch.cuda.is_available():
@@ -252,7 +320,7 @@ def flow_routing_calculation(df: pd.DataFrame,
                     logging.info(f"GPU Memory: {allocated:.2f}MB allocated, {reserved:.2f}MB reserved")
                     
                     # 内存占用过高时释放缓存
-                    if allocated > 40000:  # 40GB阈值
+                    if allocated > 6000:  # 6GB阈值
                         torch.cuda.empty_cache()
                         logging.info("Cleared GPU cache")
             
