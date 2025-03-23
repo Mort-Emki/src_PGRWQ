@@ -17,27 +17,113 @@ try:
 except ImportError:
     from tqdm import tqdm
 
-def compute_retainment_factor(v_f: float, Q_up: pd.Series, Q_down: pd.Series) -> pd.Series:
+def calculate_river_width(Q: pd.Series) -> pd.Series:
+    """
+    根据流量计算河道宽度 W = aQ^b
+    参考公式：lnW = 2.10 + 0.45lnQ
+    
+    输入：
+        Q: 流量序列 (m³/s)
+    输出：
+        返回河道宽度序列 (m)
+    """
+    # 避免log(0)错误
+    Q_adj = Q.replace(0, np.nan)
+    
+    # 使用公式 lnW = 2.10 + 0.45lnQ
+    lnW = 2.10 + 0.45 * np.log(Q_adj)
+    W = np.exp(lnW)
+    
+    # 填充可能的NaN值（对应流量为0的情况）
+    return W.fillna(0.0)
+
+def compute_temperature_factor(temperature: pd.Series, parameter: str = "TN") -> pd.Series:
+    """
+    计算温度调整因子 f(t) = α^(t-20)
+    
+    输入：
+        temperature: 温度序列 (°C)
+        parameter: 水质参数，"TN"或"TP"
+    输出：
+        返回温度调整因子序列
+    """
+    if parameter == "TN":
+        alpha = 1.0717  # TN的α值
+    else:  # TP
+        alpha = 1.06    # TP的α值
+    
+    return np.power(alpha, temperature - 20)
+
+def compute_nitrogen_concentration_factor(N_concentration: pd.Series) -> pd.Series:
+    """
+    计算氮浓度调整因子 f(CN)
+    
+    输入：
+        N_concentration: 氮浓度序列 (mg/L)
+    输出：
+        返回浓度调整因子序列
+    """
+    # 注意：这里需要根据实际模型要求实现具体的计算公式
+    # 以下为示例实现，可能需要根据实际研究调整
+    
+    # 常见的浓度限制函数形式：Michaelis-Menten型动力学
+    K_half = 0.5  # 半饱和常数 (mg/L)，需根据实际校准
+    f_CN = N_concentration / (K_half + N_concentration)
+    
+    # 限制因子范围在0-1之间
+    return f_CN.clip(0, 1)
+
+def compute_retainment_factor(v_f: float, Q_up: pd.Series, Q_down: pd.Series, 
+                             S_up: pd.Series, S_down: pd.Series,
+                             temperature: pd.Series = None,
+                             N_concentration: pd.Series = None,
+                             parameter: str = "TN") -> pd.Series:
     """
     计算保留系数
+    R(Ωj, Ωi) = (1-exp(-v_f·S(Ωj)/(2·Q(Ωj)))) · (1-exp(-v_f·S(Ωi)/(2·Q(Ωi))))
+    
     输入：
-        v_f: 吸收速率参数
-        Q_up: 上游流量序列（pd.Series）
-        Q_down: 下游流量序列（pd.Series）
+        v_f: 基础吸收速率参数 (m/yr)
+        Q_up: 上游流量序列 (m³/s)
+        Q_down: 下游流量序列 (m³/s)
+        S_up: 上游河段宽度序列 (m)
+        S_down: 下游河段宽度序列 (m)
+        temperature: 温度序列 (°C)，若提供则计算温度调整因子
+        N_concentration: 氮浓度序列 (mg/L)，若提供且参数为TN，则计算浓度调整因子
+        parameter: 水质参数，"TN"或"TP"
     输出：
-        返回一个 Series，每个元素为对应日期的保留系数
+        返回保留系数序列
     """
+    # 避免除以0错误
     Q_up_adj = Q_up.replace(0, np.nan)
     Q_down_adj = Q_down.replace(0, np.nan)
-    R = (1 - np.exp(-v_f / (2 * Q_up_adj))) * (1 - np.exp(-v_f / (2 * Q_down_adj)))
+    
+    # 应用温度调整因子（如果提供温度数据）
+    if temperature is not None:
+        temp_factor = compute_temperature_factor(temperature, parameter)
+        v_f_adjusted = v_f * temp_factor
+    else:
+        v_f_adjusted = v_f
+    
+    # 应用浓度调整因子（如果提供浓度数据且参数为TN）
+    if parameter == "TN" and N_concentration is not None:
+        conc_factor = compute_nitrogen_concentration_factor(N_concentration)
+        v_f_adjusted = v_f_adjusted * conc_factor
+    
+    # 计算保留系数
+    R_up = 1 - np.exp(-v_f_adjusted * S_up / (2 * Q_up_adj))
+    R_down = 1 - np.exp(-v_f_adjusted * S_down / (2 * Q_down_adj))
+    R = R_up * R_down
+    
+    # 填充可能的NaN值
     return R.fillna(0.0)
-
 
 def flow_routing_calculation(df: pd.DataFrame, 
                              iteration: int, 
                              model_func, 
                              river_info: pd.DataFrame, 
-                             v_f: float = 35.0,
+                             v_f_TN: float = 35.0,
+                             v_f_TP: float = 44.5,
                              attr_dict: dict = None, 
                              model: CatchmentModel = None,
                              target_cols=["TN", "TP"]) -> pd.DataFrame:
@@ -45,20 +131,31 @@ def flow_routing_calculation(df: pd.DataFrame,
     汇流计算函数
     输入：
         df: 包含日尺度数据的 DataFrame，每行记录一个 COMID 在某日期的数据，
-            必须包含 'COMID'、'Date'、'Qout' 等字段
+            必须包含 'COMID'、'date'、'Qout'、'temperature_2m_mean'(可选) 等字段
         iteration: 当前迭代次数，用于命名新增加的列
         model_func: 用于预测局部贡献 E 的函数，输入为单个 COMID 的 DataFrame，
                     输出为与日期对齐的 Series
         river_info: 河段信息 DataFrame，必须包含 'COMID' 和 'NextDownID'
-        v_f: 吸收速率参数
+        v_f_TN: TN的基础吸收速率参数，默认为35.0 m/yr
+        v_f_TP: TP的基础吸收速率参数，默认为44.5 m/yr
+        attr_dict: 河段属性字典
+        model: 预测模型
         target_cols: 目标列列表，默认为 ["TN", "TP"]
     输出：
         返回 DataFrame，增加了新列：
-            'E_{iteration}'：局部贡献（预测值）
-            'y_up_{iteration}'：上游汇流贡献
-            'y_n_{iteration}'：汇流总预测值 = E + y_up
+            'E_{iteration}_{param}'：局部贡献（预测值）
+            'y_up_{iteration}_{param}'：上游汇流贡献
+            'y_n_{iteration}_{param}'：汇流总预测值 = E + y_up
+            对每个参数param（如TN、TP）分别计算
     """
-        # Debug model device
+    #===========================================================================
+    # 初始化与准备
+    # - 验证模型设备
+    # - 复制输入数据框
+    # - 转换日期格式
+    # - 构建下游河段映射字典
+    #===========================================================================
+    # 验证模型是否在正确的设备上
     if model and hasattr(model, 'base_model') and hasattr(model.base_model, 'parameters'):
         device = next(model.base_model.parameters()).device
         print(f"===== MODEL DEVICE CHECK =====")
@@ -66,64 +163,95 @@ def flow_routing_calculation(df: pd.DataFrame,
         print(f"Model type: {type(model.base_model)}")
         print(f"===============================")
 
+    # 复制数据框以避免修改原始数据
     df = df.copy()
     logging.info(f"Flow routing calculation for iteration {iteration} started")
     logging.debug(f"DataFrame head:\n{df.head()}")
     
+    # 确保日期列为datetime格式
     df['date'] = pd.to_datetime(df['date'])
     
-    # 从 river_info 中构造 NextDownID 字典
+    # 从河网信息中构建下游河段映射
     next_down_ids = river_info.set_index('COMID')['NextDownID'].to_dict()
     
-    # 按 COMID 分组并排序，构造每个河段的时间序列
+    # 检查是否有温度数据可用
+    has_temperature_data = 'temperature_2m_mean' in df.columns
+    if has_temperature_data:
+        logging.info("Temperature data available, will apply temperature adjustment")
+    else:
+        logging.info("No temperature data available, using base settling velocities")
+    
+    # 按河段ID分组并排序，为每个河段创建时间序列
     groups = {comid: group.sort_values("date").copy() for comid, group in df.groupby("COMID")}
     comid_data = {}
 
-    # 使用批处理方式处理多个COMID
+    #===========================================================================
+    # 第一阶段：批量计算每个河段的局部贡献 E（针对各个水质参数）
+    # - 将河段按批次处理以优化性能
+    # - 对每个河段使用模型预测函数计算E值
+    # - 为每个河段初始化y_up和y_n
+    # - 监控并管理GPU内存使用
+    #===========================================================================
     logging.info(f"Processing {len(groups)} river segments in batches...")
     
-    # 按批次处理COMID
+    # 设定批次大小并计算批次数
     batch_size = 1000  # 每批处理1000个COMID
     comid_list = list(groups.keys())
     num_batches = (len(comid_list) + batch_size - 1) // batch_size
     
+    # 使用进度条处理所有河段
     with tqdm(total=len(groups), desc=f"Processing river segments for iteration {iteration}") as pbar:
         for batch_idx in range(num_batches):
             batch_start_time = time.time()
             
-            # 获取当前批次的COMID
+            # 获取当前批次的河段ID
             start_idx = batch_idx * batch_size
             end_idx = min((batch_idx + 1) * batch_size, len(comid_list))
             batch_comids = comid_list[start_idx:end_idx]
             
-            # 批量处理当前批次的所有COMID
+            # 批量计算当前批次所有河段的E值
             batch_results = model_func(batch_comids, groups, attr_dict, model, target_cols)
             
-            # 将结果存入comid_data
+            # 处理结果并存入数据字典
             for comid in batch_comids:
                 group = groups[comid]
                 E_series = batch_results[comid]
                 
-                group['E'] = E_series.values
-                group['y_up'] = 0.0
-                group['y_n'] = 0.0
+                # 计算河道宽度
+                group['width'] = calculate_river_width(group['Qout'])
+                
+                # 初始化所有参数的E、y_up和y_n值
+                # 如果结果包含多个目标参数（如TN和TP），分别处理
+                if isinstance(E_series, pd.DataFrame) and len(target_cols) > 1:
+                    for param in target_cols:
+                        if param in E_series.columns:
+                            group[f'E_{param}'] = E_series[param].values
+                            group[f'y_up_{param}'] = 0.0
+                            group[f'y_n_{param}'] = 0.0
+                else:
+                    # 单一参数情况
+                    param = target_cols[0]
+                    group[f'E_{param}'] = E_series.values
+                    group[f'y_up_{param}'] = 0.0
+                    group[f'y_n_{param}'] = 0.0
+                
                 group = group.set_index("date")
                 comid_data[comid] = group
             
-            # 记录批次处理时间
+            # 计算并记录批次处理时间
             batch_time = time.time() - batch_start_time
             
-            # 定期记录批次信息
+            # 定期记录批次处理信息和内存使用情况
             if batch_idx % 5 == 0 or batch_idx == num_batches - 1:
                 logging.info(f"Batch {batch_idx+1}/{num_batches}: Processed {len(batch_comids)} COMIDs in {batch_time:.2f}s")
                 
-                # 定期记录内存使用情况
+                # 监控GPU内存使用
                 if torch.cuda.is_available():
                     allocated = torch.cuda.memory_allocated() / (1024 * 1024)
                     reserved = torch.cuda.memory_reserved() / (1024 * 1024)
                     logging.info(f"GPU Memory: {allocated:.2f}MB allocated, {reserved:.2f}MB reserved")
                     
-                    # 如果内存占用过高，释放缓存
+                    # 内存占用过高时释放缓存
                     if allocated > 40000:  # 40GB阈值
                         torch.cuda.empty_cache()
                         logging.info("Cleared GPU cache")
@@ -131,78 +259,164 @@ def flow_routing_calculation(df: pd.DataFrame,
             # 更新进度条
             pbar.update(len(batch_comids))
 
-    # 计算入度：若某个 COMID 出现在其他河段的 NextDownID 中，则其入度增加
+    #===========================================================================
+    # 第二阶段：构建河网拓扑结构
+    # - 计算每个河段的入度（上游河段数量）
+    # - 初始化用于累积上游贡献的数据结构
+    # - 处理头部河段（无上游的河段）
+    #===========================================================================
     logging.info("Calculating node indegrees...")
+    # 计算入度：若某个河段ID出现在其他河段的NextDownID中，则其入度增加
     indegree = {comid: 0 for comid in comid_data.keys()}
     for comid in comid_data.keys():
         next_down = next_down_ids.get(comid, 0)
-        if next_down != 0:
+        if next_down != 0 and next_down in indegree:
             indegree[next_down] = indegree.get(next_down, 0) + 1
 
-    # 初始化负荷累加器，每个 COMID 对应一个与其日期序列对齐的 Series
-    load_acc = {comid: pd.Series(0.0, index=data.index) for comid, data in comid_data.items()}
+    # 为每个参数创建负荷累加器
+    load_acc = {}
+    for param in target_cols:
+        load_acc[param] = {comid: pd.Series(0.0, index=data.index) for comid, data in comid_data.items()}
 
-    # 对入度为 0 的头部河段，令 y_n = E
+    # 找出所有头部河段（入度为0）并初始化其y_n值为局部贡献E
     queue = [comid for comid, deg in indegree.items() if deg == 0]
     logging.info(f"Found {len(queue)} headwater segments")
     for comid in queue:
         data = comid_data[comid]
-        data['y_n'] = data['E'] 
+        for param in target_cols:
+            data[f'y_n_{param}'] = data[f'E_{param}']
         comid_data[comid] = data
 
-    def compute_R_series(Q_up: pd.Series, Q_down: pd.Series) -> pd.Series:
-        return compute_retainment_factor(v_f, Q_up, Q_down)
-
-    # 利用队列逐步处理上游，将贡献传递到下游
+    #===========================================================================
+    # 第三阶段：执行汇流计算（拓扑排序算法）
+    # - 按不同水质参数（TN/TP）分别计算
+    # - 使用队列按拓扑顺序处理河段
+    # - 计算每个河段对下游的贡献
+    # - 跟踪入度变化并将处理完成的上游河段的下游加入队列
+    #===========================================================================
     logging.info("Starting flow routing calculation...")
     processed_count = 0
     while queue:
+        # 从队列中取出下一个要处理的河段
         current = queue.pop(0)
         processed_count += 1
         if processed_count % 1000 == 0:
             logging.info(f"Processed {processed_count} segments so far")
-            
+        
+        # 获取当前河段数据和下游河段ID
         current_data = comid_data[current]
-        # 修正：直接从 next_down_ids 中获取下游，而不是从当前数据中读取
         next_down = next_down_ids.get(current, 0)
-        if next_down == 0:
-            continue
+        if next_down == 0 or next_down not in comid_data:
+            continue  # 如果没有下游或下游不在数据中，跳过
+            
+        # 获取下游河段数据并找出共同日期
         down_data = comid_data[next_down]
         common_dates = current_data.index.intersection(down_data.index)
+        
+        # 检查日期对齐问题
         if len(common_dates) == 0:
             logging.warning(f"Warning: 日期不对齐，COMID {current} 与 COMID {next_down}")
             logging.warning(f"  当前日期: {current_data.index}")
             logging.warning(f"  下游日期: {down_data.index}")
+            
+        # 计算当前河段对下游的贡献并累加到下游负荷累加器
         if len(common_dates) > 0:
-            y_n_current = current_data['y_n'].reindex(common_dates)
+            # 提取共同日期的数据
             Q_current = current_data['Qout'].reindex(common_dates)
             Q_down = down_data['Qout'].reindex(common_dates)
-            R_series = compute_R_series(Q_current, Q_down)
-            contribution = y_n_current * R_series * Q_current
-            load_acc[next_down] = load_acc[next_down].add(contribution, fill_value=0.0)
-        indegree[next_down] -= 1   
+            S_current = current_data['width'].reindex(common_dates)
+            S_down = down_data['width'].reindex(common_dates)
+            
+            # 获取温度数据（如果可用）
+            if has_temperature_data:
+                temperature = current_data['temperature_2m_mean'].reindex(common_dates)
+            else:
+                temperature = None
+            
+            # 为每个参数分别计算贡献
+            for param in target_cols:
+                # 选择合适的吸收速率参数
+                if param == "TN":
+                    v_f = v_f_TN
+                    # 获取TN浓度数据（如果可用）
+                    if f'y_n_{param}' in current_data.columns:
+                        N_concentration = current_data[f'y_n_{param}'].reindex(common_dates)
+                    else:
+                        N_concentration = None
+                elif param == "TP":
+                    v_f = v_f_TP
+                    N_concentration = None
+                else:
+                    v_f = v_f_TN  # 默认使用TN的参数
+                    N_concentration = None
+                
+                # 提取当前参数的y_n值
+                y_n_current = current_data[f'y_n_{param}'].reindex(common_dates)
+                
+                # 计算保留系数
+                R_series = compute_retainment_factor(
+                    v_f=v_f, 
+                    Q_up=Q_current, 
+                    Q_down=Q_down,
+                    S_up=S_current,
+                    S_down=S_down,
+                    temperature=temperature,
+                    N_concentration=N_concentration,
+                    parameter=param
+                )
+                
+                # 计算贡献并累加到下游负荷累加器
+                contribution = y_n_current * R_series * Q_current
+                load_acc[param][next_down] = load_acc[param][next_down].add(contribution, fill_value=0.0)
+            
+        # 减少下游河段的入度
+        indegree[next_down] -= 1
+        
+        # 如果下游河段所有上游都已处理完毕，计算其y_up和y_n并加入队列
         if indegree[next_down] == 0:
             down_data = comid_data[next_down]
-            y_up_down = load_acc[next_down] / down_data['Qout'].replace(0, np.nan)
-            y_up_down = y_up_down.fillna(0.0)
-            down_data['y_up'] = y_up_down
-            down_data['y_n'] = down_data['E'] + down_data['y_up']
+            
+            # 为每个参数分别计算y_up和y_n
+            for param in target_cols:
+                # 计算上游贡献浓度
+                y_up_down = load_acc[param][next_down] / down_data['Qout'].replace(0, np.nan)
+                y_up_down = y_up_down.fillna(0.0)
+                
+                # 更新下游河段的y_up和y_n
+                down_data[f'y_up_{param}'] = y_up_down
+                down_data[f'y_n_{param}'] = down_data[f'E_{param}'] + down_data[f'y_up_{param}']
+            
+            # 更新数据字典
             comid_data[next_down] = down_data
+            
+            # 将下游河段加入队列
             queue.append(next_down)
 
-    # 合并所有 COMID 的时间序列为长格式 DataFrame，并重命名新列（带迭代标记）
+    #===========================================================================
+    # 第四阶段：结果整合与格式化
+    # - 将所有河段的数据合并为单一数据框
+    # - 重命名列以包含迭代编号
+    # - 返回最终结果
+    #===========================================================================
     logging.info("Merging results...")
+    # 收集所有河段的数据
     result_list = []
     for comid, data in comid_data.items():
         temp = data.reset_index()
         temp['COMID'] = comid
         result_list.append(temp)
+        
+    # 合并为单一数据框
     result_df = pd.concat(result_list, ignore_index=True)
-    result_df = result_df.rename(columns={
-        'E': f'E_{iteration}',
-        'y_up': f'y_up_{iteration}',
-        'y_n': f'y_n_{iteration}'
-    })
+    
+    # 重命名列以包含迭代编号
+    rename_dict = {}
+    for param in target_cols:
+        rename_dict[f'E_{param}'] = f'E_{iteration}_{param}'
+        rename_dict[f'y_up_{param}'] = f'y_up_{iteration}_{param}'
+        rename_dict[f'y_n_{param}'] = f'y_n_{iteration}_{param}'
+    
+    result_df = result_df.rename(columns=rename_dict)
     
     logging.info(f"Flow routing calculation for iteration {iteration} complete")
     return result_df
