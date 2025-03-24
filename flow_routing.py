@@ -117,7 +117,6 @@ def compute_retainment_factor(v_f: float, Q_up: pd.Series, Q_down: pd.Series,
     
     # 填充可能的NaN值
     return R.fillna(0.0)
-
 def flow_routing_calculation(df: pd.DataFrame, 
                              iteration: int, 
                              model_func, 
@@ -127,7 +126,11 @@ def flow_routing_calculation(df: pd.DataFrame,
                              attr_dict: dict = None, 
                              model: CatchmentModel = None,
                              target_cols=["TN", "TP"],
-                             attr_df: pd.DataFrame = None) -> pd.DataFrame:
+                             attr_df: pd.DataFrame = None,
+                             E_exist: int = 0,
+                             E_exist_path: str = None,
+                             E_save: int = 0,
+                             E_save_path: str = None) -> pd.DataFrame:
     """
     汇流计算函数
     输入：
@@ -143,6 +146,10 @@ def flow_routing_calculation(df: pd.DataFrame,
         model: 预测模型
         target_cols: 目标列列表，默认为 ["TN", "TP"]
         attr_df: 河段属性 DataFrame，用于识别标记为 'ERA5_exist'=0 的缺失数据河段
+        E_exist: 是否从指定路径读取E值，0表示不读取，1表示读取
+        E_exist_path: E值读取路径
+        E_save: 是否保存计算得到的E值，0表示不保存，1表示保存
+        E_save_path: E值保存路径
     输出：
         返回 DataFrame，增加了新列：
             'E_{iteration}_{param}'：局部贡献（预测值）
@@ -238,107 +245,223 @@ def flow_routing_calculation(df: pd.DataFrame,
 
     #===========================================================================
     # 第一阶段：批量计算每个河段的局部贡献 E（针对各个水质参数）
-    # - 将河段按批次处理以优化性能
-    # - 对每个河段使用模型预测函数计算E值
+    # - 如果E_exist=1，从文件加载E值
+    # - 否则，使用模型预测函数计算E值
+    # - 如果E_save=1，保存计算得到的E值
     # - 为每个河段初始化y_up和y_n
     # - 监控并管理GPU内存使用
     #===========================================================================
-    logging.info(f"Processing {len(groups)} river segments in batches...")
+    # 准备E值存储目录
+    if E_save == 1 and E_save_path:
+        os.makedirs(E_save_path, exist_ok=True)
+        logging.info(f"将保存E值到目录: {E_save_path}")
     
-    # 设定批次大小并计算批次数
-    batch_size = 1000  # 每批处理1000个COMID
-    comid_list = list(groups.keys())
-    num_batches = (len(comid_list) + batch_size - 1) // batch_size
-    
-    # 使用进度条处理所有河段
-    with tqdm(total=len(groups), desc=f"Processing river segments for iteration {iteration}") as pbar:
-        for batch_idx in range(num_batches):
-            batch_start_time = time.time()
+    # 第一步：处理E值（加载或计算）
+    if E_exist == 1 and E_exist_path:
+        logging.info(f"从 {E_exist_path} 读取E值")
+        print(f"从 {E_exist_path} 读取E值")
+        
+        # 构建保存E值的文件名，以迭代次数和参数为基础
+        e_values_dict = {}
+        
+        # 检查指定路径是否为目录
+        if os.path.isdir(E_exist_path):
+            # 对每个参数，查找对应的E值文件
+            for param in target_cols:
+                e_file_path = os.path.join(E_exist_path, f"E_{iteration}_{param}.csv")
+                if os.path.exists(e_file_path):
+                    try:
+                        e_df = pd.read_csv(e_file_path)
+                        if 'COMID' in e_df.columns and 'Date' in e_df.columns and 'E_value' in e_df.columns:
+                            e_df['Date'] = pd.to_datetime(e_df['Date'])
+                            e_values_dict[param] = e_df
+                            logging.info(f"成功加载参数 {param} 的E值，共 {len(e_df)} 条记录")
+                        else:
+                            logging.error(f"E值文件 {e_file_path} 格式不正确，应包含COMID、Date和E_value列")
+                    except Exception as e:
+                        logging.error(f"读取E值文件 {e_file_path} 失败: {str(e)}")
+                else:
+                    logging.warning(f"找不到参数 {param} 的E值文件: {e_file_path}")
             
-            # 获取当前批次的河段ID
-            start_idx = batch_idx * batch_size
-            end_idx = min((batch_idx + 1) * batch_size, len(comid_list))
-            batch_comids = comid_list[start_idx:end_idx]
-            
-            # 过滤掉缺失数据的河段
-            valid_batch_comids = [comid for comid in batch_comids if str(comid) not in missing_data_comids]
-            if len(valid_batch_comids) < len(batch_comids):
-                logging.debug(f"批次 {batch_idx+1}: 过滤掉 {len(batch_comids) - len(valid_batch_comids)} 个缺失数据的河段")
-            
-            # 批量计算当前批次所有有效河段的E值
-            batch_results = model_func(valid_batch_comids, groups, attr_dict, model, target_cols)
-            
-            # 处理结果并存入数据字典
-            for comid in batch_comids:
+            # 检查是否成功加载了所有参数的E值
+            if len(e_values_dict) < len(target_cols):
+                logging.warning(f"只加载了 {len(e_values_dict)}/{len(target_cols)} 个参数的E值，对缺失参数将使用模型计算")
+        else:
+            logging.error(f"E值路径 {E_exist_path} 不是一个目录")
+        
+        # 如果成功加载了E值，则为每个河段设置E值
+        if e_values_dict:
+            for comid, group in tqdm(groups.items(), desc=f"设置E值 (iteration {iteration})"):
                 # 跳过缺失数据的河段
                 if str(comid) in missing_data_comids:
                     continue
-                    
-                group = groups[comid]
-                E_series = batch_results.get(comid)
                 
-                if E_series is None:
-                    logging.warning(f"河段 {comid} 的模型结果为 None，设置为 0")
-                    # 为此河段的所有时间设置 E 为 0
-                    for param in target_cols:
-                        group[f'E_{param}'] = 0.0
-                        group[f'y_up_{param}'] = 0.0
-                        group[f'y_n_{param}'] = 0.0
-                else:
-                    # 计算河道宽度
-
-                    #观察Qout的分布，打印。检查Qout是否存在零值。如果存在，打印出当前的comid，然后中断程序。
-                    if group['Qout'].isnull().values.any():
-                        print(f"Qout存在零值，comid={comid}")
-                        sys.exit()
-                    #观察Qout的分布，打印。检查Qout是否存在负值。如果存在，打印出当前的comid，然后中断程序。
-                    if (group['Qout']<0).values.any():
-                        print(f"Qout存在负值，comid={comid}")
-                        sys.exit()
-
-
-
-                    # 计算河道宽度
-                    group['width'] = calculate_river_width(group['Qout'])
-                    
-                    # 初始化所有参数的E、y_up和y_n值
-                    # 如果结果包含多个目标参数（如TN和TP），分别处理
-                    if isinstance(E_series, pd.DataFrame) and len(target_cols) > 1:
-                        for param in target_cols:
-                            if param in E_series.columns:
-                                group[f'E_{param}'] = E_series[param].values
-                                group[f'y_up_{param}'] = 0.0
-                                group[f'y_n_{param}'] = 0.0
+                # 计算河道宽度
+                group['width'] = calculate_river_width(group['Qout'])
+                
+                # 对每个参数，设置E值
+                for param in target_cols:
+                    if param in e_values_dict:
+                        # 从加载的E值中查找对应的记录
+                        e_df = e_values_dict[param]
+                        comid_e_df = e_df[e_df['COMID'] == comid]
+                        
+                        if not comid_e_df.empty:
+                            # 将E值设置到对应的日期
+                            e_series = pd.Series(index=group['date'])
+                            for _, row in comid_e_df.iterrows():
+                                date_val = row['Date']
+                                if date_val in e_series.index:
+                                    e_series[date_val] = row['E_value']
+                            
+                            # 填充缺失的E值为0
+                            e_series = e_series.fillna(0.0)
+                            
+                            # 设置E值、y_up和y_n
+                            group[f'E_{param}'] = e_series.values
+                        else:
+                            # 如果没有找到对应的E值记录，设置为0
+                            group[f'E_{param}'] = 0.0
                     else:
-                        # 单一参数情况
-                        param = target_cols[0]
-                        group[f'E_{param}'] = E_series.values
-                        group[f'y_up_{param}'] = 0.0
-                        group[f'y_n_{param}'] = 0.0
+                        # 如果没有加载该参数的E值，设置为0
+                        group[f'E_{param}'] = 0.0
+                    
+                    # 初始化y_up和y_n
+                    group[f'y_up_{param}'] = 0.0
+                    group[f'y_n_{param}'] = 0.0
                 
+                # 设置索引并保存到数据字典
                 group = group.set_index("date")
                 comid_data[comid] = group
-            
-            # 计算并记录批次处理时间
-            batch_time = time.time() - batch_start_time
-            
-            # 定期记录批次处理信息和内存使用情况
-            if batch_idx % 5 == 0 or batch_idx == num_batches - 1:
-                logging.info(f"Batch {batch_idx+1}/{num_batches}: Processed {len(valid_batch_comids)} COMIDs in {batch_time:.2f}s")
+    else:
+        # 没有加载E值，使用模型计算
+        logging.info(f"使用模型计算河段E值 (iteration {iteration})")
+        
+        # 需要保存的E值
+        e_values_to_save = {param: [] for param in target_cols} if E_save == 1 else None
+        
+        logging.info(f"Processing {len(groups)} river segments in batches...")
+        
+        # 设定批次大小并计算批次数
+        batch_size = 1000  # 每批处理1000个COMID
+        comid_list = list(groups.keys())
+        num_batches = (len(comid_list) + batch_size - 1) // batch_size
+        
+        # 使用进度条处理所有河段
+        with tqdm(total=len(groups), desc=f"Processing river segments for iteration {iteration}") as pbar:
+            for batch_idx in range(num_batches):
+                batch_start_time = time.time()
                 
-                # 监控GPU内存使用
-                if torch.cuda.is_available():
-                    allocated = torch.cuda.memory_allocated() / (1024 * 1024)
-                    reserved = torch.cuda.memory_reserved() / (1024 * 1024)
-                    logging.info(f"GPU Memory: {allocated:.2f}MB allocated, {reserved:.2f}MB reserved")
+                # 获取当前批次的河段ID
+                start_idx = batch_idx * batch_size
+                end_idx = min((batch_idx + 1) * batch_size, len(comid_list))
+                batch_comids = comid_list[start_idx:end_idx]
+                
+                # 过滤掉缺失数据的河段
+                valid_batch_comids = [comid for comid in batch_comids if str(comid) not in missing_data_comids]
+                if len(valid_batch_comids) < len(batch_comids):
+                    logging.debug(f"批次 {batch_idx+1}: 过滤掉 {len(batch_comids) - len(valid_batch_comids)} 个缺失数据的河段")
+                
+                # 批量计算当前批次所有有效河段的E值
+                batch_results = model_func(valid_batch_comids, groups, attr_dict, model, target_cols)
+                
+                # 处理结果并存入数据字典
+                for comid in batch_comids:
+                    # 跳过缺失数据的河段
+                    if str(comid) in missing_data_comids:
+                        continue
+                        
+                    group = groups[comid]
+                    E_series = batch_results.get(comid)
                     
-                    # 内存占用过高时释放缓存
-                    if allocated > 6000:  # 6GB阈值
-                        torch.cuda.empty_cache()
-                        logging.info("Cleared GPU cache")
-            
-            # 更新进度条
-            pbar.update(len(batch_comids))
+                    if E_series is None:
+                        logging.warning(f"河段 {comid} 的模型结果为 None，设置为 0")
+                        # 为此河段的所有时间设置 E 为 0
+                        for param in target_cols:
+                            group[f'E_{param}'] = 0.0
+                            group[f'y_up_{param}'] = 0.0
+                            group[f'y_n_{param}'] = 0.0
+                    else:
+                        # 检查Qout是否存在异常值
+                        if group['Qout'].isnull().values.any():
+                            print(f"Qout存在零值，comid={comid}")
+                            sys.exit()
+                        if (group['Qout']<0).values.any():
+                            print(f"Qout存在负值，comid={comid}")
+                            sys.exit()
+
+                        # 计算河道宽度
+                        group['width'] = calculate_river_width(group['Qout'])
+                        
+                        # 初始化所有参数的E、y_up和y_n值
+                        # 如果结果包含多个目标参数（如TN和TP），分别处理
+                        if isinstance(E_series, pd.DataFrame) and len(target_cols) > 1:
+                            for param_idx, param in enumerate(target_cols):
+                                if param in E_series.columns:
+                                    group[f'E_{param}'] = E_series[param].values
+                                    group[f'y_up_{param}'] = 0.0
+                                    group[f'y_n_{param}'] = 0.0
+                                    
+                                    # 如果需要保存E值
+                                    if E_save == 1:
+                                        for date_idx, date_val in enumerate(group['date']):
+                                            e_values_to_save[param].append({
+                                                'COMID': comid,
+                                                'Date': date_val,
+                                                'E_value': E_series[param].values[date_idx] if date_idx < len(E_series[param]) else 0.0
+                                            })
+                        else:
+                            # 单一参数情况
+                            param = target_cols[0]
+                            group[f'E_{param}'] = E_series.values
+                            group[f'y_up_{param}'] = 0.0
+                            group[f'y_n_{param}'] = 0.0
+                            
+                            # 如果需要保存E值
+                            if E_save == 1:
+                                for date_idx, date_val in enumerate(group['date']):
+                                    if date_idx < len(E_series):
+                                        e_values_to_save[param].append({
+                                            'COMID': comid,
+                                            'Date': date_val,
+                                            'E_value': E_series.values[date_idx]
+                                        })
+                    
+                    group = group.set_index("date")
+                    comid_data[comid] = group
+                
+                # 计算并记录批次处理时间
+                batch_time = time.time() - batch_start_time
+                
+                # 定期记录批次处理信息和内存使用情况
+                if batch_idx % 5 == 0 or batch_idx == num_batches - 1:
+                    logging.info(f"Batch {batch_idx+1}/{num_batches}: Processed {len(valid_batch_comids)} COMIDs in {batch_time:.2f}s")
+                    
+                    # 监控GPU内存使用
+                    if torch.cuda.is_available():
+                        allocated = torch.cuda.memory_allocated() / (1024 * 1024)
+                        reserved = torch.cuda.memory_reserved() / (1024 * 1024)
+                        logging.info(f"GPU Memory: {allocated:.2f}MB allocated, {reserved:.2f}MB reserved")
+                        
+                        # 内存占用过高时释放缓存
+                        if allocated > 6000:  # 6GB阈值
+                            torch.cuda.empty_cache()
+                            logging.info("Cleared GPU cache")
+                
+                # 更新进度条
+                pbar.update(len(batch_comids))
+        
+        # 如果需要保存E值
+        if E_save == 1 and E_save_path:
+            logging.info(f"保存E值到 {E_save_path}")
+            # 为每个参数保存E值
+            for param in target_cols:
+                if param in e_values_to_save:
+                    e_df = pd.DataFrame(e_values_to_save[param])
+                    if not e_df.empty:
+                        e_file_path = os.path.join(E_save_path, f"E_{iteration}_{param}.csv")
+                        e_df.to_csv(e_file_path, index=False)
+                        logging.info(f"已保存参数 {param} 的E值，共 {len(e_df)} 条记录，保存至 {e_file_path}")
 
     #===========================================================================
     # 第二阶段：构建河网拓扑结构
