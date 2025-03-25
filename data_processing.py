@@ -11,6 +11,329 @@ try:
 except ImportError:
     from tqdm import tqdm
 
+def detect_and_handle_anomalies(df, columns_to_check=['Qout'], 
+                               check_negative=True, check_outliers=True,
+                               fix_negative=False, fix_outliers=False,
+                               negative_replacement=0.001,
+                               outlier_method='iqr', outlier_threshold=1.5,
+                               verbose=True, logger=None):
+    """
+    检测并可选地修复DataFrame中指定列的异常值。
+    
+    参数:
+    -----------
+    df : pandas.DataFrame
+        要检查异常值的DataFrame
+    columns_to_check : list
+        要检查异常值的列名列表
+    check_negative : bool
+        是否检查负值
+    check_outliers : bool
+        是否检查异常值
+    fix_negative : bool
+        是否修复负值
+    fix_outliers : bool
+        是否修复异常值
+    negative_replacement : float
+        替换负值时使用的值
+    outlier_method : str
+        检测异常值的方法 ('iqr', 'zscore', 'percentile')
+    outlier_threshold : float
+        异常值检测的阈值
+    verbose : bool
+        是否打印有关检测到的异常值的信息
+    logger : logging.Logger or None
+        用于记录消息的Logger对象；如果为None，则使用print
+    
+    返回:
+    --------
+    pandas.DataFrame
+        如果请求修复异常值，则返回修复后的DataFrame
+    dict
+        包含异常值检测结果的字典
+    """
+    import numpy as np
+    import pandas as pd
+    
+    # 创建DataFrame的副本，避免修改原始数据
+    df_result = df.copy()
+    
+    # 初始化结果字典
+    results = {
+        'has_anomalies': False,
+        'columns_with_anomalies': [],
+        'negative_counts': {},
+        'outlier_counts': {},
+        'fixed_negative_counts': {},
+        'fixed_outlier_counts': {}
+    }
+    
+    # 用于日志记录的函数
+    def log_message(message, level='info'):
+        if logger:
+            if level == 'info':
+                logger.info(message)
+            elif level == 'warning':
+                logger.warning(message)
+            elif level == 'error':
+                logger.error(message)
+        elif verbose:
+            print(message)
+    
+    # 检查每个指定的列
+    for column in columns_to_check:
+        if column not in df.columns:
+            log_message(f"警告: 在DataFrame中未找到列 '{column}'", 'warning')
+            continue
+        
+        # 检查负值
+        if check_negative:
+            negative_mask = df[column] < 0
+            negative_count = negative_mask.sum()
+            
+            if negative_count > 0:
+                results['has_anomalies'] = True
+                results['negative_counts'][column] = negative_count
+                
+                if column not in results['columns_with_anomalies']:
+                    results['columns_with_anomalies'].append(column)
+                
+                # 查找并打印包含负值的COMID
+                if negative_count > 0 and 'COMID' in df.columns:
+                    comids_with_negative = df.loc[negative_mask, 'COMID'].unique()
+                    log_message(f"在列 '{column}' 中发现 {negative_count} 个负值", 'warning')
+                    log_message(f"包含负 {column} 值的COMID: {comids_with_negative}", 'warning')
+                    log_message(f"负 {column} 值样例:")
+                    log_message(df[negative_mask].head().to_string())
+                else:
+                    log_message(f"在列 '{column}' 中发现 {negative_count} 个负值", 'warning')
+                
+                # 如果请求修复负值
+                if fix_negative:
+                    df_result.loc[negative_mask, column] = negative_replacement
+                    results['fixed_negative_counts'][column] = negative_count
+                    log_message(f"已修复列 '{column}' 中的 {negative_count} 个负值", 'info')
+        
+        # 检查异常值
+        if check_outliers:
+            outlier_mask = np.zeros(len(df), dtype=bool)
+            
+            # 临时去除负值以进行异常值计算（如果适用）
+            temp_column = df[column].copy()
+            if check_negative and fix_negative:
+                temp_column = temp_column.clip(lower=0)
+            
+            if outlier_method == 'iqr':
+                # IQR方法 (四分位距)
+                Q1 = temp_column.quantile(0.25)
+                Q3 = temp_column.quantile(0.75)
+                IQR = Q3 - Q1
+                lower_bound = Q1 - outlier_threshold * IQR
+                upper_bound = Q3 + outlier_threshold * IQR
+                outlier_mask = (df[column] < lower_bound) | (df[column] > upper_bound)
+            
+            elif outlier_method == 'zscore':
+                # Z-score方法
+                from scipy import stats
+                z_scores = np.abs(stats.zscore(temp_column, nan_policy='omit'))
+                outlier_mask = z_scores > outlier_threshold
+            
+            elif outlier_method == 'percentile':
+                # 百分位方法
+                lower_bound = temp_column.quantile(outlier_threshold / 100)
+                upper_bound = temp_column.quantile(1 - outlier_threshold / 100)
+                outlier_mask = (df[column] < lower_bound) | (df[column] > upper_bound)
+            
+            outlier_count = outlier_mask.sum()
+            
+            if outlier_count > 0:
+                results['has_anomalies'] = True
+                results['outlier_counts'][column] = outlier_count
+                
+                if column not in results['columns_with_anomalies']:
+                    results['columns_with_anomalies'].append(column)
+                
+                # 查找并打印包含异常值的COMID
+                if outlier_count > 0 and 'COMID' in df.columns:
+                    comids_with_outliers = df.loc[outlier_mask, 'COMID'].unique()
+                    log_message(f"在列 '{column}' 中发现 {outlier_count} 个异常值", 'warning')
+                    log_message(f"包含异常 {column} 值的COMID: {comids_with_outliers}", 'warning')
+                    log_message(f"异常 {column} 值样例:")
+                    log_message(df[outlier_mask].head().to_string())
+                else:
+                    log_message(f"在列 '{column}' 中发现 {outlier_count} 个异常值", 'warning')
+                
+                # 如果请求修复异常值
+                if fix_outliers:
+                    # 使用中位数替换异常值
+                    median_value = temp_column.median()
+                    df_result.loc[outlier_mask, column] = median_value
+                    results['fixed_outlier_counts'][column] = outlier_count
+                    log_message(f"已修复列 '{column}' 中的 {outlier_count} 个异常值", 'info')
+    
+    # 汇总结果
+    if results['has_anomalies']:
+        log_message("数据异常检测结果摘要:", 'info')
+        for column in results['columns_with_anomalies']:
+            summary = []
+            if column in results['negative_counts']:
+                summary.append(f"{results['negative_counts'][column]} 个负值")
+            if column in results['outlier_counts']:
+                summary.append(f"{results['outlier_counts'][column]} 个异常值")
+            log_message(f"  列 '{column}': {', '.join(summary)}", 'info')
+    else:
+        log_message("未检测到异常值。", 'info')
+    
+    return df_result, results
+
+
+def check_river_network_consistency(river_info, verbose=True, logger=None):
+    """
+    检查河网拓扑结构的一致性。
+    
+    参数:
+    -----------
+    river_info : pandas.DataFrame
+        包含河网拓扑结构的DataFrame，必须包含'COMID'和'NextDownID'列
+    verbose : bool
+        是否打印检查结果
+    logger : logging.Logger or None
+        用于记录消息的Logger对象；如果为None，则使用print
+        
+    返回:
+    --------
+    dict
+        包含检查结果的字典
+    """
+    import numpy as np
+    import pandas as pd
+    
+    # 用于日志记录的函数
+    def log_message(message, level='info'):
+        if logger:
+            if level == 'info':
+                logger.info(message)
+            elif level == 'warning':
+                logger.warning(message)
+            elif level == 'error':
+                logger.error(message)
+        elif verbose:
+            print(message)
+    
+    # 初始化结果字典
+    results = {
+        'has_issues': False,
+        'missing_comids': [],
+        'orphaned_comids': [],
+        'cycles': [],
+        'multiple_upstreams': {}
+    }
+    
+    if 'COMID' not in river_info.columns or 'NextDownID' not in river_info.columns:
+        log_message("错误: river_info必须包含'COMID'和'NextDownID'列", 'error')
+        results['has_issues'] = True
+        return results
+    
+    # 检查是否所有NextDownID都存在于COMID中（除了终点河段的NextDownID=0）
+    all_comids = set(river_info['COMID'])
+    next_down_ids = set(river_info['NextDownID'])
+    next_down_ids.discard(0)  # 移除终点河段标识0
+    
+    missing_comids = next_down_ids - all_comids
+    if missing_comids:
+        results['has_issues'] = True
+        results['missing_comids'] = list(missing_comids)
+        log_message(f"警告: 发现 {len(missing_comids)} 个引用的下游河段未在COMID列中找到", 'warning')
+        log_message(f"缺失的COMID: {list(missing_comids)[:10]}..." if len(missing_comids) > 10 else f"缺失的COMID: {list(missing_comids)}")
+    
+    # 检查孤立的河段（没有上游也没有下游）
+    next_down_dict = river_info.set_index('COMID')['NextDownID'].to_dict()
+    upstream_counts = {}
+    
+    for comid, next_down in next_down_dict.items():
+        if next_down != 0 and next_down in upstream_counts:
+            upstream_counts[next_down] = upstream_counts.get(next_down, 0) + 1
+        else:
+            upstream_counts[next_down] = 1
+    
+    orphaned_comids = []
+    for comid in all_comids:
+        if comid not in upstream_counts and next_down_dict.get(comid, 0) == 0:
+            orphaned_comids.append(comid)
+    
+    if orphaned_comids:
+        results['has_issues'] = True
+        results['orphaned_comids'] = orphaned_comids
+        log_message(f"警告: 发现 {len(orphaned_comids)} 个孤立河段（无上游也无下游）", 'warning')
+        log_message(f"孤立的COMID: {orphaned_comids[:10]}..." if len(orphaned_comids) > 10 else f"孤立的COMID: {orphaned_comids}")
+    
+    # 检查循环引用
+    def find_cycle(comid, visited=None, path=None):
+        if visited is None:
+            visited = set()
+        if path is None:
+            path = []
+        
+        if comid in path:
+            return path[path.index(comid):] + [comid]
+        
+        if comid in visited or comid not in next_down_dict:
+            return None
+        
+        visited.add(comid)
+        path.append(comid)
+        
+        next_comid = next_down_dict.get(comid, 0)
+        if next_comid == 0:
+            return None
+        
+        return find_cycle(next_comid, visited, path)
+    
+    cycles = []
+    for comid in all_comids:
+        if comid not in next_down_dict:
+            continue
+        cycle = find_cycle(comid)
+        if cycle:
+            cycles.append(cycle)
+    
+    unique_cycles = []
+    cycle_sets = []
+    for cycle in cycles:
+        cycle_set = set(cycle)
+        if cycle_set not in cycle_sets:
+            cycle_sets.append(cycle_set)
+            unique_cycles.append(cycle)
+    
+    if unique_cycles:
+        results['has_issues'] = True
+        results['cycles'] = unique_cycles
+        log_message(f"警告: 发现 {len(unique_cycles)} 个循环引用", 'warning')
+        for i, cycle in enumerate(unique_cycles[:5]):
+            log_message(f"循环 {i+1}: {' -> '.join(map(str, cycle))}", 'warning')
+        if len(unique_cycles) > 5:
+            log_message(f"... 等 {len(unique_cycles) - 5} 个循环", 'warning')
+    
+    # 检查具有多个上游的河段
+    multiple_upstreams = {comid: count for comid, count in upstream_counts.items() if count > 2 and comid != 0}
+    if multiple_upstreams:
+        results['has_issues'] = True
+        results['multiple_upstreams'] = multiple_upstreams
+        log_message(f"信息: 发现 {len(multiple_upstreams)} 个具有3个及以上上游的河段", 'info')
+        items = list(multiple_upstreams.items())
+        for comid, count in sorted(items[:10], key=lambda x: x[1], reverse=True):
+            log_message(f"COMID {comid}: {count} 个上游", 'info')
+        if len(multiple_upstreams) > 10:
+            log_message(f"... 等 {len(multiple_upstreams) - 10} 个河段", 'info')
+    
+    # 总结
+    if results['has_issues']:
+        log_message("河网拓扑结构检查发现问题。", 'warning')
+    else:
+        log_message("河网拓扑结构检查通过，未发现明显问题。", 'info')
+    
+    return results
+
 # 定义时间序列数据标准化函数
 def standardize_time_series(X_train, X_val):
     from sklearn.preprocessing import StandardScaler
@@ -454,7 +777,7 @@ def main():
     df = pd.concat(df_list, ignore_index=True)
     
     input_cols = input_feature_names
-    time_window = 10
+    time_window = 10      
     
     # 测试 build_sliding_windows_for_subset_3
     start = time.time()

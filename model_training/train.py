@@ -307,7 +307,7 @@ def iterative_training_procedure(df: pd.DataFrame,
                 valid_comids.append(comid)
                 
                 all_X_ts.append(X_ts_local)
-                all_comids.extend([comid] * X_ts_local.shape[0])
+                all_comids.extend([comid] * X_ts_local.shape[0])     
                 all_dates.extend(Dates_local)
             
             if not all_X_ts:

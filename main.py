@@ -70,7 +70,7 @@ except ImportError:
     
     class MemoryTracker:
         """Simple memory tracker class."""
-        def __init__(self, interval_seconds=10):
+        def __init__(self, interval_seconds=10): 
             self.interval = interval_seconds
         
         def start(self):
@@ -270,15 +270,6 @@ def main():
                 print(f"CUDA Device {i}: {device_properties.name}")
                 print(f"  Total Memory: {device_properties.total_memory / (1024**3):.2f} GB")
                 print(f"  CUDA Capability: {device_properties.major}.{device_properties.minor}")
-
-    # 加载日尺度数据
-    with TimingAndMemoryContext("Loading Daily Data"):
-        daily_csv = "feature_daily_ts.csv"
-        df = load_daily_data(daily_csv)
-        print("日尺度数据基本信息：")
-        print(f"  数据形状: {df.shape}")
-        print(f"  列名: {df.columns.tolist()}")
-
     # 加载河段属性数据
     with TimingAndMemoryContext("Loading River Attributes"):
         attr_df = load_river_attributes("river_attributes_new.csv")
@@ -295,6 +286,52 @@ def main():
         # 加载COMID列表
         comid_wq_list = pd.read_csv("WQ_exist_comid.csv", header=None)[0].tolist()
         comid_era5_list = pd.read_csv("ERA5_exist_comid.csv", header=None)[0].tolist()
+
+
+    # 加载日尺度数据
+    with TimingAndMemoryContext("Loading Daily Data"):
+        daily_csv = "feature_daily_ts.csv"
+        df = load_daily_data(daily_csv)
+        print("日尺度数据基本信息：")
+        print(f"  数据形状: {df.shape}")
+        print(f"  列名: {df.columns.tolist()}")
+        
+        # 检查异常值 - 特别是负的Qout值
+        from data_processing import detect_and_handle_anomalies
+        logging.info("检查数据中的异常值...")
+        df, anomaly_results = detect_and_handle_anomalies(
+            df, 
+            columns_to_check=['Qout'], 
+            # check_negative=True,
+            # check_outliers=True,
+            # fix_negative=True,
+            # fix_outliers=False,
+            negative_replacement=0.001,
+            outlier_method='iqr',
+            outlier_threshold=3.0,
+            verbose=True,
+            logger=logging
+        )
+        
+        # if anomaly_results['has_anomalies']:
+        #     if 'Qout' in anomaly_results['fixed_negative_counts']:
+        #         fixed_count = anomaly_results['fixed_negative_counts']['Qout']
+        #         logging.warning(f"已修复 {fixed_count} 个负Qout值 (替换为 {0.001})")
+        #         print(f"警告: 检测到数据异常，已修复 {fixed_count} 个负Qout值")
+        
+        # 检查河网拓扑结构的一致性
+        with TimingAndMemoryContext("Checking River Network Consistency"):
+            from data_processing import check_river_network_consistency
+            network_results = check_river_network_consistency(
+                river_info,
+                verbose=True,
+                logger=logging
+            )
+            
+            if network_results['has_issues']:
+                logging.warning("河网拓扑结构检查发现问题，请查看日志了解详情")
+                print("警告: 河网拓扑结构检查发现问题，请查看日志了解详情")
+
 
     # 调用迭代训练过程
     with TimingAndMemoryContext("Iterative Training Process"):

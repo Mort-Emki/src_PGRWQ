@@ -388,6 +388,8 @@ def flow_routing_calculation(df: pd.DataFrame,
                             sys.exit()
                         if (group['Qout']<0).values.any():
                             print(f"Qout存在负值，comid={comid}")
+                            ##统计Qout负值的比例
+                            print(group['Qout'][group['Qout']<0].count()/group['Qout'].count())
                             sys.exit()
 
                         # 计算河道宽度

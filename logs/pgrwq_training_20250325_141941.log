@@ -1,0 +1,857 @@
+2025-03-25 14:19:41,112 - INFO - Logging initialized at 2025-03-25 14:19:41
+2025-03-25 14:19:41,113 - INFO - Log file: logs\pgrwq_training_20250325_141941.log
+2025-03-25 14:19:41,113 - INFO - PG-RWQ Training Pipeline Starting
+2025-03-25 14:19:41,113 - INFO - System time: 2025-03-25 14:19:41
+2025-03-25 14:19:41,113 - INFO - Python version: 3.9.21 (main, Dec 11 2024, 16:35:24) [MSC v.1929 64 bit (AMD64)]
+2025-03-25 14:19:41,113 - INFO - PyTorch version: 2.5.1
+2025-03-25 14:19:41,115 - INFO - Started periodic memory monitoring (interval: 30s)
+2025-03-25 14:19:41,116 - INFO - [Periodic Check] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.7MB | System Memory: 16.4GB / 63.7GB (25.7%)
+2025-03-25 14:19:41,116 - INFO - Created/verified directory for GPU memory logs: D:\PGRWQ\src_PGRWQ\logs
+2025-03-25 14:19:41,117 - INFO - Created GPU memory log file: D:\PGRWQ\src_PGRWQ\logs\gpu_memory_log.csv
+2025-03-25 14:19:41,118 - INFO - [Initial GPU Status] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.7MB | System Memory: 16.4GB / 63.7GB (25.7%)
+2025-03-25 14:19:41,119 - INFO - [Setting Working Directory START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.7MB | System Memory: 16.4GB / 63.7GB (25.7%)
+2025-03-25 14:19:41,120 - INFO - [Setting Working Directory END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.8MB | System Memory: 16.4GB / 63.7GB (25.7%)
+2025-03-25 14:19:41,120 - INFO - [TIMING] Setting Working Directory completed in 0.00 seconds
+2025-03-25 14:19:41,121 - INFO - [Feature Definition START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.9MB | System Memory: 16.4GB / 63.7GB (25.7%)
+2025-03-25 14:19:41,122 - INFO - [Feature Definition END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.9MB | System Memory: 16.4GB / 63.7GB (25.7%)
+2025-03-25 14:19:41,123 - INFO - [TIMING] Feature Definition completed in 0.00 seconds
+2025-03-25 14:19:41,123 - INFO - 输入特征列表: ['surface_net_solar_radiation_mean', 'surface_pressure_mean', 'temperature_2m_mean', 'u_component_of_wind_10m_mean', 'v_component_of_wind_10m_mean', 'volumetric_soil_water_layer_1_mean', 'volumetric_soil_water_layer_2_mean', 'temperature_2m_min', 'temperature_2m_max', 'total_precipitation_sum', 'potential_evaporation_sum', 'Qout'] (维度: 12)
+2025-03-25 14:19:41,123 - INFO - 属性特征列表: ['pre_mm_syr', 'pet_mean', 'aridity', 'seasonality', 'high_prec_freq', 'crp_pc_sse', 'for_pc_sse', 'urb_pc_sse', 'wet_pc_s01', 'nli_ix_sav', 'pop_ct_usu', 'dis_m3_pyr', 'run_mm_syr', 'cly_pc_sav', 'soc_th_sav', 'ele_mt_sav', 'slp_dg_sav', 'sgr_dk_sav', 'moisture_index', 'ero_kh_sav'] (维度: 20)
+2025-03-25 14:19:41,124 - INFO - [Device Setup START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.9MB | System Memory: 16.4GB / 63.7GB (25.7%)
+2025-03-25 14:19:41,125 - INFO - 使用设备：cuda
+2025-03-25 14:19:41,125 - INFO - CUDA Device 0: NVIDIA GeForce RTX 3060 Ti
+2025-03-25 14:19:41,125 - INFO -   Total Memory: 8.00 GB
+2025-03-25 14:19:41,125 - INFO -   CUDA Capability: 8.6
+2025-03-25 14:19:41,126 - INFO - [Device Setup END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.9MB | System Memory: 16.4GB / 63.7GB (25.7%)
+2025-03-25 14:19:41,127 - INFO - [TIMING] Device Setup completed in 0.00 seconds
+2025-03-25 14:19:41,128 - INFO - [Loading Daily Data START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.9MB | System Memory: 16.4GB / 63.7GB (25.7%)
+2025-03-25 14:20:05,330 - INFO - 日尺度数据基本信息：
+2025-03-25 14:20:05,331 - INFO -   数据形状: (13325975, 43)
+2025-03-25 14:20:05,331 - INFO -   列名: ['date', 'snow_depth_water_equivalent_mean', 'surface_net_solar_radiation_mean', 'surface_net_thermal_radiation_mean', 'surface_pressure_mean', 'temperature_2m_mean', 'dewpoint_temperature_2m_mean', 'u_component_of_wind_10m_mean', 'v_component_of_wind_10m_mean', 'volumetric_soil_water_layer_1_mean', 'volumetric_soil_water_layer_2_mean', 'volumetric_soil_water_layer_3_mean', 'volumetric_soil_water_layer_4_mean', 'snow_depth_water_equivalent_min', 'surface_net_solar_radiation_min', 'surface_net_thermal_radiation_min', 'surface_pressure_min', 'temperature_2m_min', 'dewpoint_temperature_2m_min', 'u_component_of_wind_10m_min', 'v_component_of_wind_10m_min', 'volumetric_soil_water_layer_1_min', 'volumetric_soil_water_layer_2_min', 'volumetric_soil_water_layer_3_min', 'volumetric_soil_water_layer_4_min', 'snow_depth_water_equivalent_max', 'surface_net_solar_radiation_max', 'surface_net_thermal_radiation_max', 'surface_pressure_max', 'temperature_2m_max', 'dewpoint_temperature_2m_max', 'u_component_of_wind_10m_max', 'v_component_of_wind_10m_max', 'volumetric_soil_water_layer_1_max', 'volumetric_soil_water_layer_2_max', 'volumetric_soil_water_layer_3_max', 'volumetric_soil_water_layer_4_max', 'total_precipitation_sum', 'potential_evaporation_sum', 'Qout', 'COMID', 'TP', 'TN']
+2025-03-25 14:20:05,332 - INFO - [Loading Daily Data END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4925.6MB | System Memory: 20.7GB / 63.7GB (32.5%)
+2025-03-25 14:20:05,332 - INFO - [TIMING] Loading Daily Data completed in 24.20 seconds
+2025-03-25 14:20:05,333 - INFO - [Loading River Attributes START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4925.6MB | System Memory: 20.7GB / 63.7GB (32.5%)
+2025-03-25 14:20:05,465 - INFO - 
+2025-03-25 14:20:05,465 - INFO - 河段属性数据基本信息：
+2025-03-25 14:20:05,465 - INFO -   数据形状: (7825, 224)
+2025-03-25 14:20:05,466 - INFO -   列名: ['COMID', 'lengthkm', 'lengthdir', 'sinuosity', 'slope', 'uparea', 'order_', 'strmDrop_t', 'slope_taud', 'NextDownID', 'maxup', 'up1', 'up2', 'up3', 'up4', 'p_mean', 'pet_mean', 'aridity', 'frac_snow', 'moisture_index', 'seasonality', 'high_prec_freq', 'high_prec_dur', 'low_prec_freq', 'low_prec_dur', 'sgr_dk_sav', 'glc_pc_s06', 'glc_pc_s07', 'nli_ix_sav', 'glc_pc_s04', 'glc_pc_s05', 'glc_pc_s02', 'glc_pc_s03', 'glc_pc_s01', 'pet_mm_syr', 'glc_pc_s08', 'glc_pc_s09', 'swc_pc_s09', 'ele_mt_smx', 'tbi_cl_smj', 'swc_pc_s01', 'swc_pc_s02', 'swc_pc_s03', 'swc_pc_s04', 'swc_pc_s05', 'swc_pc_s06', 'swc_pc_s07', 'swc_pc_s08', 'crp_pc_sse', 'glc_pc_s22', 'glc_pc_s20', 'glc_pc_s21', 'wet_pc_sg1', 'wet_pc_sg2', 'pac_pc_sse', 'swc_pc_s10', 'swc_pc_s11', 'swc_pc_s12', 'clz_cl_smj', 'gwt_cm_sav', 'glc_pc_s17', 'glc_pc_s18', 'hft_ix_s93', 'glc_pc_s15', 'ire_pc_sse', 'glc_pc_s16', 'glc_pc_s13', 'prm_pc_sse', 'glc_pc_s14', 'glc_pc_s11', 'glc_pc_s12', 'glc_pc_s10', 'kar_pc_sse', 'slp_dg_sav', 'glc_pc_s19', 'tmp_dc_s07', 'tmp_dc_s08', 'tmp_dc_s05', 'tmp_dc_s06', 'tmp_dc_s09', 'for_pc_sse', 'aet_mm_s06', 'aet_mm_s05', 'aet_mm_s08', 'aet_mm_s07', 'aet_mm_s09', 'tmp_dc_s10', 'tmp_dc_s11', 'aet_mm_s02', 'aet_mm_s01', 'tmp_dc_s12', 'aet_mm_s04', 'aet_mm_s03', 'lit_cl_smj', 'tmp_dc_s03', 'tmp_dc_s04', 'tmp_dc_s01', 'tmp_dc_s02', 'cls_cl_smj', 'pre_mm_syr', 'pnv_pc_s01', 'pnv_pc_s04', 'pnv_pc_s05', 'pnv_pc_s02', 'rdd_mk_sav', 'ele_mt_smn', 'pnv_pc_s03', 'pnv_pc_s08', 'pnv_pc_s09', 'pnv_pc_s06', 'pnv_pc_s07', 'wet_cl_smj', 'snw_pc_syr', 'pnv_pc_s11', 'pnv_pc_s12', 'pnv_pc_s10', 'pnv_pc_s15', 'pnv_pc_s13', 'pnv_pc_s14', 'cmi_ix_syr', 'pet_mm_s11', 'pet_mm_s12', 'pet_mm_s10', 'tmp_dc_smn', 'wet_pc_s08', 'wet_pc_s09', 'slt_pc_sav', 'wet_pc_s02', 'wet_pc_s03', 'wet_pc_s01', 'hdi_ix_sav', 'wet_pc_s06', 'wet_pc_s07', 'wet_pc_s04', 'wet_pc_s05', 'fec_cl_smj', 'glc_cl_smj', 'swc_pc_syr', 'hft_ix_s09', 'soc_th_sav', 'gdp_ud_sav', 'gdp_ud_ssu', 'tmp_dc_smx', 'cly_pc_sav', 'pet_mm_s02', 'pet_mm_s03', 'pet_mm_s01', 'snw_pc_smx', 'ppd_pk_sav', 'pet_mm_s08', 'aet_mm_s11', 'pet_mm_s09', 'aet_mm_s10', 'pet_mm_s06', 'pet_mm_s07', 'aet_mm_s12', 'pet_mm_s04', 'pet_mm_s05', 'inu_pc_slt', 'ero_kh_sav', 'aet_mm_syr', 'cmi_ix_s10', 'cmi_ix_s11', 'cmi_ix_s12', 'ari_ix_sav', 'tmp_dc_syr', 'tec_cl_smj', 'fmh_cl_smj', 'inu_pc_smn', 'pnv_cl_smj', 'pre_mm_s08', 'pre_mm_s09', 'run_mm_syr', 'pre_mm_s06', 'pre_mm_s07', 'pre_mm_s04', 'pre_mm_s05', 'snd_pc_sav', 'pre_mm_s02', 'pre_mm_s03', 'ele_mt_sav', 'pre_mm_s01', 'urb_pc_sse', 'lka_pc_sse', 'pre_mm_s10', 'snw_pc_s01', 'snw_pc_s02', 'snw_pc_s03', 'snw_pc_s04', 'snw_pc_s05', 'snw_pc_s06', 'gla_pc_sse', 'snw_pc_s07', 'snw_pc_s08', 'snw_pc_s09', 'inu_pc_smx', 'pre_mm_s11', 'pre_mm_s12', 'cmi_ix_s07', 'cmi_ix_s08', 'cmi_ix_s05', 'cmi_ix_s06', 'cmi_ix_s09', 'snw_pc_s10', 'snw_pc_s11', 'snw_pc_s12', 'cmi_ix_s03', 'cmi_ix_s04', 'cmi_ix_s01', 'cmi_ix_s02', 'pst_pc_sse', 'dis_m3_pmn', 'dis_m3_pmx', 'dis_m3_pyr', 'lkv_mc_usu', 'rev_mc_usu', 'ria_ha_usu', 'riv_tc_usu', 'pop_ct_usu', 'dor_pc_pva', 'area', 'area_fraction_used_for_aggregation', 'WQ_exist', 'ERA5_exist']
+2025-03-25 14:20:05,467 - INFO - [Loading River Attributes END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4942.4MB | System Memory: 20.7GB / 63.7GB (32.5%)
+2025-03-25 14:20:05,467 - INFO - [TIMING] Loading River Attributes completed in 0.13 seconds
+2025-03-25 14:20:05,468 - INFO - [Extracting River Network Info START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4942.4MB | System Memory: 20.7GB / 63.7GB (32.5%)
+2025-03-25 14:20:05,496 - INFO - [Extracting River Network Info END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4945.0MB | System Memory: 20.7GB / 63.7GB (32.5%)
+2025-03-25 14:20:05,496 - INFO - [TIMING] Extracting River Network Info completed in 0.03 seconds
+2025-03-25 14:20:05,497 - INFO - [Iterative Training Process START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4945.0MB | System Memory: 20.7GB / 63.7GB (32.5%)
+2025-03-25 14:20:05,499 - INFO - Memory tracking started (interval: 10s)
+2025-03-25 14:20:05,501 - INFO - [Training Start] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4945.1MB | System Memory: 20.7GB / 63.7GB (32.5%)
+2025-03-25 14:20:05,502 - INFO - Created directory: models
+2025-03-25 14:20:05,502 - INFO - Flow routing results will be saved to flow_results
+2025-03-25 14:20:05,503 - INFO - Models will be saved to models
+2025-03-25 14:20:05,503 - INFO - Starting from initial training (iteration 0) with model version v1
+2025-03-25 14:20:05,503 - INFO - Starting from initial training (iteration 0) with model version v1
+2025-03-25 14:20:05,503 - INFO - 选择头部河段进行初始模型训练。
+2025-03-25 14:20:05,504 - INFO - [Building Attribute Dictionary START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4945.1MB | System Memory: 20.7GB / 63.7GB (32.5%)
+2025-03-25 14:20:06,745 - INFO - [Building Attribute Dictionary END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8397.2MB | System Memory: 24.1GB / 63.7GB (37.9%)
+2025-03-25 14:20:06,745 - INFO - [TIMING] Building Attribute Dictionary completed in 1.24 seconds
+2025-03-25 14:20:06,747 - INFO - [Finding Head Stations START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8397.2MB | System Memory: 24.1GB / 63.7GB (37.9%)
+2025-03-25 14:20:06,788 - INFO -   选择的头部河段数量：27
+2025-03-25 14:20:06,789 - INFO - [Finding Head Stations END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8397.9MB | System Memory: 24.1GB / 63.7GB (37.9%)
+2025-03-25 14:20:06,789 - INFO - [TIMING] Finding Head Stations completed in 0.04 seconds
+2025-03-25 14:20:06,791 - INFO - 构造初始训练数据（滑窗切片）......
+2025-03-25 14:20:06,792 - INFO - [Building Sliding Windows START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8397.9MB | System Memory: 24.1GB / 63.7GB (37.9%)
+2025-03-25 14:20:07,807 - INFO - [Building Sliding Windows END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8454.0MB | System Memory: 24.2GB / 63.7GB (37.9%)
+2025-03-25 14:20:07,807 - INFO - [TIMING] Building Sliding Windows completed in 1.02 seconds
+2025-03-25 14:20:07,807 - INFO - X_ts_all.shape =
+2025-03-25 14:20:07,807 - INFO - (34413, 10, 39)
+2025-03-25 14:20:07,807 - INFO - Y.shape        =
+2025-03-25 14:20:07,808 - INFO - (34413,)
+2025-03-25 14:20:07,808 - INFO - COMID.shape    =
+2025-03-25 14:20:07,808 - INFO - (34413,)
+2025-03-25 14:20:07,808 - INFO - Date.shape     =
+2025-03-25 14:20:07,808 - INFO - (34413,)
+2025-03-25 14:20:07,809 - INFO - [Saving Training Data START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8454.0MB | System Memory: 24.2GB / 63.7GB (37.9%)
+2025-03-25 14:20:07,865 - INFO - 训练数据保存成功！
+2025-03-25 14:20:07,866 - INFO - [Saving Training Data END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8454.1MB | System Memory: 24.2GB / 63.7GB (38.0%)
+2025-03-25 14:20:07,866 - INFO - [TIMING] Saving Training Data completed in 0.06 seconds
+2025-03-25 14:20:07,867 - INFO - [Data Standardization START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8454.1MB | System Memory: 24.2GB / 63.7GB (38.0%)
+2025-03-25 14:20:08,011 - INFO - [After Standardization] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8456.5MB | System Memory: 24.2GB / 63.7GB (38.0%)
+2025-03-25 14:20:08,012 - INFO - [Data Standardization END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8456.5MB | System Memory: 24.2GB / 63.7GB (38.0%)
+2025-03-25 14:20:08,012 - INFO - [TIMING] Data Standardization completed in 0.14 seconds
+2025-03-25 14:20:08,013 - INFO - [Train/Validation Split START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8456.5MB | System Memory: 24.2GB / 63.7GB (38.0%)
+2025-03-25 14:20:08,030 - INFO - [Train/Validation Split END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8507.8MB | System Memory: 24.3GB / 63.7GB (38.1%)
+2025-03-25 14:20:08,031 - INFO - [TIMING] Train/Validation Split completed in 0.02 seconds
+2025-03-25 14:20:08,031 - INFO - 初始模型 A₀ 训练：头部河段训练数据构造完毕。
+2025-03-25 14:20:08,032 - INFO - [Model Creation START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8507.8MB | System Memory: 24.3GB / 63.7GB (38.1%)
+2025-03-25 14:20:08,033 - INFO - [Model Init] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8507.8MB | System Memory: 24.3GB / 63.7GB (38.1%)
+2025-03-25 14:20:08,045 - INFO - Model architecture initialized:
+2025-03-25 14:20:08,045 - INFO -  - LSTM: input_dim=39, hidden_size=64, num_layers=1
+2025-03-25 14:20:08,045 - INFO -  - Attribute network: attr_dim=20, fc_dim=32
+2025-03-25 14:20:08,046 - INFO -  - Output dimension: 1
+2025-03-25 14:20:08,046 - INFO - Total parameters: 28,705
+2025-03-25 14:20:08,176 - INFO - Model moved to cuda
+2025-03-25 14:20:08,249 - INFO - Model tested on cuda with dummy input
+2025-03-25 14:20:08,249 - INFO - Parameter devices:
+2025-03-25 14:20:08,250 - INFO -  - lstm.weight_ih_l0: cuda:0
+2025-03-25 14:20:08,250 - INFO -  - lstm.weight_hh_l0: cuda:0
+2025-03-25 14:20:08,250 - INFO -  - lstm.bias_ih_l0: cuda:0
+2025-03-25 14:20:08,250 - INFO -  - lstm.bias_hh_l0: cuda:0
+2025-03-25 14:20:08,250 - INFO -  - attr_fc.0.weight: cuda:0
+2025-03-25 14:20:08,250 - INFO -  - attr_fc.0.bias: cuda:0
+2025-03-25 14:20:08,251 - INFO -  - attr_fc.2.weight: cuda:0
+2025-03-25 14:20:08,251 - INFO -  - attr_fc.2.bias: cuda:0
+2025-03-25 14:20:08,251 - INFO -  - final_fc.weight: cuda:0
+2025-03-25 14:20:08,251 - INFO -  - final_fc.bias: cuda:0
+2025-03-25 14:20:08,252 - INFO - [Model Created] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8644.7MB | System Memory: 24.4GB / 63.7GB (38.3%)
+2025-03-25 14:20:08,254 - INFO - [Model Creation END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8644.7MB | System Memory: 24.4GB / 63.7GB (38.3%)
+2025-03-25 14:20:08,254 - INFO - [TIMING] Model Creation completed in 0.22 seconds
+2025-03-25 14:20:08,255 - INFO - [Model Training START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8644.7MB | System Memory: 24.4GB / 63.7GB (38.3%)
+2025-03-25 14:20:08,256 - INFO - [Dataset Creation START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8644.7MB | System Memory: 24.4GB / 63.7GB (38.3%)
+2025-03-25 14:20:08,257 - INFO - [Dataset Creation END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8644.7MB | System Memory: 24.4GB / 63.7GB (38.3%)
+2025-03-25 14:20:08,257 - INFO - [TIMING] Dataset Creation completed in 0.00 seconds
+2025-03-25 14:20:10,019 - INFO - [Epoch 1/100 Start] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8697.5MB | System Memory: 24.5GB / 63.7GB (38.4%)
+2025-03-25 14:20:10,020 - INFO - [Epoch 1 Training START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8697.5MB | System Memory: 24.5GB / 63.7GB (38.4%)
+2025-03-25 14:20:10,097 - INFO - [Epoch 1 First Batch] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8719.1MB | System Memory: 24.5GB / 63.7GB (38.4%)
+2025-03-25 14:20:10,453 - INFO - [Epoch 1 Training END] [MEMORY] GPU Memory: 29.2MB / 8191.5MB (0.4%) | Peak: 828.1MB | Process Memory: 8839.5MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:10,453 - INFO - [TIMING] Epoch 1 Training completed in 0.43 seconds
+2025-03-25 14:20:10,454 - INFO - [Epoch 1 Validation START] [MEMORY] GPU Memory: 29.2MB / 8191.5MB (0.4%) | Peak: 828.1MB | Process Memory: 8839.5MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:10,606 - INFO - Epoch [1/100]
+2025-03-25 14:20:10,606 - INFO -  Validation  | Train Loss=12.0346, Val Loss=11.7406, Val MAPE=87.2041, Val NSE=-1.2601
+2025-03-25 14:20:10,607 - INFO - [Epoch 1 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 828.1MB | Process Memory: 8842.2MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:10,607 - INFO - [TIMING] Epoch 1 Validation completed in 0.15 seconds
+2025-03-25 14:20:10,899 - INFO - [TIMING] Epoch 2 Training completed in 0.29 seconds
+2025-03-25 14:20:10,945 - INFO - Epoch [2/100]
+2025-03-25 14:20:10,945 - INFO -  Validation  | Train Loss=11.4376, Val Loss=11.1491, Val MAPE=81.2789, Val NSE=-1.1462
+2025-03-25 14:20:10,947 - INFO - [TIMING] Epoch 2 Validation completed in 0.05 seconds
+2025-03-25 14:20:10,952 - INFO - [Epoch 3/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8846.6MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:10,953 - INFO - [Epoch 3 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8846.6MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:11,019 - INFO - [Epoch 3 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8862.6MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:11,162 - INFO - [Periodic Check] [MEMORY] GPU Memory: 43.3MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8862.7MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:11,294 - INFO - [Epoch 3 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.2MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:11,294 - INFO - [TIMING] Epoch 3 Training completed in 0.34 seconds
+2025-03-25 14:20:11,295 - INFO - [Epoch 3 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.2MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:11,342 - INFO - Epoch [3/100]
+2025-03-25 14:20:11,343 - INFO -  Validation  | Train Loss=10.8333, Val Loss=10.5271, Val MAPE=75.5961, Val NSE=-1.0264
+2025-03-25 14:20:11,344 - INFO - [Epoch 3 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.3MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:11,344 - INFO - [TIMING] Epoch 3 Validation completed in 0.05 seconds
+2025-03-25 14:20:11,620 - INFO - [TIMING] Epoch 4 Training completed in 0.27 seconds
+2025-03-25 14:20:11,664 - INFO - Epoch [4/100]
+2025-03-25 14:20:11,664 - INFO -  Validation  | Train Loss=10.1888, Val Loss=9.8438, Val MAPE=69.9870, Val NSE=-0.8949
+2025-03-25 14:20:11,664 - INFO - [TIMING] Epoch 4 Validation completed in 0.04 seconds
+2025-03-25 14:20:11,670 - INFO - [Epoch 5/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.4MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:11,671 - INFO - [Epoch 5 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.4MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:11,735 - INFO - [Epoch 5 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8862.7MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:12,009 - INFO - [Epoch 5 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8876.7MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:12,009 - INFO - [TIMING] Epoch 5 Training completed in 0.34 seconds
+2025-03-25 14:20:12,010 - INFO - [Epoch 5 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8876.7MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:12,058 - INFO - Epoch [5/100]
+2025-03-25 14:20:12,058 - INFO -  Validation  | Train Loss=9.4723, Val Loss=9.0824, Val MAPE=64.9688, Val NSE=-0.7484
+2025-03-25 14:20:12,059 - INFO - [Epoch 5 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8846.8MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:12,059 - INFO - [TIMING] Epoch 5 Validation completed in 0.05 seconds
+2025-03-25 14:20:12,333 - INFO - [TIMING] Epoch 6 Training completed in 0.27 seconds
+2025-03-25 14:20:12,436 - INFO - Epoch [6/100]
+2025-03-25 14:20:12,437 - INFO -  Validation  | Train Loss=8.6785, Val Loss=8.2496, Val MAPE=61.6411, Val NSE=-0.5880
+2025-03-25 14:20:12,437 - INFO - [TIMING] Epoch 6 Validation completed in 0.10 seconds
+2025-03-25 14:20:12,443 - INFO - [Epoch 7/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8846.7MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:12,444 - INFO - [Epoch 7 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8846.7MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:12,510 - INFO - [Epoch 7 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8862.7MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:12,718 - INFO - [Epoch 7 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.2MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:12,718 - INFO - [TIMING] Epoch 7 Training completed in 0.27 seconds
+2025-03-25 14:20:12,719 - INFO - [Epoch 7 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.2MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:12,764 - INFO - Epoch [7/100]
+2025-03-25 14:20:12,765 - INFO -  Validation  | Train Loss=7.8193, Val Loss=7.3764, Val MAPE=60.8375, Val NSE=-0.4199
+2025-03-25 14:20:12,766 - INFO - [Epoch 7 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.1MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:12,767 - INFO - [TIMING] Epoch 7 Validation completed in 0.05 seconds
+2025-03-25 14:20:13,101 - INFO - [TIMING] Epoch 8 Training completed in 0.33 seconds
+2025-03-25 14:20:13,151 - INFO - Epoch [8/100]
+2025-03-25 14:20:13,151 - INFO -  Validation  | Train Loss=6.9355, Val Loss=6.5210, Val MAPE=63.1473, Val NSE=-0.2553
+2025-03-25 14:20:13,152 - INFO - [TIMING] Epoch 8 Validation completed in 0.05 seconds
+2025-03-25 14:20:13,158 - INFO - [Epoch 9/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8846.8MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:13,160 - INFO - [Epoch 9 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8846.8MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:13,243 - INFO - [Epoch 9 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8862.8MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:13,457 - INFO - [Epoch 9 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.4MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:13,458 - INFO - [TIMING] Epoch 9 Training completed in 0.30 seconds
+2025-03-25 14:20:13,459 - INFO - [Epoch 9 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.4MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:13,565 - INFO - Epoch [9/100]
+2025-03-25 14:20:13,565 - INFO -  Validation  | Train Loss=6.0907, Val Loss=5.7596, Val MAPE=69.0371, Val NSE=-0.1087
+2025-03-25 14:20:13,566 - INFO - [Epoch 9 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8846.8MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:13,568 - INFO - [TIMING] Epoch 9 Validation completed in 0.11 seconds
+2025-03-25 14:20:13,850 - INFO - [TIMING] Epoch 10 Training completed in 0.28 seconds
+2025-03-25 14:20:13,900 - INFO - Epoch [10/100]
+2025-03-25 14:20:13,900 - INFO -  Validation  | Train Loss=5.3668, Val Loss=5.1687, Val MAPE=78.4193, Val NSE=0.0050
+2025-03-25 14:20:13,900 - INFO - [TIMING] Epoch 10 Validation completed in 0.05 seconds
+2025-03-25 14:20:13,907 - INFO - [Epoch 11/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.1MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:13,908 - INFO - [Epoch 11 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.1MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:13,974 - INFO - [Epoch 11 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8862.8MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:14,238 - INFO - [Epoch 11 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.0MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:14,239 - INFO - [TIMING] Epoch 11 Training completed in 0.33 seconds
+2025-03-25 14:20:14,240 - INFO - [Epoch 11 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.0MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:14,284 - INFO - Epoch [11/100]
+2025-03-25 14:20:14,285 - INFO -  Validation  | Train Loss=4.8433, Val Loss=4.7974, Val MAPE=90.3282, Val NSE=0.0765
+2025-03-25 14:20:14,286 - INFO - [Epoch 11 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8846.9MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:14,286 - INFO - [TIMING] Epoch 11 Validation completed in 0.05 seconds
+2025-03-25 14:20:14,562 - INFO - [TIMING] Epoch 12 Training completed in 0.27 seconds
+2025-03-25 14:20:14,607 - INFO - Epoch [12/100]
+2025-03-25 14:20:14,607 - INFO -  Validation  | Train Loss=4.5388, Val Loss=4.6351, Val MAPE=102.2951, Val NSE=0.1077
+2025-03-25 14:20:14,608 - INFO - [TIMING] Epoch 12 Validation completed in 0.05 seconds
+2025-03-25 14:20:14,614 - INFO - [Epoch 13/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.1MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:14,615 - INFO - [Epoch 13 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.1MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:14,682 - INFO - [Epoch 13 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8862.8MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:14,970 - INFO - [Epoch 13 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8876.5MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:14,971 - INFO - [TIMING] Epoch 13 Training completed in 0.36 seconds
+2025-03-25 14:20:14,972 - INFO - [Epoch 13 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8876.5MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:15,019 - INFO - Epoch [13/100]
+2025-03-25 14:20:15,019 - INFO -  Validation  | Train Loss=4.4263, Val Loss=4.5833, Val MAPE=110.6430, Val NSE=0.1177
+2025-03-25 14:20:15,020 - INFO - [Epoch 13 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8846.6MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:15,021 - INFO - [TIMING] Epoch 13 Validation completed in 0.05 seconds
+2025-03-25 14:20:15,320 - INFO - [TIMING] Epoch 14 Training completed in 0.29 seconds
+2025-03-25 14:20:15,424 - INFO - Epoch [14/100]
+2025-03-25 14:20:15,424 - INFO -  Validation  | Train Loss=4.3814, Val Loss=4.5144, Val MAPE=112.2887, Val NSE=0.1310
+2025-03-25 14:20:15,424 - INFO - [TIMING] Epoch 14 Validation completed in 0.10 seconds
+2025-03-25 14:20:15,430 - INFO - [Epoch 15/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8846.6MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:15,431 - INFO - [Epoch 15 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8846.6MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:15,496 - INFO - [Epoch 15 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8862.3MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:15,702 - INFO - [Epoch 15 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8876.9MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:15,703 - INFO - [TIMING] Epoch 15 Training completed in 0.27 seconds
+2025-03-25 14:20:15,704 - INFO - [Epoch 15 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8876.9MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:15,748 - INFO - Epoch [15/100]
+2025-03-25 14:20:15,748 - INFO -  Validation  | Train Loss=4.3096, Val Loss=4.4033, Val MAPE=108.4603, Val NSE=0.1524
+2025-03-25 14:20:15,749 - INFO - [Epoch 15 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.1MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:15,749 - INFO - [TIMING] Epoch 15 Validation completed in 0.05 seconds
+2025-03-25 14:20:16,091 - INFO - [TIMING] Epoch 16 Training completed in 0.34 seconds
+2025-03-25 14:20:16,138 - INFO - Epoch [16/100]
+2025-03-25 14:20:16,138 - INFO -  Validation  | Train Loss=4.1951, Val Loss=4.2896, Val MAPE=102.3130, Val NSE=0.1743
+2025-03-25 14:20:16,138 - INFO - [TIMING] Epoch 16 Validation completed in 0.05 seconds
+2025-03-25 14:20:16,145 - INFO - [Epoch 17/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.1MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:16,147 - INFO - [Epoch 17 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.1MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:16,214 - INFO - [Epoch 17 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8862.8MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:16,426 - INFO - [Epoch 17 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.4MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:16,426 - INFO - [TIMING] Epoch 17 Training completed in 0.28 seconds
+2025-03-25 14:20:16,427 - INFO - [Epoch 17 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.4MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:16,472 - INFO - Epoch [17/100]
+2025-03-25 14:20:16,472 - INFO -  Validation  | Train Loss=4.0904, Val Loss=4.2045, Val MAPE=96.4265, Val NSE=0.1906
+2025-03-25 14:20:16,473 - INFO - [Epoch 17 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.5MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:16,473 - INFO - [TIMING] Epoch 17 Validation completed in 0.05 seconds
+2025-03-25 14:20:16,803 - INFO - [TIMING] Epoch 18 Training completed in 0.32 seconds
+2025-03-25 14:20:16,849 - INFO - Epoch [18/100]
+2025-03-25 14:20:16,850 - INFO -  Validation  | Train Loss=4.0112, Val Loss=4.1403, Val MAPE=91.8154, Val NSE=0.2030
+2025-03-25 14:20:16,850 - INFO - [TIMING] Epoch 18 Validation completed in 0.05 seconds
+2025-03-25 14:20:16,855 - INFO - [Epoch 19/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.6MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:16,856 - INFO - [Epoch 19 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.6MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:16,920 - INFO - [Epoch 19 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8863.0MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:17,129 - INFO - [Epoch 19 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.6MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:17,129 - INFO - [TIMING] Epoch 19 Training completed in 0.27 seconds
+2025-03-25 14:20:17,130 - INFO - [Epoch 19 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.6MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:17,233 - INFO - Epoch [19/100]
+2025-03-25 14:20:17,234 - INFO -  Validation  | Train Loss=3.9473, Val Loss=4.0832, Val MAPE=88.5319, Val NSE=0.2140
+2025-03-25 14:20:17,236 - INFO - [Epoch 19 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.5MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:17,236 - INFO - [TIMING] Epoch 19 Validation completed in 0.11 seconds
+2025-03-25 14:20:17,509 - INFO - [TIMING] Epoch 20 Training completed in 0.27 seconds
+2025-03-25 14:20:17,555 - INFO - Epoch [20/100]
+2025-03-25 14:20:17,555 - INFO -  Validation  | Train Loss=3.8868, Val Loss=4.0288, Val MAPE=86.7014, Val NSE=0.2245
+2025-03-25 14:20:17,555 - INFO - [TIMING] Epoch 20 Validation completed in 0.05 seconds
+2025-03-25 14:20:17,561 - INFO - [Epoch 21/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.8MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:17,562 - INFO - [Epoch 21 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.8MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:17,684 - INFO - [Epoch 21 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8863.0MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:17,891 - INFO - [Epoch 21 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.4MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:17,891 - INFO - [TIMING] Epoch 21 Training completed in 0.33 seconds
+2025-03-25 14:20:17,892 - INFO - [Epoch 21 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.4MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:17,936 - INFO - Epoch [21/100]
+2025-03-25 14:20:17,936 - INFO -  Validation  | Train Loss=3.8301, Val Loss=3.9775, Val MAPE=85.8526, Val NSE=0.2343
+2025-03-25 14:20:17,937 - INFO - [Epoch 21 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.5MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:17,937 - INFO - [TIMING] Epoch 21 Validation completed in 0.04 seconds
+2025-03-25 14:20:18,210 - INFO - [TIMING] Epoch 22 Training completed in 0.27 seconds
+2025-03-25 14:20:18,310 - INFO - Epoch [22/100]
+2025-03-25 14:20:18,312 - INFO -  Validation  | Train Loss=3.7729, Val Loss=3.9246, Val MAPE=85.4830, Val NSE=0.2445
+2025-03-25 14:20:18,312 - INFO - [TIMING] Epoch 22 Validation completed in 0.10 seconds
+2025-03-25 14:20:18,317 - INFO - [Epoch 23/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.3MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:18,318 - INFO - [Epoch 23 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.3MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:18,384 - INFO - [Epoch 23 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8863.0MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:18,594 - INFO - [Epoch 23 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.4MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:18,594 - INFO - [TIMING] Epoch 23 Training completed in 0.28 seconds
+2025-03-25 14:20:18,595 - INFO - [Epoch 23 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.4MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:18,640 - INFO - Epoch [23/100]
+2025-03-25 14:20:18,640 - INFO -  Validation  | Train Loss=3.7177, Val Loss=3.8671, Val MAPE=85.0612, Val NSE=0.2556
+2025-03-25 14:20:18,641 - INFO - [Epoch 23 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.5MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:18,641 - INFO - [TIMING] Epoch 23 Validation completed in 0.05 seconds
+2025-03-25 14:20:18,981 - INFO - [TIMING] Epoch 24 Training completed in 0.33 seconds
+2025-03-25 14:20:19,027 - INFO - Epoch [24/100]
+2025-03-25 14:20:19,027 - INFO -  Validation  | Train Loss=3.6579, Val Loss=3.8087, Val MAPE=84.4220, Val NSE=0.2668
+2025-03-25 14:20:19,027 - INFO - [TIMING] Epoch 24 Validation completed in 0.05 seconds
+2025-03-25 14:20:19,032 - INFO - [Epoch 25/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.4MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:19,034 - INFO - [Epoch 25 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.4MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:19,098 - INFO - [Epoch 25 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8863.0MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:19,305 - INFO - [Epoch 25 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.4MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:19,305 - INFO - [TIMING] Epoch 25 Training completed in 0.27 seconds
+2025-03-25 14:20:19,306 - INFO - [Epoch 25 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.4MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:19,351 - INFO - Epoch [25/100]
+2025-03-25 14:20:19,351 - INFO -  Validation  | Train Loss=3.6010, Val Loss=3.7519, Val MAPE=83.9652, Val NSE=0.2778
+2025-03-25 14:20:19,352 - INFO - [Epoch 25 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.5MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:19,352 - INFO - [TIMING] Epoch 25 Validation completed in 0.05 seconds
+2025-03-25 14:20:19,681 - INFO - [TIMING] Epoch 26 Training completed in 0.32 seconds
+2025-03-25 14:20:19,726 - INFO - Epoch [26/100]
+2025-03-25 14:20:19,727 - INFO -  Validation  | Train Loss=3.5480, Val Loss=3.6959, Val MAPE=83.5164, Val NSE=0.2886
+2025-03-25 14:20:19,727 - INFO - [TIMING] Epoch 26 Validation completed in 0.05 seconds
+2025-03-25 14:20:19,732 - INFO - [Epoch 27/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8846.8MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:19,734 - INFO - [Epoch 27 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8846.8MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:19,807 - INFO - [Epoch 27 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8862.7MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:20,014 - INFO - [Epoch 27 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.2MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:20,014 - INFO - [TIMING] Epoch 27 Training completed in 0.28 seconds
+2025-03-25 14:20:20,016 - INFO - [Epoch 27 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.2MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:20,061 - INFO - Epoch [27/100]
+2025-03-25 14:20:20,061 - INFO -  Validation  | Train Loss=3.4951, Val Loss=3.6366, Val MAPE=83.1969, Val NSE=0.3000
+2025-03-25 14:20:20,063 - INFO - [Epoch 27 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.3MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:20,063 - INFO - [TIMING] Epoch 27 Validation completed in 0.05 seconds
+2025-03-25 14:20:20,393 - INFO - [TIMING] Epoch 28 Training completed in 0.33 seconds
+2025-03-25 14:20:20,438 - INFO - Epoch [28/100]
+2025-03-25 14:20:20,438 - INFO -  Validation  | Train Loss=3.4386, Val Loss=3.5744, Val MAPE=82.9008, Val NSE=0.3119
+2025-03-25 14:20:20,439 - INFO - [TIMING] Epoch 28 Validation completed in 0.05 seconds
+2025-03-25 14:20:20,445 - INFO - [Epoch 29/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.3MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:20,446 - INFO - [Epoch 29 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.3MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:20,512 - INFO - [Epoch 29 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8863.0MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:20,777 - INFO - [Epoch 29 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.2MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:20,777 - INFO - [TIMING] Epoch 29 Training completed in 0.33 seconds
+2025-03-25 14:20:20,778 - INFO - [Epoch 29 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.2MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:20,826 - INFO - Epoch [29/100]
+2025-03-25 14:20:20,826 - INFO -  Validation  | Train Loss=3.3814, Val Loss=3.5113, Val MAPE=82.8137, Val NSE=0.3241
+2025-03-25 14:20:20,827 - INFO - [Epoch 29 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.3MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:20,827 - INFO - [TIMING] Epoch 29 Validation completed in 0.05 seconds
+2025-03-25 14:20:21,098 - INFO - [TIMING] Epoch 30 Training completed in 0.27 seconds
+2025-03-25 14:20:21,145 - INFO - Epoch [30/100]
+2025-03-25 14:20:21,146 - INFO -  Validation  | Train Loss=3.3240, Val Loss=3.4475, Val MAPE=82.7036, Val NSE=0.3364
+2025-03-25 14:20:21,146 - INFO - [TIMING] Epoch 30 Validation completed in 0.05 seconds
+2025-03-25 14:20:21,151 - INFO - [Epoch 31/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.5MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:21,152 - INFO - [Epoch 31 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.5MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:21,220 - INFO - [Epoch 31 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8863.0MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:21,486 - INFO - [Epoch 31 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.4MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:21,486 - INFO - [TIMING] Epoch 31 Training completed in 0.33 seconds
+2025-03-25 14:20:21,487 - INFO - [Epoch 31 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.4MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:21,532 - INFO - Epoch [31/100]
+2025-03-25 14:20:21,533 - INFO -  Validation  | Train Loss=3.2654, Val Loss=3.3814, Val MAPE=82.4059, Val NSE=0.3491
+2025-03-25 14:20:21,534 - INFO - [Epoch 31 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.5MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:21,534 - INFO - [TIMING] Epoch 31 Validation completed in 0.05 seconds
+2025-03-25 14:20:21,808 - INFO - [TIMING] Epoch 32 Training completed in 0.27 seconds
+2025-03-25 14:20:21,855 - INFO - Epoch [32/100]
+2025-03-25 14:20:21,855 - INFO -  Validation  | Train Loss=3.2037, Val Loss=3.3128, Val MAPE=81.9412, Val NSE=0.3623
+2025-03-25 14:20:21,855 - INFO - [TIMING] Epoch 32 Validation completed in 0.05 seconds
+2025-03-25 14:20:21,861 - INFO - [Epoch 33/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.8MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:21,862 - INFO - [Epoch 33 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.8MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:21,985 - INFO - [Epoch 33 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8862.7MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:22,193 - INFO - [Epoch 33 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.4MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:22,193 - INFO - [TIMING] Epoch 33 Training completed in 0.33 seconds
+2025-03-25 14:20:22,194 - INFO - [Epoch 33 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8877.4MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:22,240 - INFO - Epoch [33/100]
+2025-03-25 14:20:22,240 - INFO -  Validation  | Train Loss=3.1403, Val Loss=3.2428, Val MAPE=81.3300, Val NSE=0.3758
+2025-03-25 14:20:22,241 - INFO - [Epoch 33 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8847.5MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:22,241 - INFO - [TIMING] Epoch 33 Validation completed in 0.05 seconds
+2025-03-25 14:20:22,575 - INFO - [TIMING] Epoch 34 Training completed in 0.33 seconds
+2025-03-25 14:20:22,618 - INFO - Epoch [34/100]
+2025-03-25 14:20:22,619 - INFO -  Validation  | Train Loss=3.0753, Val Loss=3.1726, Val MAPE=80.6036, Val NSE=0.3893
+2025-03-25 14:20:22,619 - INFO - [TIMING] Epoch 34 Validation completed in 0.04 seconds
+2025-03-25 14:20:22,625 - INFO - [Epoch 35/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8862.0MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:22,626 - INFO - [Epoch 35 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8862.0MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:22,691 - INFO - [Epoch 35 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8863.0MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:22,900 - INFO - [Epoch 35 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.5MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:22,901 - INFO - [TIMING] Epoch 35 Training completed in 0.27 seconds
+2025-03-25 14:20:22,902 - INFO - [Epoch 35 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.5MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:22,945 - INFO - Epoch [35/100]
+2025-03-25 14:20:22,945 - INFO -  Validation  | Train Loss=3.0106, Val Loss=3.1010, Val MAPE=79.6285, Val NSE=0.4031
+2025-03-25 14:20:22,946 - INFO - [Epoch 35 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.5MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:22,947 - INFO - [TIMING] Epoch 35 Validation completed in 0.05 seconds
+2025-03-25 14:20:23,278 - INFO - [TIMING] Epoch 36 Training completed in 0.33 seconds
+2025-03-25 14:20:23,321 - INFO - Epoch [36/100]
+2025-03-25 14:20:23,322 - INFO -  Validation  | Train Loss=2.9443, Val Loss=3.0302, Val MAPE=78.5073, Val NSE=0.4167
+2025-03-25 14:20:23,323 - INFO - [TIMING] Epoch 36 Validation completed in 0.04 seconds
+2025-03-25 14:20:23,329 - INFO - [Epoch 37/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.7MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:23,329 - INFO - [Epoch 37 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.7MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:23,392 - INFO - [Epoch 37 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8877.9MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:23,599 - INFO - [Epoch 37 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.0MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:23,599 - INFO - [TIMING] Epoch 37 Training completed in 0.27 seconds
+2025-03-25 14:20:23,601 - INFO - [Epoch 37 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.0MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:23,643 - INFO - Epoch [37/100]
+2025-03-25 14:20:23,643 - INFO -  Validation  | Train Loss=2.8807, Val Loss=2.9597, Val MAPE=77.4693, Val NSE=0.4303
+2025-03-25 14:20:23,644 - INFO - [Epoch 37 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.0MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:23,644 - INFO - [TIMING] Epoch 37 Validation completed in 0.05 seconds
+2025-03-25 14:20:23,980 - INFO - [TIMING] Epoch 38 Training completed in 0.33 seconds
+2025-03-25 14:20:24,025 - INFO - Epoch [38/100]
+2025-03-25 14:20:24,025 - INFO -  Validation  | Train Loss=2.8153, Val Loss=2.8905, Val MAPE=76.5213, Val NSE=0.4436
+2025-03-25 14:20:24,025 - INFO - [TIMING] Epoch 38 Validation completed in 0.04 seconds
+2025-03-25 14:20:24,031 - INFO - [Epoch 39/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.0MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:24,032 - INFO - [Epoch 39 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.0MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:24,096 - INFO - [Epoch 39 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8877.9MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:24,362 - INFO - [Epoch 39 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.2MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:24,362 - INFO - [TIMING] Epoch 39 Training completed in 0.33 seconds
+2025-03-25 14:20:24,363 - INFO - [Epoch 39 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.2MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:24,407 - INFO - Epoch [39/100]
+2025-03-25 14:20:24,407 - INFO -  Validation  | Train Loss=2.7510, Val Loss=2.8216, Val MAPE=75.4240, Val NSE=0.4568
+2025-03-25 14:20:24,408 - INFO - [Epoch 39 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.2MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:24,408 - INFO - [TIMING] Epoch 39 Validation completed in 0.05 seconds
+2025-03-25 14:20:24,680 - INFO - [TIMING] Epoch 40 Training completed in 0.27 seconds
+2025-03-25 14:20:24,723 - INFO - Epoch [40/100]
+2025-03-25 14:20:24,724 - INFO -  Validation  | Train Loss=2.6870, Val Loss=2.7557, Val MAPE=74.4957, Val NSE=0.4695
+2025-03-25 14:20:24,724 - INFO - [TIMING] Epoch 40 Validation completed in 0.04 seconds
+2025-03-25 14:20:24,729 - INFO - [Epoch 41/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.5MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:24,730 - INFO - [Epoch 41 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.5MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:24,855 - INFO - [Epoch 41 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8877.6MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:25,065 - INFO - [Epoch 41 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.7MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:25,065 - INFO - [TIMING] Epoch 41 Training completed in 0.33 seconds
+2025-03-25 14:20:25,066 - INFO - [Epoch 41 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.7MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:25,109 - INFO - Epoch [41/100]
+2025-03-25 14:20:25,109 - INFO -  Validation  | Train Loss=2.6257, Val Loss=2.6880, Val MAPE=73.0348, Val NSE=0.4826
+2025-03-25 14:20:25,110 - INFO - [Epoch 41 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.7MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:25,111 - INFO - [TIMING] Epoch 41 Validation completed in 0.05 seconds
+2025-03-25 14:20:25,443 - INFO - [TIMING] Epoch 42 Training completed in 0.33 seconds
+2025-03-25 14:20:25,486 - INFO - Epoch [42/100]
+2025-03-25 14:20:25,486 - INFO -  Validation  | Train Loss=2.5641, Val Loss=2.6247, Val MAPE=71.6088, Val NSE=0.4947
+2025-03-25 14:20:25,486 - INFO - [TIMING] Epoch 42 Validation completed in 0.04 seconds
+2025-03-25 14:20:25,492 - INFO - [Epoch 43/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.8MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:25,493 - INFO - [Epoch 43 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.8MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:25,558 - INFO - [Epoch 43 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.0MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:25,764 - INFO - [Epoch 43 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.0MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:25,765 - INFO - [TIMING] Epoch 43 Training completed in 0.27 seconds
+2025-03-25 14:20:25,766 - INFO - [Epoch 43 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.0MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:25,810 - INFO - Epoch [43/100]
+2025-03-25 14:20:25,810 - INFO -  Validation  | Train Loss=2.5059, Val Loss=2.5639, Val MAPE=70.0216, Val NSE=0.5064
+2025-03-25 14:20:25,811 - INFO - [Epoch 43 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.0MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:25,811 - INFO - [TIMING] Epoch 43 Validation completed in 0.05 seconds
+2025-03-25 14:20:26,154 - INFO - [TIMING] Epoch 44 Training completed in 0.34 seconds
+2025-03-25 14:20:26,199 - INFO - Epoch [44/100]
+2025-03-25 14:20:26,200 - INFO -  Validation  | Train Loss=2.4505, Val Loss=2.5048, Val MAPE=68.3541, Val NSE=0.5178
+2025-03-25 14:20:26,200 - INFO - [TIMING] Epoch 44 Validation completed in 0.05 seconds
+2025-03-25 14:20:26,206 - INFO - [Epoch 45/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.8MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:26,207 - INFO - [Epoch 45 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.8MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:26,273 - INFO - [Epoch 45 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8877.9MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:26,482 - INFO - [Epoch 45 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.0MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:26,482 - INFO - [TIMING] Epoch 45 Training completed in 0.27 seconds
+2025-03-25 14:20:26,484 - INFO - [Epoch 45 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.0MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:26,527 - INFO - Epoch [45/100]
+2025-03-25 14:20:26,528 - INFO -  Validation  | Train Loss=2.3986, Val Loss=2.4489, Val MAPE=66.8472, Val NSE=0.5286
+2025-03-25 14:20:26,529 - INFO - [Epoch 45 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.0MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:26,529 - INFO - [TIMING] Epoch 45 Validation completed in 0.05 seconds
+2025-03-25 14:20:26,864 - INFO - [TIMING] Epoch 46 Training completed in 0.33 seconds
+2025-03-25 14:20:26,908 - INFO - Epoch [46/100]
+2025-03-25 14:20:26,909 - INFO -  Validation  | Train Loss=2.3481, Val Loss=2.3992, Val MAPE=65.6846, Val NSE=0.5382
+2025-03-25 14:20:26,909 - INFO - [TIMING] Epoch 46 Validation completed in 0.04 seconds
+2025-03-25 14:20:26,915 - INFO - [Epoch 47/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.0MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:26,916 - INFO - [Epoch 47 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.0MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:26,981 - INFO - [Epoch 47 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8877.9MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:27,247 - INFO - [Epoch 47 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.0MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:27,247 - INFO - [TIMING] Epoch 47 Training completed in 0.33 seconds
+2025-03-25 14:20:27,248 - INFO - [Epoch 47 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.0MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:27,292 - INFO - Epoch [47/100]
+2025-03-25 14:20:27,292 - INFO -  Validation  | Train Loss=2.3017, Val Loss=2.3500, Val MAPE=64.1233, Val NSE=0.5476
+2025-03-25 14:20:27,293 - INFO - [Epoch 47 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.0MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:27,293 - INFO - [TIMING] Epoch 47 Validation completed in 0.05 seconds
+2025-03-25 14:20:27,567 - INFO - [TIMING] Epoch 48 Training completed in 0.27 seconds
+2025-03-25 14:20:27,610 - INFO - Epoch [48/100]
+2025-03-25 14:20:27,610 - INFO -  Validation  | Train Loss=2.2563, Val Loss=2.3062, Val MAPE=62.7904, Val NSE=0.5561
+2025-03-25 14:20:27,610 - INFO - [TIMING] Epoch 48 Validation completed in 0.04 seconds
+2025-03-25 14:20:27,616 - INFO - [Epoch 49/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.0MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:27,617 - INFO - [Epoch 49 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.0MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:27,739 - INFO - [Epoch 49 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.2MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:27,950 - INFO - [Epoch 49 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.0MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:27,951 - INFO - [TIMING] Epoch 49 Training completed in 0.33 seconds
+2025-03-25 14:20:27,951 - INFO - [Epoch 49 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.0MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:27,994 - INFO - Epoch [49/100]
+2025-03-25 14:20:27,994 - INFO -  Validation  | Train Loss=2.2143, Val Loss=2.2642, Val MAPE=61.1725, Val NSE=0.5641
+2025-03-25 14:20:27,995 - INFO - [Epoch 49 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.0MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:27,995 - INFO - [TIMING] Epoch 49 Validation completed in 0.04 seconds
+2025-03-25 14:20:28,273 - INFO - [TIMING] Epoch 50 Training completed in 0.27 seconds
+2025-03-25 14:20:28,383 - INFO - Epoch [50/100]
+2025-03-25 14:20:28,383 - INFO -  Validation  | Train Loss=2.1736, Val Loss=2.2271, Val MAPE=60.4099, Val NSE=0.5713
+2025-03-25 14:20:28,383 - INFO - [TIMING] Epoch 50 Validation completed in 0.11 seconds
+2025-03-25 14:20:28,389 - INFO - [Epoch 51/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.8MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:28,391 - INFO - [Epoch 51 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.8MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:28,457 - INFO - [Epoch 51 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8877.9MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:28,671 - INFO - [Epoch 51 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.7MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:28,671 - INFO - [TIMING] Epoch 51 Training completed in 0.28 seconds
+2025-03-25 14:20:28,672 - INFO - [Epoch 51 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.7MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:28,715 - INFO - Epoch [51/100]
+2025-03-25 14:20:28,715 - INFO -  Validation  | Train Loss=2.1363, Val Loss=2.1856, Val MAPE=58.6378, Val NSE=0.5793
+2025-03-25 14:20:28,716 - INFO - [Epoch 51 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.7MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:28,717 - INFO - [TIMING] Epoch 51 Validation completed in 0.04 seconds
+2025-03-25 14:20:29,068 - INFO - [TIMING] Epoch 52 Training completed in 0.35 seconds
+2025-03-25 14:20:29,114 - INFO - Epoch [52/100]
+2025-03-25 14:20:29,114 - INFO -  Validation  | Train Loss=2.0984, Val Loss=2.1522, Val MAPE=58.0032, Val NSE=0.5857
+2025-03-25 14:20:29,115 - INFO - [TIMING] Epoch 52 Validation completed in 0.05 seconds
+2025-03-25 14:20:29,122 - INFO - [Epoch 53/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.5MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:29,122 - INFO - [Epoch 53 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.5MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:29,191 - INFO - [Epoch 53 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8877.9MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:29,407 - INFO - [Epoch 53 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.7MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:29,407 - INFO - [TIMING] Epoch 53 Training completed in 0.28 seconds
+2025-03-25 14:20:29,409 - INFO - [Epoch 53 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.7MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:29,456 - INFO - Epoch [53/100]
+2025-03-25 14:20:29,456 - INFO -  Validation  | Train Loss=2.0632, Val Loss=2.1134, Val MAPE=56.2847, Val NSE=0.5932
+2025-03-25 14:20:29,457 - INFO - [Epoch 53 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.7MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:29,457 - INFO - [TIMING] Epoch 53 Validation completed in 0.05 seconds
+2025-03-25 14:20:29,829 - INFO - [TIMING] Epoch 54 Training completed in 0.37 seconds
+2025-03-25 14:20:29,888 - INFO - Epoch [54/100]
+2025-03-25 14:20:29,889 - INFO -  Validation  | Train Loss=2.0291, Val Loss=2.0830, Val MAPE=56.1202, Val NSE=0.5990
+2025-03-25 14:20:29,890 - INFO - [TIMING] Epoch 54 Validation completed in 0.06 seconds
+2025-03-25 14:20:29,898 - INFO - [Epoch 55/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.7MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:29,899 - INFO - [Epoch 55 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.7MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:29,967 - INFO - [Epoch 55 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8877.9MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:30,248 - INFO - [Epoch 55 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.5MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:30,248 - INFO - [TIMING] Epoch 55 Training completed in 0.35 seconds
+2025-03-25 14:20:30,249 - INFO - [Epoch 55 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.5MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:30,294 - INFO - Epoch [55/100]
+2025-03-25 14:20:30,294 - INFO -  Validation  | Train Loss=1.9952, Val Loss=2.0471, Val MAPE=54.7969, Val NSE=0.6059
+2025-03-25 14:20:30,295 - INFO - [Epoch 55 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.5MB | System Memory: 24.6GB / 63.7GB (38.6%)
+2025-03-25 14:20:30,295 - INFO - [TIMING] Epoch 55 Validation completed in 0.05 seconds
+2025-03-25 14:20:30,586 - INFO - [TIMING] Epoch 56 Training completed in 0.29 seconds
+2025-03-25 14:20:30,632 - INFO - Epoch [56/100]
+2025-03-25 14:20:30,632 - INFO -  Validation  | Train Loss=1.9640, Val Loss=2.0177, Val MAPE=53.9838, Val NSE=0.6116
+2025-03-25 14:20:30,632 - INFO - [TIMING] Epoch 56 Validation completed in 0.05 seconds
+2025-03-25 14:20:30,638 - INFO - [Epoch 57/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.8MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:30,639 - INFO - [Epoch 57 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.8MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:30,702 - INFO - [Epoch 57 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.0MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:30,993 - INFO - [Epoch 57 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.6MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:30,994 - INFO - [TIMING] Epoch 57 Training completed in 0.35 seconds
+2025-03-25 14:20:30,995 - INFO - [Epoch 57 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.6MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:31,042 - INFO - Epoch [57/100]
+2025-03-25 14:20:31,043 - INFO -  Validation  | Train Loss=1.9344, Val Loss=1.9932, Val MAPE=53.7532, Val NSE=0.6163
+2025-03-25 14:20:31,044 - INFO - [Epoch 57 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.6MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:31,044 - INFO - [TIMING] Epoch 57 Validation completed in 0.05 seconds
+2025-03-25 14:20:31,349 - INFO - [TIMING] Epoch 58 Training completed in 0.30 seconds
+2025-03-25 14:20:31,395 - INFO - Epoch [58/100]
+2025-03-25 14:20:31,395 - INFO -  Validation  | Train Loss=1.9049, Val Loss=1.9625, Val MAPE=52.8981, Val NSE=0.6222
+2025-03-25 14:20:31,395 - INFO - [TIMING] Epoch 58 Validation completed in 0.04 seconds
+2025-03-25 14:20:31,401 - INFO - [Epoch 59/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.8MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:31,402 - INFO - [Epoch 59 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.8MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:31,529 - INFO - [Epoch 59 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.0MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:31,746 - INFO - [Epoch 59 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.8MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:31,747 - INFO - [TIMING] Epoch 59 Training completed in 0.34 seconds
+2025-03-25 14:20:31,748 - INFO - [Epoch 59 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.8MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:31,793 - INFO - Epoch [59/100]
+2025-03-25 14:20:31,793 - INFO -  Validation  | Train Loss=1.8769, Val Loss=1.9367, Val MAPE=52.1482, Val NSE=0.6272
+2025-03-25 14:20:31,794 - INFO - [Epoch 59 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.8MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:31,794 - INFO - [TIMING] Epoch 59 Validation completed in 0.05 seconds
+2025-03-25 14:20:32,132 - INFO - [TIMING] Epoch 60 Training completed in 0.33 seconds
+2025-03-25 14:20:32,176 - INFO - Epoch [60/100]
+2025-03-25 14:20:32,177 - INFO -  Validation  | Train Loss=1.8513, Val Loss=1.9114, Val MAPE=52.3583, Val NSE=0.6321
+2025-03-25 14:20:32,177 - INFO - [TIMING] Epoch 60 Validation completed in 0.05 seconds
+2025-03-25 14:20:32,184 - INFO - [Epoch 61/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.4MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:32,185 - INFO - [Epoch 61 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.4MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:32,251 - INFO - [Epoch 61 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.0MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:32,462 - INFO - [Epoch 61 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.8MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:32,463 - INFO - [TIMING] Epoch 61 Training completed in 0.28 seconds
+2025-03-25 14:20:32,464 - INFO - [Epoch 61 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.8MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:32,507 - INFO - Epoch [61/100]
+2025-03-25 14:20:32,507 - INFO -  Validation  | Train Loss=1.8246, Val Loss=1.8856, Val MAPE=51.8133, Val NSE=0.6370
+2025-03-25 14:20:32,508 - INFO - [Epoch 61 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.8MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:32,509 - INFO - [TIMING] Epoch 61 Validation completed in 0.05 seconds
+2025-03-25 14:20:32,856 - INFO - [TIMING] Epoch 62 Training completed in 0.34 seconds
+2025-03-25 14:20:32,899 - INFO - Epoch [62/100]
+2025-03-25 14:20:32,899 - INFO -  Validation  | Train Loss=1.7997, Val Loss=1.8628, Val MAPE=51.0915, Val NSE=0.6414
+2025-03-25 14:20:32,899 - INFO - [TIMING] Epoch 62 Validation completed in 0.04 seconds
+2025-03-25 14:20:32,905 - INFO - [Epoch 63/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.9MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:32,907 - INFO - [Epoch 63 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.9MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:32,972 - INFO - [Epoch 63 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.0MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:33,212 - INFO - [Epoch 63 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:33,213 - INFO - [TIMING] Epoch 63 Training completed in 0.30 seconds
+2025-03-25 14:20:33,215 - INFO - [Epoch 63 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:33,277 - INFO - Epoch [63/100]
+2025-03-25 14:20:33,277 - INFO -  Validation  | Train Loss=1.7760, Val Loss=1.8440, Val MAPE=51.2449, Val NSE=0.6450
+2025-03-25 14:20:33,279 - INFO - [Epoch 63 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.9MB | System Memory: 24.6GB / 63.7GB (38.7%)
+2025-03-25 14:20:33,279 - INFO - [TIMING] Epoch 63 Validation completed in 0.07 seconds
+2025-03-25 14:20:33,654 - INFO - [TIMING] Epoch 64 Training completed in 0.37 seconds
+2025-03-25 14:20:33,706 - INFO - Epoch [64/100]
+2025-03-25 14:20:33,706 - INFO -  Validation  | Train Loss=1.7523, Val Loss=1.8198, Val MAPE=50.4219, Val NSE=0.6497
+2025-03-25 14:20:33,707 - INFO - [TIMING] Epoch 64 Validation completed in 0.05 seconds
+2025-03-25 14:20:33,715 - INFO - [Epoch 65/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.8MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:33,716 - INFO - [Epoch 65 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.8MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:33,786 - INFO - [Epoch 65 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.0MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:34,090 - INFO - [Epoch 65 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.7MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:34,090 - INFO - [TIMING] Epoch 65 Training completed in 0.37 seconds
+2025-03-25 14:20:34,092 - INFO - [Epoch 65 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.7MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:34,139 - INFO - Epoch [65/100]
+2025-03-25 14:20:34,140 - INFO -  Validation  | Train Loss=1.7313, Val Loss=1.8007, Val MAPE=50.4094, Val NSE=0.6534
+2025-03-25 14:20:34,141 - INFO - [Epoch 65 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.7MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:34,141 - INFO - [TIMING] Epoch 65 Validation completed in 0.05 seconds
+2025-03-25 14:20:34,448 - INFO - [TIMING] Epoch 66 Training completed in 0.30 seconds
+2025-03-25 14:20:34,497 - INFO - Epoch [66/100]
+2025-03-25 14:20:34,497 - INFO -  Validation  | Train Loss=1.7106, Val Loss=1.7806, Val MAPE=50.0279, Val NSE=0.6572
+2025-03-25 14:20:34,497 - INFO - [TIMING] Epoch 66 Validation completed in 0.05 seconds
+2025-03-25 14:20:34,504 - INFO - [Epoch 67/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.9MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:34,505 - INFO - [Epoch 67 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.9MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:34,638 - INFO - [Epoch 67 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.0MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:34,869 - INFO - [Epoch 67 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.9MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:34,869 - INFO - [TIMING] Epoch 67 Training completed in 0.36 seconds
+2025-03-25 14:20:34,870 - INFO - [Epoch 67 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.9MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:34,916 - INFO - Epoch [67/100]
+2025-03-25 14:20:34,917 - INFO -  Validation  | Train Loss=1.6937, Val Loss=1.7669, Val MAPE=49.1811, Val NSE=0.6599
+2025-03-25 14:20:34,918 - INFO - [Epoch 67 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8873.9MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:34,918 - INFO - [TIMING] Epoch 67 Validation completed in 0.05 seconds
+2025-03-25 14:20:35,327 - INFO - [TIMING] Epoch 68 Training completed in 0.40 seconds
+2025-03-25 14:20:35,371 - INFO - Epoch [68/100]
+2025-03-25 14:20:35,372 - INFO -  Validation  | Train Loss=1.6789, Val Loss=1.7591, Val MAPE=50.2398, Val NSE=0.6614
+2025-03-25 14:20:35,372 - INFO - [TIMING] Epoch 68 Validation completed in 0.04 seconds
+2025-03-25 14:20:35,378 - INFO - [Epoch 69/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:35,379 - INFO - [Epoch 69 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:35,444 - INFO - [Epoch 69 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.0MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:35,668 - INFO - [Epoch 69 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:35,669 - INFO - [TIMING] Epoch 69 Training completed in 0.29 seconds
+2025-03-25 14:20:35,669 - INFO - [Epoch 69 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.7%)
+2025-03-25 14:20:35,714 - INFO - Epoch [69/100]
+2025-03-25 14:20:35,715 - INFO -  Validation  | Train Loss=1.6624, Val Loss=1.7322, Val MAPE=48.6040, Val NSE=0.6666
+2025-03-25 14:20:35,716 - INFO - [Epoch 69 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:35,716 - INFO - [TIMING] Epoch 69 Validation completed in 0.05 seconds
+2025-03-25 14:20:36,087 - INFO - [TIMING] Epoch 70 Training completed in 0.37 seconds
+2025-03-25 14:20:36,149 - INFO - Epoch [70/100]
+2025-03-25 14:20:36,150 - INFO -  Validation  | Train Loss=1.6453, Val Loss=1.7150, Val MAPE=49.1837, Val NSE=0.6699
+2025-03-25 14:20:36,150 - INFO - [TIMING] Epoch 70 Validation completed in 0.06 seconds
+2025-03-25 14:20:36,158 - INFO - [Epoch 71/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:36,159 - INFO - [Epoch 71 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:36,225 - INFO - [Epoch 71 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.0MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:36,466 - INFO - [Epoch 71 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:36,466 - INFO - [TIMING] Epoch 71 Training completed in 0.31 seconds
+2025-03-25 14:20:36,467 - INFO - [Epoch 71 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:36,512 - INFO - Epoch [71/100]
+2025-03-25 14:20:36,513 - INFO -  Validation  | Train Loss=1.6267, Val Loss=1.7013, Val MAPE=48.9961, Val NSE=0.6725
+2025-03-25 14:20:36,514 - INFO - [Epoch 71 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:36,514 - INFO - [TIMING] Epoch 71 Validation completed in 0.05 seconds
+2025-03-25 14:20:36,908 - INFO - [TIMING] Epoch 72 Training completed in 0.39 seconds
+2025-03-25 14:20:36,951 - INFO - Epoch [72/100]
+2025-03-25 14:20:36,952 - INFO -  Validation  | Train Loss=1.6109, Val Loss=1.6870, Val MAPE=48.2686, Val NSE=0.6753
+2025-03-25 14:20:36,952 - INFO - [TIMING] Epoch 72 Validation completed in 0.04 seconds
+2025-03-25 14:20:36,958 - INFO - [Epoch 73/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:36,959 - INFO - [Epoch 73 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:37,025 - INFO - [Epoch 73 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.0MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:37,313 - INFO - [Epoch 73 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:37,313 - INFO - [TIMING] Epoch 73 Training completed in 0.35 seconds
+2025-03-25 14:20:37,314 - INFO - [Epoch 73 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:37,359 - INFO - Epoch [73/100]
+2025-03-25 14:20:37,359 - INFO -  Validation  | Train Loss=1.5972, Val Loss=1.6747, Val MAPE=48.7232, Val NSE=0.6776
+2025-03-25 14:20:37,360 - INFO - [Epoch 73 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:37,360 - INFO - [TIMING] Epoch 73 Validation completed in 0.05 seconds
+2025-03-25 14:20:37,642 - INFO - [TIMING] Epoch 74 Training completed in 0.28 seconds
+2025-03-25 14:20:37,689 - INFO - Epoch [74/100]
+2025-03-25 14:20:37,690 - INFO -  Validation  | Train Loss=1.5836, Val Loss=1.6631, Val MAPE=47.7802, Val NSE=0.6799
+2025-03-25 14:20:37,691 - INFO - [TIMING] Epoch 74 Validation completed in 0.05 seconds
+2025-03-25 14:20:37,700 - INFO - [Epoch 75/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:37,702 - INFO - [Epoch 75 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:37,831 - INFO - [Epoch 75 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.3MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:38,071 - INFO - [Epoch 75 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:38,071 - INFO - [TIMING] Epoch 75 Training completed in 0.37 seconds
+2025-03-25 14:20:38,072 - INFO - [Epoch 75 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:38,117 - INFO - Epoch [75/100]
+2025-03-25 14:20:38,118 - INFO -  Validation  | Train Loss=1.5712, Val Loss=1.6537, Val MAPE=48.4866, Val NSE=0.6817
+2025-03-25 14:20:38,119 - INFO - [Epoch 75 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:38,119 - INFO - [TIMING] Epoch 75 Validation completed in 0.05 seconds
+2025-03-25 14:20:38,399 - INFO - [TIMING] Epoch 76 Training completed in 0.27 seconds
+2025-03-25 14:20:38,503 - INFO - Epoch [76/100]
+2025-03-25 14:20:38,503 - INFO -  Validation  | Train Loss=1.5610, Val Loss=1.6380, Val MAPE=47.4841, Val NSE=0.6847
+2025-03-25 14:20:38,503 - INFO - [TIMING] Epoch 76 Validation completed in 0.10 seconds
+2025-03-25 14:20:38,509 - INFO - [Epoch 77/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:38,510 - INFO - [Epoch 77 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:38,573 - INFO - [Epoch 77 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.0MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:38,807 - INFO - [Epoch 77 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:38,808 - INFO - [TIMING] Epoch 77 Training completed in 0.30 seconds
+2025-03-25 14:20:38,809 - INFO - [Epoch 77 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:38,855 - INFO - Epoch [77/100]
+2025-03-25 14:20:38,855 - INFO -  Validation  | Train Loss=1.5495, Val Loss=1.6279, Val MAPE=47.1618, Val NSE=0.6866
+2025-03-25 14:20:38,856 - INFO - [Epoch 77 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:38,856 - INFO - [TIMING] Epoch 77 Validation completed in 0.05 seconds
+2025-03-25 14:20:39,226 - INFO - [TIMING] Epoch 78 Training completed in 0.37 seconds
+2025-03-25 14:20:39,271 - INFO - Epoch [78/100]
+2025-03-25 14:20:39,271 - INFO -  Validation  | Train Loss=1.5396, Val Loss=1.6164, Val MAPE=47.5323, Val NSE=0.6888
+2025-03-25 14:20:39,272 - INFO - [TIMING] Epoch 78 Validation completed in 0.05 seconds
+2025-03-25 14:20:39,277 - INFO - [Epoch 79/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:39,278 - INFO - [Epoch 79 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:39,342 - INFO - [Epoch 79 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.0MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:39,585 - INFO - [Epoch 79 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:39,585 - INFO - [TIMING] Epoch 79 Training completed in 0.31 seconds
+2025-03-25 14:20:39,585 - INFO - [Epoch 79 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:39,630 - INFO - Epoch [79/100]
+2025-03-25 14:20:39,630 - INFO -  Validation  | Train Loss=1.5268, Val Loss=1.6071, Val MAPE=47.1579, Val NSE=0.6906
+2025-03-25 14:20:39,631 - INFO - [Epoch 79 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:39,631 - INFO - [TIMING] Epoch 79 Validation completed in 0.04 seconds
+2025-03-25 14:20:39,996 - INFO - [TIMING] Epoch 80 Training completed in 0.36 seconds
+2025-03-25 14:20:40,043 - INFO - Epoch [80/100]
+2025-03-25 14:20:40,043 - INFO -  Validation  | Train Loss=1.5158, Val Loss=1.6000, Val MAPE=46.9120, Val NSE=0.6920
+2025-03-25 14:20:40,043 - INFO - [TIMING] Epoch 80 Validation completed in 0.05 seconds
+2025-03-25 14:20:40,048 - INFO - [Epoch 81/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:40,050 - INFO - [Epoch 81 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:40,119 - INFO - [Epoch 81 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.3MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:40,416 - INFO - [Epoch 81 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:40,416 - INFO - [TIMING] Epoch 81 Training completed in 0.37 seconds
+2025-03-25 14:20:40,417 - INFO - [Epoch 81 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:40,462 - INFO - Epoch [81/100]
+2025-03-25 14:20:40,463 - INFO -  Validation  | Train Loss=1.5067, Val Loss=1.5895, Val MAPE=47.3838, Val NSE=0.6940
+2025-03-25 14:20:40,464 - INFO - [Epoch 81 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:40,464 - INFO - [TIMING] Epoch 81 Validation completed in 0.05 seconds
+2025-03-25 14:20:40,770 - INFO - [TIMING] Epoch 82 Training completed in 0.30 seconds
+2025-03-25 14:20:40,815 - INFO - Epoch [82/100]
+2025-03-25 14:20:40,815 - INFO -  Validation  | Train Loss=1.4980, Val Loss=1.5802, Val MAPE=46.4336, Val NSE=0.6958
+2025-03-25 14:20:40,815 - INFO - [TIMING] Epoch 82 Validation completed in 0.04 seconds
+2025-03-25 14:20:40,823 - INFO - [Epoch 83/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:40,824 - INFO - [Epoch 83 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:40,887 - INFO - [Epoch 83 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.0MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:41,166 - INFO - [Periodic Check] [MEMORY] GPU Memory: 43.3MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.4MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:41,196 - INFO - [Epoch 83 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.4MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:41,196 - INFO - [TIMING] Epoch 83 Training completed in 0.37 seconds
+2025-03-25 14:20:41,198 - INFO - [Epoch 83 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.4MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:41,243 - INFO - Epoch [83/100]
+2025-03-25 14:20:41,244 - INFO -  Validation  | Train Loss=1.4889, Val Loss=1.5729, Val MAPE=46.4007, Val NSE=0.6972
+2025-03-25 14:20:41,245 - INFO - [Epoch 83 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.4MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:41,245 - INFO - [TIMING] Epoch 83 Validation completed in 0.05 seconds
+2025-03-25 14:20:41,548 - INFO - [TIMING] Epoch 84 Training completed in 0.30 seconds
+2025-03-25 14:20:41,594 - INFO - Epoch [84/100]
+2025-03-25 14:20:41,595 - INFO -  Validation  | Train Loss=1.4794, Val Loss=1.5633, Val MAPE=46.6421, Val NSE=0.6991
+2025-03-25 14:20:41,595 - INFO - [TIMING] Epoch 84 Validation completed in 0.05 seconds
+2025-03-25 14:20:41,601 - INFO - [Epoch 85/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:41,602 - INFO - [Epoch 85 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:41,726 - INFO - [Epoch 85 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:41,963 - INFO - [Epoch 85 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:41,964 - INFO - [TIMING] Epoch 85 Training completed in 0.36 seconds
+2025-03-25 14:20:41,965 - INFO - [Epoch 85 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:42,009 - INFO - Epoch [85/100]
+2025-03-25 14:20:42,010 - INFO -  Validation  | Train Loss=1.4703, Val Loss=1.5530, Val MAPE=46.5865, Val NSE=0.7011
+2025-03-25 14:20:42,011 - INFO - [Epoch 85 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:42,011 - INFO - [TIMING] Epoch 85 Validation completed in 0.05 seconds
+2025-03-25 14:20:42,373 - INFO - [TIMING] Epoch 86 Training completed in 0.36 seconds
+2025-03-25 14:20:42,415 - INFO - Epoch [86/100]
+2025-03-25 14:20:42,416 - INFO -  Validation  | Train Loss=1.4606, Val Loss=1.5481, Val MAPE=45.9370, Val NSE=0.7020
+2025-03-25 14:20:42,416 - INFO - [TIMING] Epoch 86 Validation completed in 0.04 seconds
+2025-03-25 14:20:42,422 - INFO - [Epoch 87/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:42,423 - INFO - [Epoch 87 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:42,488 - INFO - [Epoch 87 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.0MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:42,699 - INFO - [Epoch 87 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:42,699 - INFO - [TIMING] Epoch 87 Training completed in 0.28 seconds
+2025-03-25 14:20:42,700 - INFO - [Epoch 87 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:42,746 - INFO - Epoch [87/100]
+2025-03-25 14:20:42,746 - INFO -  Validation  | Train Loss=1.4528, Val Loss=1.5386, Val MAPE=45.9678, Val NSE=0.7038
+2025-03-25 14:20:42,747 - INFO - [Epoch 87 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:42,747 - INFO - [TIMING] Epoch 87 Validation completed in 0.05 seconds
+2025-03-25 14:20:43,082 - INFO - [TIMING] Epoch 88 Training completed in 0.33 seconds
+2025-03-25 14:20:43,126 - INFO - Epoch [88/100]
+2025-03-25 14:20:43,126 - INFO -  Validation  | Train Loss=1.4433, Val Loss=1.5313, Val MAPE=45.7341, Val NSE=0.7052
+2025-03-25 14:20:43,126 - INFO - [TIMING] Epoch 88 Validation completed in 0.04 seconds
+2025-03-25 14:20:43,133 - INFO - [Epoch 89/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:43,134 - INFO - [Epoch 89 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:43,197 - INFO - [Epoch 89 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.3MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:43,403 - INFO - [Epoch 89 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:43,403 - INFO - [TIMING] Epoch 89 Training completed in 0.27 seconds
+2025-03-25 14:20:43,404 - INFO - [Epoch 89 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:43,447 - INFO - Epoch [89/100]
+2025-03-25 14:20:43,447 - INFO -  Validation  | Train Loss=1.4356, Val Loss=1.5231, Val MAPE=45.6711, Val NSE=0.7068
+2025-03-25 14:20:43,448 - INFO - [Epoch 89 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:43,448 - INFO - [TIMING] Epoch 89 Validation completed in 0.04 seconds
+2025-03-25 14:20:43,777 - INFO - [TIMING] Epoch 90 Training completed in 0.32 seconds
+2025-03-25 14:20:43,822 - INFO - Epoch [90/100]
+2025-03-25 14:20:43,822 - INFO -  Validation  | Train Loss=1.4269, Val Loss=1.5126, Val MAPE=45.7547, Val NSE=0.7088
+2025-03-25 14:20:43,822 - INFO - [TIMING] Epoch 90 Validation completed in 0.04 seconds
+2025-03-25 14:20:43,827 - INFO - [Epoch 91/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:43,828 - INFO - [Epoch 91 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:43,892 - INFO - [Epoch 91 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.3MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:44,160 - INFO - [Epoch 91 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:44,160 - INFO - [TIMING] Epoch 91 Training completed in 0.33 seconds
+2025-03-25 14:20:44,161 - INFO - [Epoch 91 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:44,205 - INFO - Epoch [91/100]
+2025-03-25 14:20:44,205 - INFO -  Validation  | Train Loss=1.4194, Val Loss=1.5063, Val MAPE=45.9625, Val NSE=0.7100
+2025-03-25 14:20:44,206 - INFO - [Epoch 91 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:44,207 - INFO - [TIMING] Epoch 91 Validation completed in 0.05 seconds
+2025-03-25 14:20:44,481 - INFO - [TIMING] Epoch 92 Training completed in 0.27 seconds
+2025-03-25 14:20:44,524 - INFO - Epoch [92/100]
+2025-03-25 14:20:44,525 - INFO -  Validation  | Train Loss=1.4117, Val Loss=1.5080, Val MAPE=44.7614, Val NSE=0.7097
+2025-03-25 14:20:44,525 - INFO - [TIMING] Epoch 92 Validation completed in 0.04 seconds
+2025-03-25 14:20:44,531 - INFO - [Epoch 93/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:44,532 - INFO - [Epoch 93 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:44,654 - INFO - [Epoch 93 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.0MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:44,871 - INFO - [Epoch 93 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:44,871 - INFO - [TIMING] Epoch 93 Training completed in 0.34 seconds
+2025-03-25 14:20:44,872 - INFO - [Epoch 93 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:44,917 - INFO - Epoch [93/100]
+2025-03-25 14:20:44,917 - INFO -  Validation  | Train Loss=1.4099, Val Loss=1.4877, Val MAPE=45.3275, Val NSE=0.7136
+2025-03-25 14:20:44,918 - INFO - [Epoch 93 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:44,919 - INFO - [TIMING] Epoch 93 Validation completed in 0.05 seconds
+2025-03-25 14:20:45,253 - INFO - [TIMING] Epoch 94 Training completed in 0.33 seconds
+2025-03-25 14:20:45,295 - INFO - Epoch [94/100]
+2025-03-25 14:20:45,296 - INFO -  Validation  | Train Loss=1.4000, Val Loss=1.4930, Val MAPE=46.3017, Val NSE=0.7126
+2025-03-25 14:20:45,296 - INFO - [TIMING] Epoch 94 Validation completed in 0.04 seconds
+2025-03-25 14:20:45,302 - INFO - [Epoch 95/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:45,303 - INFO - [Epoch 95 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:45,366 - INFO - [Epoch 95 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.0MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:45,574 - INFO - [Epoch 95 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:45,574 - INFO - [TIMING] Epoch 95 Training completed in 0.27 seconds
+2025-03-25 14:20:45,576 - INFO - [Epoch 95 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:45,619 - INFO - Epoch [95/100]
+2025-03-25 14:20:45,619 - INFO -  Validation  | Train Loss=1.3996, Val Loss=1.4763, Val MAPE=44.6650, Val NSE=0.7158
+2025-03-25 14:20:45,620 - INFO - [Epoch 95 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:45,620 - INFO - [TIMING] Epoch 95 Validation completed in 0.04 seconds
+2025-03-25 14:20:45,960 - INFO - [TIMING] Epoch 96 Training completed in 0.34 seconds
+2025-03-25 14:20:46,003 - INFO - Epoch [96/100]
+2025-03-25 14:20:46,003 - INFO -  Validation  | Train Loss=1.3846, Val Loss=1.4694, Val MAPE=44.5194, Val NSE=0.7171
+2025-03-25 14:20:46,003 - INFO - [TIMING] Epoch 96 Validation completed in 0.04 seconds
+2025-03-25 14:20:46,009 - INFO - [Epoch 97/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:46,010 - INFO - [Epoch 97 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:46,077 - INFO - [Epoch 97 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.0MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:46,289 - INFO - [Epoch 97 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:46,290 - INFO - [TIMING] Epoch 97 Training completed in 0.28 seconds
+2025-03-25 14:20:46,291 - INFO - [Epoch 97 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:46,335 - INFO - Epoch [97/100]
+2025-03-25 14:20:46,335 - INFO -  Validation  | Train Loss=1.3764, Val Loss=1.4640, Val MAPE=45.6883, Val NSE=0.7182
+2025-03-25 14:20:46,336 - INFO - [Epoch 97 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.2MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:46,336 - INFO - [TIMING] Epoch 97 Validation completed in 0.04 seconds
+2025-03-25 14:20:46,672 - INFO - [TIMING] Epoch 98 Training completed in 0.33 seconds
+2025-03-25 14:20:46,717 - INFO - Epoch [98/100]
+2025-03-25 14:20:46,717 - INFO -  Validation  | Train Loss=1.3672, Val Loss=1.4614, Val MAPE=44.4370, Val NSE=0.7187
+2025-03-25 14:20:46,718 - INFO - [TIMING] Epoch 98 Validation completed in 0.05 seconds
+2025-03-25 14:20:46,725 - INFO - [Epoch 99/100 Start] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:46,726 - INFO - [Epoch 99 Training START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:46,794 - INFO - [Epoch 99 First Batch] [MEMORY] GPU Memory: 27.6MB / 8191.5MB (0.3%) | Peak: 839.8MB | Process Memory: 8878.0MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:47,064 - INFO - [Epoch 99 Training END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:47,064 - INFO - [TIMING] Epoch 99 Training completed in 0.34 seconds
+2025-03-25 14:20:47,065 - INFO - [Epoch 99 Validation START] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:47,108 - INFO - Epoch [99/100]
+2025-03-25 14:20:47,108 - INFO -  Validation  | Train Loss=1.3612, Val Loss=1.4438, Val MAPE=45.1004, Val NSE=0.7221
+2025-03-25 14:20:47,109 - INFO - [Epoch 99 Validation END] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:47,109 - INFO - [TIMING] Epoch 99 Validation completed in 0.04 seconds
+2025-03-25 14:20:47,383 - INFO - [TIMING] Epoch 100 Training completed in 0.27 seconds
+2025-03-25 14:20:47,426 - INFO - Epoch [100/100]
+2025-03-25 14:20:47,426 - INFO -  Validation  | Train Loss=1.3542, Val Loss=1.4373, Val MAPE=44.8591, Val NSE=0.7233
+2025-03-25 14:20:47,427 - INFO - [TIMING] Epoch 100 Validation completed in 0.04 seconds
+2025-03-25 14:20:47,433 - INFO - [Training Complete] [MEMORY] GPU Memory: 40.1MB / 8191.5MB (0.5%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:47,434 - INFO - [Model Training END] [MEMORY] GPU Memory: 16.5MB / 8191.5MB (0.2%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:47,434 - INFO - [TIMING] Model Training completed in 39.18 seconds
+2025-03-25 14:20:47,435 - INFO - [Model Saving START] [MEMORY] GPU Memory: 16.5MB / 8191.5MB (0.2%) | Peak: 839.8MB | Process Memory: 8874.1MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:47,451 - INFO - [Model Saved] [MEMORY] GPU Memory: 16.5MB / 8191.5MB (0.2%) | Peak: 839.8MB | Process Memory: 8874.4MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:47,451 - INFO - 模型训练成功！保存至 models/model_initial_A0_v1.pth
+2025-03-25 14:20:47,453 - INFO - [Model Saving END] [MEMORY] GPU Memory: 16.5MB / 8191.5MB (0.2%) | Peak: 839.8MB | Process Memory: 8874.4MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:47,453 - INFO - [TIMING] Model Saving completed in 0.02 seconds
+2025-03-25 14:20:47,454 - INFO - 初始汇流计算：使用 A₀ 进行预测。
+2025-03-25 14:20:47,455 - INFO - [Flow Routing Calculation START] [MEMORY] GPU Memory: 16.5MB / 8191.5MB (0.2%) | Peak: 839.8MB | Process Memory: 8874.4MB | System Memory: 24.7GB / 63.7GB (38.8%)
+2025-03-25 14:20:48,170 - INFO - ===== MODEL DEVICE CHECK =====
+2025-03-25 14:20:48,170 - INFO - Model is on device: cuda:0
+2025-03-25 14:20:48,171 - INFO - Model type: <class 'model_training.models.MultiBranchModel'>
+2025-03-25 14:20:48,171 - INFO - ===============================
+2025-03-25 14:20:48,881 - INFO - Flow routing calculation for iteration 0 started
+2025-03-25 14:20:50,984 - INFO - 标识出 1244 个缺失数据的河段
+2025-03-25 14:20:50,993 - INFO - 在河网拓扑中绕过了 2075 个缺失数据的河段
+2025-03-25 14:20:50,994 - INFO - Temperature data available, will apply temperature adjustment
+2025-03-25 14:20:56,651 - INFO - 将保存E值到目录: flow_results/E_values_v1
+2025-03-25 14:20:56,651 - INFO - 使用模型计算河段E值 (iteration 0)
+2025-03-25 14:20:56,651 - INFO - Processing 7825 river segments in batches...
+2025-03-25 14:20:56,655 - INFO - Processing river segments for iteration 0:   0%|       | 0/7825 [00:00<?, ?it/s]
+2025-03-25 14:21:06,676 - INFO - Processing river segments for iteration 0:   0%|       | 0/7825 [00:10<?, ?it/s]
+2025-03-25 14:21:11,185 - INFO - [Periodic Check] [MEMORY] GPU Memory: 16.5MB / 8191.5MB (0.2%) | Peak: 839.8MB | Process Memory: 22879.1MB | System Memory: 38.0GB / 63.7GB (59.6%)
+2025-03-25 14:21:41,213 - INFO - [Periodic Check] [MEMORY] GPU Memory: 16.5MB / 8191.5MB (0.2%) | Peak: 839.8MB | Process Memory: 24412.1MB | System Memory: 36.8GB / 63.7GB (57.8%)
+2025-03-25 14:21:41,544 - INFO - [GPU Batch Processing START] [MEMORY] GPU Memory: 16.5MB / 8191.5MB (0.2%) | Peak: 839.8MB | Process Memory: 24431.4MB | System Memory: 36.8GB / 63.7GB (57.8%)
+2025-03-25 14:21:43,087 - INFO - 处理 822 个河段，共 1392468 个预测点
+2025-03-25 14:21:43,088 - INFO - [Batch Prediction START] [MEMORY] GPU Memory: 16.5MB / 8191.5MB (0.2%) | Peak: 839.8MB | Process Memory: 26609.3MB | System Memory: 39.0GB / 63.7GB (61.1%)
+2025-03-25 14:21:43,089 - INFO - Starting with batch size: 436453 (estimated 2047.87MB)
+2025-03-25 14:21:43,090 - INFO - [Prediction Start] Processing 1392468 samples[MEMORY] GPU Memory: 16.5MB / 8191.5MB (0.2%) | Peak: 839.8MB | Process Memory: 26609.3MB | System Memory: 39.0GB / 63.7GB (61.1%)
+2025-03-25 14:22:09,659 - INFO - Processed 1392468/1392468 samples (100.0%)
+2025-03-25 14:22:09,662 - INFO - [Batch Prediction END] [MEMORY] GPU Memory: 16.8MB / 8191.5MB (0.2%) | Peak: 26736.7MB | Process Memory: 26598.1MB | System Memory: 37.0GB / 63.7GB (58.1%)
+2025-03-25 14:22:09,662 - INFO - [TIMING] Batch Prediction completed in 26.57 seconds
+2025-03-25 14:22:09,950 - INFO - After cleanup: 16.5MB allocated, 40.0MB reserved
+2025-03-25 14:22:09,952 - INFO - [GPU Batch Processing END] [MEMORY] GPU Memory: 16.5MB / 8191.5MB (0.2%) | Peak: 26736.7MB | Process Memory: 24413.9MB | System Memory: 34.9GB / 63.7GB (54.7%)
+2025-03-25 14:22:09,953 - INFO - [TIMING] GPU Batch Processing completed in 28.41 seconds
+2025-03-25 14:22:11,230 - INFO - [Periodic Check] [MEMORY] GPU Memory: 16.5MB / 8191.5MB (0.2%) | Peak: 26736.7MB | Process Memory: 22283.3MB | System Memory: 32.8GB / 63.7GB (51.5%)
+2025-03-25 14:22:20,729 - INFO - Qout存在负值，comid=43018325
+2025-03-25 14:22:20,730 - INFO - Processing river segments for iteration 0:   0%|       | 0/7825 [01:24<?, ?it/s]
+2025-03-25 14:22:20,909 - INFO - [Flow Routing Calculation END] [MEMORY] GPU Memory: 16.5MB / 8191.5MB (0.2%) | Peak: 26736.7MB | Process Memory: 18549.8MB | System Memory: 29.4GB / 63.7GB (46.2%)
+2025-03-25 14:22:20,910 - INFO - [TIMING] Flow Routing Calculation completed in 93.45 seconds
+2025-03-25 14:22:20,911 - INFO - [Iterative Training Process END] [MEMORY] GPU Memory: 16.5MB / 8191.5MB (0.2%) | Peak: 26736.7MB | Process Memory: 18549.9MB | System Memory: 29.4GB / 63.7GB (46.2%)
+2025-03-25 14:22:20,911 - INFO - [TIMING] Iterative Training Process completed in 135.41 seconds
+2025-03-25 14:22:20,913 - INFO - [PGRWQ Training Pipeline END] [MEMORY] GPU Memory: 16.5MB / 8191.5MB (0.2%) | Peak: 26736.7MB | Process Memory: 18549.9MB | System Memory: 29.4GB / 63.7GB (46.2%)
+2025-03-25 14:22:20,913 - INFO - [TIMING] PGRWQ Training Pipeline completed in 159.81 seconds
+2025-03-25 14:22:20,914 - INFO - Training process completed
