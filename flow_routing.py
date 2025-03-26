@@ -498,6 +498,7 @@ def flow_routing_calculation(df: pd.DataFrame,
     # - 按不同水质参数（TN/TP）分别计算
     # - 使用队列按拓扑顺序处理河段
     # - 计算每个河段对下游的贡献
+
     # - 跟踪入度变化并将处理完成的上游河段的下游加入队列
     #===========================================================================
     logging.info("Starting flow routing calculation...")
@@ -621,8 +622,18 @@ def flow_routing_calculation(df: pd.DataFrame,
         rename_dict[f'E_{param}'] = f'E_{iteration}_{param}'
         rename_dict[f'y_up_{param}'] = f'y_up_{iteration}_{param}'
         rename_dict[f'y_n_{param}'] = f'y_n_{iteration}_{param}'
-    
+
+    # Make sure these columns exist before attempting to rename
+    missing_cols = [col for col in rename_dict.keys() if col not in result_df.columns]
+    if missing_cols:
+        logging.warning(f"Warning: Some columns to rename don't exist: {missing_cols}")
+        # Only keep the valid columns in the rename dictionary
+        rename_dict = {k: v for k, v in rename_dict.items() if k in result_df.columns}   
+
     result_df = result_df.rename(columns=rename_dict)
+
+    # Add debug log to show column names after renaming
+    logging.info(f"Columns after renaming: {result_df.columns.tolist()}")   
     
     logging.info(f"Flow routing calculation for iteration {iteration} complete")
     return result_df

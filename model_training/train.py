@@ -479,15 +479,75 @@ def iterative_training_procedure(df: pd.DataFrame,
     for it in range(start_iteration, max_iterations):
         with TimingAndMemoryContext(f"Iteration {it+1}/{max_iterations}"):
             print(f"\n迭代 {it+1}/{max_iterations}")
-            col_y_n = f'y_n_{it}'    
-            col_y_up = f'y_up_{it}'
             
-            # 每轮迭代开始时检查内存
-            if device == 'cuda':
-                log_memory_usage(f"[Iteration {it+1} Start] ")
+            # Modified column names to include target parameter
+            col_y_n = f'y_n_{it}_{target_col}'    
+            col_y_up = f'y_up_{it}_{target_col}'
             
-            # 计算残差并检查收敛性
-            merged = pd.merge(df, df_flow[['COMID', 'Date', col_y_n, col_y_up]], on=['COMID', 'Date'], how='left')
+            # Add debugging to show available columns
+            print(f"df_flow columns: {df_flow.columns.tolist()}")
+            
+            # Every time we work with 'date', make sure it's lowercase
+            if 'date' in df.columns and 'Date' in df_flow.columns:
+                df_flow = df_flow.rename(columns={'Date': 'date'})
+            elif 'Date' in df.columns and 'date' in df_flow.columns:
+                df = df.rename(columns={'Date': 'date'})
+            
+            # Check if columns exist before merging
+            required_cols = ['COMID', 'date', col_y_n, col_y_up]
+            missing_cols = [col for col in required_cols if col not in df_flow.columns]
+            
+            if missing_cols:
+                print(f"Warning: Missing columns in df_flow: {missing_cols}")
+                print(f"Available columns: {df_flow.columns.tolist()}")
+                
+                # Try to guess the correct column names
+                corrected_cols = {}
+                for col in missing_cols:
+                    if col.lower() == 'date':
+                        # Find any column that might be the date column
+                        for df_col in df_flow.columns:
+                            if df_col.lower() == 'date':
+                                corrected_cols[col] = df_col
+                                break
+                    else:
+                        # For other columns, look for similar names
+                        for df_col in df_flow.columns:
+                            if col.lower() in df_col.lower():
+                                corrected_cols[col] = df_col
+                                break
+                
+                print(f"Corrected columns mapping: {corrected_cols}")
+                
+                # Replace missing columns with their corrected versions
+                for old_col, new_col in corrected_cols.items():
+                    required_cols[required_cols.index(old_col)] = new_col
+            
+            try:
+                # Try the merge with potentially corrected column names
+                merged = pd.merge(df, df_flow[required_cols], 
+                                 left_on=['COMID', 'date'], 
+                                 right_on=[required_cols[0], required_cols[1]], 
+                                 how='left')
+                
+                # If date columns had different names, we'll have both in the result
+                if required_cols[1] != 'date' and required_cols[1] + '_y' in merged.columns:
+                    merged = merged.drop(columns=[required_cols[1] + '_y'])
+                    merged = merged.rename(columns={'date_x': 'date'})
+                
+                # Map the potentially different column names to expected names for calculations
+                if col_y_n != required_cols[2]:
+                    merged[col_y_n] = merged[required_cols[2]]
+                if col_y_up != required_cols[3]:
+                    merged[col_y_up] = merged[required_cols[3]]
+                
+            except Exception as e:
+                print(f"Merge failed: {e}")
+                print(f"df columns: {df.columns.tolist()}")
+                print(f"df_flow columns being used: {required_cols}")
+                raise
+            
+            # Rest of the function remains the same
             y_true = merged[target_col].values
             y_pred = merged[col_y_n].values
             residual = y_true - y_pred
