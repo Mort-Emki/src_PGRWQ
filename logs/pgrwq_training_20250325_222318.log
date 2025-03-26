@@ -1,0 +1,356 @@
+2025-03-25 22:23:18,329 - INFO - Logging initialized at 2025-03-25 22:23:18
+2025-03-25 22:23:18,329 - INFO - Log file: logs\pgrwq_training_20250325_222318.log
+2025-03-25 22:23:18,329 - INFO - PG-RWQ Training Pipeline Starting
+2025-03-25 22:23:18,329 - INFO - System time: 2025-03-25 22:23:18
+2025-03-25 22:23:18,329 - INFO - Python version: 3.9.21 (main, Dec 11 2024, 16:35:24) [MSC v.1929 64 bit (AMD64)]
+2025-03-25 22:23:18,330 - INFO - PyTorch version: 2.5.1
+2025-03-25 22:23:18,331 - INFO - Started periodic memory monitoring (interval: 30s)
+2025-03-25 22:23:18,333 - INFO - [Periodic Check] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 449.6MB | System Memory: 21.6GB / 63.7GB (33.9%)
+2025-03-25 22:23:18,333 - INFO - Created/verified directory for GPU memory logs: D:\PGRWQ\src_PGRWQ\logs
+2025-03-25 22:23:18,333 - INFO - Created GPU memory log file: D:\PGRWQ\src_PGRWQ\logs\gpu_memory_log.csv
+2025-03-25 22:23:18,334 - INFO - [Initial GPU Status] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 449.6MB | System Memory: 21.6GB / 63.7GB (33.9%)
+2025-03-25 22:23:18,335 - INFO - [Setting Working Directory START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 449.6MB | System Memory: 21.6GB / 63.7GB (33.9%)
+2025-03-25 22:23:18,336 - INFO - [Setting Working Directory END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 449.7MB | System Memory: 21.6GB / 63.7GB (33.9%)
+2025-03-25 22:23:18,337 - INFO - [TIMING] Setting Working Directory completed in 0.00 seconds
+2025-03-25 22:23:18,337 - INFO - [Feature Definition START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 449.7MB | System Memory: 21.6GB / 63.7GB (33.9%)
+2025-03-25 22:23:18,338 - INFO - [Feature Definition END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 449.7MB | System Memory: 21.6GB / 63.7GB (33.9%)
+2025-03-25 22:23:18,339 - INFO - [TIMING] Feature Definition completed in 0.00 seconds
+2025-03-25 22:23:18,339 - INFO - 输入特征列表: ['surface_net_solar_radiation_mean', 'surface_pressure_mean', 'temperature_2m_mean', 'u_component_of_wind_10m_mean', 'v_component_of_wind_10m_mean', 'volumetric_soil_water_layer_1_mean', 'volumetric_soil_water_layer_2_mean', 'temperature_2m_min', 'temperature_2m_max', 'total_precipitation_sum', 'potential_evaporation_sum', 'Qout'] (维度: 12)
+2025-03-25 22:23:18,340 - INFO - 属性特征列表: ['pre_mm_syr', 'pet_mean', 'aridity', 'seasonality', 'high_prec_freq', 'crp_pc_sse', 'for_pc_sse', 'urb_pc_sse', 'wet_pc_s01', 'nli_ix_sav', 'pop_ct_usu', 'dis_m3_pyr', 'run_mm_syr', 'cly_pc_sav', 'soc_th_sav', 'ele_mt_sav', 'slp_dg_sav', 'sgr_dk_sav', 'moisture_index', 'ero_kh_sav'] (维度: 20)
+2025-03-25 22:23:18,341 - INFO - [Device Setup START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 449.9MB | System Memory: 21.6GB / 63.7GB (33.9%)
+2025-03-25 22:23:18,341 - INFO - 使用设备：cuda
+2025-03-25 22:23:18,342 - INFO - CUDA Device 0: NVIDIA GeForce RTX 3060 Ti
+2025-03-25 22:23:18,342 - INFO -   Total Memory: 8.00 GB
+2025-03-25 22:23:18,342 - INFO -   CUDA Capability: 8.6
+2025-03-25 22:23:18,343 - INFO - [Device Setup END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.0MB | System Memory: 21.6GB / 63.7GB (33.9%)
+2025-03-25 22:23:18,343 - INFO - [TIMING] Device Setup completed in 0.00 seconds
+2025-03-25 22:23:18,344 - INFO - [Loading River Attributes START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 450.0MB | System Memory: 21.6GB / 63.7GB (33.9%)
+2025-03-25 22:23:18,496 - INFO - 
+2025-03-25 22:23:18,496 - INFO - 河段属性数据基本信息：
+2025-03-25 22:23:18,496 - INFO -   数据形状: (7825, 224)
+2025-03-25 22:23:18,496 - INFO -   列名: ['COMID', 'lengthkm', 'lengthdir', 'sinuosity', 'slope', 'uparea', 'order_', 'strmDrop_t', 'slope_taud', 'NextDownID', 'maxup', 'up1', 'up2', 'up3', 'up4', 'p_mean', 'pet_mean', 'aridity', 'frac_snow', 'moisture_index', 'seasonality', 'high_prec_freq', 'high_prec_dur', 'low_prec_freq', 'low_prec_dur', 'sgr_dk_sav', 'glc_pc_s06', 'glc_pc_s07', 'nli_ix_sav', 'glc_pc_s04', 'glc_pc_s05', 'glc_pc_s02', 'glc_pc_s03', 'glc_pc_s01', 'pet_mm_syr', 'glc_pc_s08', 'glc_pc_s09', 'swc_pc_s09', 'ele_mt_smx', 'tbi_cl_smj', 'swc_pc_s01', 'swc_pc_s02', 'swc_pc_s03', 'swc_pc_s04', 'swc_pc_s05', 'swc_pc_s06', 'swc_pc_s07', 'swc_pc_s08', 'crp_pc_sse', 'glc_pc_s22', 'glc_pc_s20', 'glc_pc_s21', 'wet_pc_sg1', 'wet_pc_sg2', 'pac_pc_sse', 'swc_pc_s10', 'swc_pc_s11', 'swc_pc_s12', 'clz_cl_smj', 'gwt_cm_sav', 'glc_pc_s17', 'glc_pc_s18', 'hft_ix_s93', 'glc_pc_s15', 'ire_pc_sse', 'glc_pc_s16', 'glc_pc_s13', 'prm_pc_sse', 'glc_pc_s14', 'glc_pc_s11', 'glc_pc_s12', 'glc_pc_s10', 'kar_pc_sse', 'slp_dg_sav', 'glc_pc_s19', 'tmp_dc_s07', 'tmp_dc_s08', 'tmp_dc_s05', 'tmp_dc_s06', 'tmp_dc_s09', 'for_pc_sse', 'aet_mm_s06', 'aet_mm_s05', 'aet_mm_s08', 'aet_mm_s07', 'aet_mm_s09', 'tmp_dc_s10', 'tmp_dc_s11', 'aet_mm_s02', 'aet_mm_s01', 'tmp_dc_s12', 'aet_mm_s04', 'aet_mm_s03', 'lit_cl_smj', 'tmp_dc_s03', 'tmp_dc_s04', 'tmp_dc_s01', 'tmp_dc_s02', 'cls_cl_smj', 'pre_mm_syr', 'pnv_pc_s01', 'pnv_pc_s04', 'pnv_pc_s05', 'pnv_pc_s02', 'rdd_mk_sav', 'ele_mt_smn', 'pnv_pc_s03', 'pnv_pc_s08', 'pnv_pc_s09', 'pnv_pc_s06', 'pnv_pc_s07', 'wet_cl_smj', 'snw_pc_syr', 'pnv_pc_s11', 'pnv_pc_s12', 'pnv_pc_s10', 'pnv_pc_s15', 'pnv_pc_s13', 'pnv_pc_s14', 'cmi_ix_syr', 'pet_mm_s11', 'pet_mm_s12', 'pet_mm_s10', 'tmp_dc_smn', 'wet_pc_s08', 'wet_pc_s09', 'slt_pc_sav', 'wet_pc_s02', 'wet_pc_s03', 'wet_pc_s01', 'hdi_ix_sav', 'wet_pc_s06', 'wet_pc_s07', 'wet_pc_s04', 'wet_pc_s05', 'fec_cl_smj', 'glc_cl_smj', 'swc_pc_syr', 'hft_ix_s09', 'soc_th_sav', 'gdp_ud_sav', 'gdp_ud_ssu', 'tmp_dc_smx', 'cly_pc_sav', 'pet_mm_s02', 'pet_mm_s03', 'pet_mm_s01', 'snw_pc_smx', 'ppd_pk_sav', 'pet_mm_s08', 'aet_mm_s11', 'pet_mm_s09', 'aet_mm_s10', 'pet_mm_s06', 'pet_mm_s07', 'aet_mm_s12', 'pet_mm_s04', 'pet_mm_s05', 'inu_pc_slt', 'ero_kh_sav', 'aet_mm_syr', 'cmi_ix_s10', 'cmi_ix_s11', 'cmi_ix_s12', 'ari_ix_sav', 'tmp_dc_syr', 'tec_cl_smj', 'fmh_cl_smj', 'inu_pc_smn', 'pnv_cl_smj', 'pre_mm_s08', 'pre_mm_s09', 'run_mm_syr', 'pre_mm_s06', 'pre_mm_s07', 'pre_mm_s04', 'pre_mm_s05', 'snd_pc_sav', 'pre_mm_s02', 'pre_mm_s03', 'ele_mt_sav', 'pre_mm_s01', 'urb_pc_sse', 'lka_pc_sse', 'pre_mm_s10', 'snw_pc_s01', 'snw_pc_s02', 'snw_pc_s03', 'snw_pc_s04', 'snw_pc_s05', 'snw_pc_s06', 'gla_pc_sse', 'snw_pc_s07', 'snw_pc_s08', 'snw_pc_s09', 'inu_pc_smx', 'pre_mm_s11', 'pre_mm_s12', 'cmi_ix_s07', 'cmi_ix_s08', 'cmi_ix_s05', 'cmi_ix_s06', 'cmi_ix_s09', 'snw_pc_s10', 'snw_pc_s11', 'snw_pc_s12', 'cmi_ix_s03', 'cmi_ix_s04', 'cmi_ix_s01', 'cmi_ix_s02', 'pst_pc_sse', 'dis_m3_pmn', 'dis_m3_pmx', 'dis_m3_pyr', 'lkv_mc_usu', 'rev_mc_usu', 'ria_ha_usu', 'riv_tc_usu', 'pop_ct_usu', 'dor_pc_pva', 'area', 'area_fraction_used_for_aggregation', 'WQ_exist', 'ERA5_exist']
+2025-03-25 22:23:18,498 - INFO - [Loading River Attributes END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 465.5MB | System Memory: 21.6GB / 63.7GB (33.9%)
+2025-03-25 22:23:18,498 - INFO - [TIMING] Loading River Attributes completed in 0.15 seconds
+2025-03-25 22:23:18,499 - INFO - [Extracting River Network Info START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 465.5MB | System Memory: 21.6GB / 63.7GB (33.9%)
+2025-03-25 22:23:18,527 - INFO - [Extracting River Network Info END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 467.4MB | System Memory: 21.6GB / 63.7GB (33.9%)
+2025-03-25 22:23:18,527 - INFO - [TIMING] Extracting River Network Info completed in 0.03 seconds
+2025-03-25 22:23:18,528 - INFO - [Loading Daily Data START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 467.4MB | System Memory: 21.6GB / 63.7GB (33.9%)
+2025-03-25 22:23:46,321 - INFO - 日尺度数据基本信息：
+2025-03-25 22:23:46,322 - INFO -   数据形状: (13325975, 43)
+2025-03-25 22:23:46,322 - INFO -   列名: ['date', 'snow_depth_water_equivalent_mean', 'surface_net_solar_radiation_mean', 'surface_net_thermal_radiation_mean', 'surface_pressure_mean', 'temperature_2m_mean', 'dewpoint_temperature_2m_mean', 'u_component_of_wind_10m_mean', 'v_component_of_wind_10m_mean', 'volumetric_soil_water_layer_1_mean', 'volumetric_soil_water_layer_2_mean', 'volumetric_soil_water_layer_3_mean', 'volumetric_soil_water_layer_4_mean', 'snow_depth_water_equivalent_min', 'surface_net_solar_radiation_min', 'surface_net_thermal_radiation_min', 'surface_pressure_min', 'temperature_2m_min', 'dewpoint_temperature_2m_min', 'u_component_of_wind_10m_min', 'v_component_of_wind_10m_min', 'volumetric_soil_water_layer_1_min', 'volumetric_soil_water_layer_2_min', 'volumetric_soil_water_layer_3_min', 'volumetric_soil_water_layer_4_min', 'snow_depth_water_equivalent_max', 'surface_net_solar_radiation_max', 'surface_net_thermal_radiation_max', 'surface_pressure_max', 'temperature_2m_max', 'dewpoint_temperature_2m_max', 'u_component_of_wind_10m_max', 'v_component_of_wind_10m_max', 'volumetric_soil_water_layer_1_max', 'volumetric_soil_water_layer_2_max', 'volumetric_soil_water_layer_3_max', 'volumetric_soil_water_layer_4_max', 'total_precipitation_sum', 'potential_evaporation_sum', 'Qout', 'COMID', 'TP', 'TN']
+2025-03-25 22:23:46,322 - INFO - 检查数据中的异常值...
+2025-03-25 22:23:47,358 - WARNING - 在列 'Qout' 中发现 207 个负值
+2025-03-25 22:23:47,359 - WARNING - 包含负 Qout 值的COMID: [43018325 43023349 43025192 43025193 43025197 43028204 43031122 43031131
+ 43031333 43031343 43031349 43031365 43031945 43031979 43032102 43034464
+ 43034574 43034586 43034612 43034700 43034701 43034702 43034703 43034706
+ 43034707 43034715 43034729 43035269 43035407 43035538 43035565 43035662
+ 43035839 43035998 43037937 43038309 43038478 43038924 43038950 43039029
+ 43039140 43039238 43039297 43041492 43041634 43041718 43042096 43042167
+ 43042329 43045465]
+2025-03-25 22:23:47,359 - INFO - 负 Qout 值样例:
+2025-03-25 22:23:47,401 - INFO -                date  snow_depth_water_equivalent_mean  surface_net_solar_radiation_mean  surface_net_thermal_radiation_mean  surface_pressure_mean  temperature_2m_mean  dewpoint_temperature_2m_mean  u_component_of_wind_10m_mean  v_component_of_wind_10m_mean  volumetric_soil_water_layer_1_mean  volumetric_soil_water_layer_2_mean  volumetric_soil_water_layer_3_mean  volumetric_soil_water_layer_4_mean  snow_depth_water_equivalent_min  surface_net_solar_radiation_min  surface_net_thermal_radiation_min  surface_pressure_min  temperature_2m_min  dewpoint_temperature_2m_min  u_component_of_wind_10m_min  v_component_of_wind_10m_min  volumetric_soil_water_layer_1_min  volumetric_soil_water_layer_2_min  volumetric_soil_water_layer_3_min  volumetric_soil_water_layer_4_min  snow_depth_water_equivalent_max  surface_net_solar_radiation_max  surface_net_thermal_radiation_max  surface_pressure_max  temperature_2m_max  dewpoint_temperature_2m_max  u_component_of_wind_10m_max  v_component_of_wind_10m_max  volumetric_soil_water_layer_1_max  volumetric_soil_water_layer_2_max  volumetric_soil_water_layer_3_max  volumetric_soil_water_layer_4_max  total_precipitation_sum  potential_evaporation_sum      Qout     COMID  TP  TN
+1234896  2019-08-11                               0.0                              8.13                               -5.03                  98.79                23.92                         23.14                         -0.68                         -6.30                                0.43                                0.43                                0.29                                0.16                              0.0                              0.0                              -9.28                 98.32               23.14                        22.34                        -2.48                        -7.87                               0.42                               0.43                               0.21                               0.16                              0.0                            29.93                              -1.06                 99.49               24.79                        23.70                         1.88                        -3.01                               0.43                               0.43                               0.35                               0.16                   220.48                       1.82 -2.088505  43018325 NaN NaN
+1236043  2022-10-01                               0.0                             25.35                              -24.04                 100.85                20.95                         18.88                         -1.82                          1.09                                0.28                                0.19                                0.24                                0.23                              0.0                             -0.0                             -65.74                100.53               19.66                        16.51                        -3.44                        -0.83                               0.14                               0.18                               0.24                               0.23                              0.0                           107.71                              -6.47                101.08               21.86                        20.42                        -0.22                         2.64                               0.43                               0.27                               0.24                               0.23                    43.23                       1.52 -0.048182  43018325 NaN NaN
+1236044  2022-10-02                               0.0                             67.29                              -19.48                 100.61                22.09                         20.49                          0.49                         -0.22                                0.41                                0.38                                0.24                                0.23                              0.0                             -0.0                             -45.98                100.37               20.49                        19.88                        -1.39                        -1.15                               0.39                               0.32                               0.24                               0.23                              0.0                           275.74                              -5.65                100.77               24.56                        21.44                         2.32                         1.31                               0.43                               0.40                               0.25                               0.23                    35.33                       1.89 -0.076121  43018325 NaN NaN
+2584389  2021-07-28                               0.0                             34.39                               -9.86                  99.32                24.07                         21.97                         -2.60                         -5.37                                0.40                                0.34                                0.22                                0.19                              0.0                              0.0                             -22.70                 98.91               23.19                        21.12                        -4.83                        -7.04                               0.29                               0.28                               0.21                               0.19                              0.0                           229.50                              -0.69                 99.55               25.63                        23.60                        -0.99                        -2.83                               0.44                               0.43                               0.24                               0.19                    91.36                       3.93 -0.030214  43023349 NaN NaN
+3183840  2021-07-23                               0.0                            153.17                              -34.64                 100.22                26.85                         23.43                         -2.05                         -0.13                                0.35                                0.33                                0.17                                0.19                              0.0                              0.0                             -54.81                100.08               23.61                        22.36                        -2.60                        -0.71                               0.34                               0.33                               0.17                               0.19                              0.0                           524.40                             -15.87                100.35               29.88                        24.57                        -1.56                         0.87                               0.36                               0.34                               0.17                               0.19                     1.11                       5.16 -0.159349  43025192 NaN NaN
+2025-03-25 22:23:47,424 - INFO - 已修复列 'Qout' 中的 207 个负值
+2025-03-25 22:23:47,793 - WARNING - 在列 'Qout' 中发现 1810886 个异常值
+2025-03-25 22:23:47,793 - WARNING - 包含异常 Qout 值的COMID: [43012449 43012450 43012786 ... 43054880 43054898 43054914]
+2025-03-25 22:23:47,793 - INFO - 异常 Qout 值样例:
+2025-03-25 22:23:48,128 - INFO -          date  snow_depth_water_equivalent_mean  surface_net_solar_radiation_mean  surface_net_thermal_radiation_mean  surface_pressure_mean  temperature_2m_mean  dewpoint_temperature_2m_mean  u_component_of_wind_10m_mean  v_component_of_wind_10m_mean  volumetric_soil_water_layer_1_mean  volumetric_soil_water_layer_2_mean  volumetric_soil_water_layer_3_mean  volumetric_soil_water_layer_4_mean  snow_depth_water_equivalent_min  surface_net_solar_radiation_min  surface_net_thermal_radiation_min  surface_pressure_min  temperature_2m_min  dewpoint_temperature_2m_min  u_component_of_wind_10m_min  v_component_of_wind_10m_min  volumetric_soil_water_layer_1_min  volumetric_soil_water_layer_2_min  volumetric_soil_water_layer_3_min  volumetric_soil_water_layer_4_min  snow_depth_water_equivalent_max  surface_net_solar_radiation_max  surface_net_thermal_radiation_max  surface_pressure_max  temperature_2m_max  dewpoint_temperature_2m_max  u_component_of_wind_10m_max  v_component_of_wind_10m_max  volumetric_soil_water_layer_1_max  volumetric_soil_water_layer_2_max  volumetric_soil_water_layer_3_max  volumetric_soil_water_layer_4_max  total_precipitation_sum  potential_evaporation_sum       Qout     COMID  TP  TN
+0  2019-01-02                              0.06                             94.94                              -92.00                 103.73                -3.87                        -13.54                          0.33                          0.59                                 0.2                                 0.2                                0.22                                0.21                             0.05                              0.0                            -132.13                103.57               -8.17                       -16.95                        -2.17                        -0.48                                0.2                                0.2                               0.22                               0.21                             0.06                           395.19                             -74.54                103.93                1.76                        -9.64                         2.28                         2.06                                0.2                                0.2                               0.22                               0.21                     0.00                       1.41  811.59430  43012449 NaN NaN
+1  2019-01-03                              0.05                             95.17                              -85.53                 103.42                -2.04                         -9.42                         -0.51                          1.71                                 0.2                                 0.2                                0.22                                0.21                             0.04                             -0.0                            -126.94                103.24               -6.59                       -12.12                        -2.08                         0.71                                0.2                                0.2                               0.22                               0.21                             0.05                           397.18                             -65.50                103.61                4.50                        -6.69                         1.23                         2.42                                0.2                                0.2                               0.22                               0.21                     0.00                       1.44  801.16266  43012449 NaN NaN
+2  2019-01-04                              0.04                             93.19                              -77.16                 103.30                -1.80                         -9.57                          0.62                         -2.61                                 0.2                                 0.2                                0.22                                0.21                             0.04                              0.0                            -118.65                103.15               -5.23                       -12.80                        -0.41                        -4.91                                0.2                                0.2                               0.22                               0.21                             0.04                           394.39                             -29.88                103.47                3.03                        -6.00                         1.37                         0.50                                0.2                                0.2                               0.22                               0.21                     0.00                       2.08  792.04020  43012449 NaN NaN
+3  2019-01-05                              0.03                             94.79                              -76.88                 103.24                -1.84                        -10.63                         -0.47                         -1.44                                 0.2                                 0.2                                0.22                                0.21                             0.03                              0.0                            -130.31                103.05               -5.18                       -13.54                        -2.67                        -2.73                                0.2                                0.2                               0.22                               0.21                             0.04                           401.05                             -31.91                103.37                2.17                        -5.45                         1.51                         0.12                                0.2                                0.2                               0.22                               0.21                     0.01                       1.66  784.35120  43012449 NaN NaN
+4  2019-01-06                              0.03                             90.19                              -80.29                 103.15                -1.74                         -6.84                         -1.02                          1.47                                 0.2                                 0.2                                0.22                                0.21                             0.03                              0.0                            -109.68                103.01               -5.07                        -9.35                        -2.31                         0.16                                0.2                                0.2                               0.22                               0.21                             0.04                           386.33                             -48.60                103.29                3.02                        -5.56                         0.57                         2.55                                0.2                                0.2                               0.22                               0.21                     0.00                       1.21  777.66644  43012449 NaN NaN
+2025-03-25 22:23:48,128 - INFO - 数据异常检测结果摘要:
+2025-03-25 22:23:48,128 - INFO -   列 'Qout': 207 个负值, 1810886 个异常值
+2025-03-25 22:23:48,535 - INFO - [Periodic Check] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4940.8MB | System Memory: 25.9GB / 63.7GB (40.7%)
+2025-03-25 22:23:48,535 - INFO - [Checking River Network Consistency START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4940.8MB | System Memory: 25.9GB / 63.7GB (40.7%)
+2025-03-25 22:23:48,537 - WARNING - 警告: 发现 182 个引用的下游河段未在COMID列中找到
+2025-03-25 22:23:48,538 - INFO - 缺失的COMID: [43028993, 43047938, 43044360, 43020809, 43050506, 43019791, 43044879, 43035665, 43047442, 43029008]...
+2025-03-25 22:23:48,542 - WARNING - 警告: 发现 83 个孤立河段（无上游也无下游）
+2025-03-25 22:23:48,542 - INFO - 孤立的COMID: [43024388, 43024494, 43024561, 43025464, 43026389, 43026727, 43026877, 43029589, 43032831, 43032928]...
+2025-03-25 22:23:49,016 - INFO - 信息: 发现 9 个具有3个及以上上游的河段
+2025-03-25 22:23:49,018 - INFO - COMID 43015728: 3 个上游
+2025-03-25 22:23:49,018 - INFO - COMID 43020220: 3 个上游
+2025-03-25 22:23:49,018 - INFO - COMID 43022997: 3 个上游
+2025-03-25 22:23:49,018 - INFO - COMID 43024822: 3 个上游
+2025-03-25 22:23:49,018 - INFO - COMID 43031956: 3 个上游
+2025-03-25 22:23:49,018 - INFO - COMID 43037916: 3 个上游
+2025-03-25 22:23:49,019 - INFO - COMID 43041226: 3 个上游
+2025-03-25 22:23:49,019 - INFO - COMID 43041242: 3 个上游
+2025-03-25 22:23:49,019 - INFO - COMID 43042376: 3 个上游
+2025-03-25 22:23:49,019 - WARNING - 河网拓扑结构检查发现问题。
+2025-03-25 22:23:49,019 - WARNING - 河网拓扑结构检查发现问题，请查看日志了解详情
+2025-03-25 22:23:49,019 - INFO - 警告: 河网拓扑结构检查发现问题，请查看日志了解详情
+2025-03-25 22:23:49,021 - INFO - [Checking River Network Consistency END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4941.9MB | System Memory: 25.9GB / 63.7GB (40.7%)
+2025-03-25 22:23:49,021 - INFO - [TIMING] Checking River Network Consistency completed in 0.49 seconds
+2025-03-25 22:23:49,022 - INFO - [Loading Daily Data END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4941.9MB | System Memory: 25.9GB / 63.7GB (40.7%)
+2025-03-25 22:23:49,022 - INFO - [TIMING] Loading Daily Data completed in 30.49 seconds
+2025-03-25 22:23:49,023 - INFO - [Iterative Training Process START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4941.9MB | System Memory: 25.9GB / 63.7GB (40.7%)
+2025-03-25 22:23:49,026 - INFO - Memory tracking started (interval: 10s)
+2025-03-25 22:23:49,028 - INFO - [Training Start] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4942.0MB | System Memory: 25.9GB / 63.7GB (40.7%)
+2025-03-25 22:23:49,029 - INFO - Flow routing results will be saved to flow_results
+2025-03-25 22:23:49,029 - INFO - Models will be saved to models
+2025-03-25 22:23:49,029 - INFO - Starting from initial training (iteration 0) with model version v1
+2025-03-25 22:23:49,029 - INFO - Starting from initial training (iteration 0) with model version v1
+2025-03-25 22:23:49,029 - INFO - 选择头部河段进行初始模型训练。
+2025-03-25 22:23:49,030 - INFO - [Building Attribute Dictionary START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 4942.0MB | System Memory: 25.9GB / 63.7GB (40.7%)
+2025-03-25 22:23:50,356 - INFO - [Building Attribute Dictionary END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8393.9MB | System Memory: 29.3GB / 63.7GB (46.0%)
+2025-03-25 22:23:50,357 - INFO - [TIMING] Building Attribute Dictionary completed in 1.33 seconds
+2025-03-25 22:23:50,358 - INFO - [Finding Head Stations START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8393.9MB | System Memory: 29.3GB / 63.7GB (46.0%)
+2025-03-25 22:23:50,403 - INFO -   选择的头部河段数量：27
+2025-03-25 22:23:50,404 - INFO - [Finding Head Stations END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8394.0MB | System Memory: 29.3GB / 63.7GB (46.0%)
+2025-03-25 22:23:50,405 - INFO - [TIMING] Finding Head Stations completed in 0.05 seconds
+2025-03-25 22:23:50,405 - INFO - 构造初始训练数据（滑窗切片）......
+2025-03-25 22:23:50,406 - INFO - [Building Sliding Windows START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8394.0MB | System Memory: 29.3GB / 63.7GB (46.0%)
+2025-03-25 22:23:51,535 - INFO - [Building Sliding Windows END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8447.4MB | System Memory: 29.4GB / 63.7GB (46.1%)
+2025-03-25 22:23:51,535 - INFO - [TIMING] Building Sliding Windows completed in 1.13 seconds
+2025-03-25 22:23:51,535 - INFO - X_ts_all.shape =
+2025-03-25 22:23:51,535 - INFO - (34413, 10, 39)
+2025-03-25 22:23:51,536 - INFO - Y.shape        =
+2025-03-25 22:23:51,536 - INFO - (34413,)
+2025-03-25 22:23:51,536 - INFO - COMID.shape    =
+2025-03-25 22:23:51,536 - INFO - (34413,)
+2025-03-25 22:23:51,536 - INFO - Date.shape     =
+2025-03-25 22:23:51,537 - INFO - (34413,)
+2025-03-25 22:23:51,538 - INFO - [Saving Training Data START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8447.4MB | System Memory: 29.4GB / 63.7GB (46.1%)
+2025-03-25 22:23:51,587 - INFO - 训练数据保存成功！
+2025-03-25 22:23:51,588 - INFO - [Saving Training Data END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8448.4MB | System Memory: 29.4GB / 63.7GB (46.2%)
+2025-03-25 22:23:51,589 - INFO - [TIMING] Saving Training Data completed in 0.05 seconds
+2025-03-25 22:23:51,590 - INFO - [Data Standardization START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8448.4MB | System Memory: 29.4GB / 63.7GB (46.2%)
+2025-03-25 22:23:51,749 - INFO - [After Standardization] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8450.1MB | System Memory: 29.4GB / 63.7GB (46.2%)
+2025-03-25 22:23:51,750 - INFO - [Data Standardization END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8450.1MB | System Memory: 29.4GB / 63.7GB (46.1%)
+2025-03-25 22:23:51,750 - INFO - [TIMING] Data Standardization completed in 0.16 seconds
+2025-03-25 22:23:51,751 - INFO - [Train/Validation Split START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8450.1MB | System Memory: 29.4GB / 63.7GB (46.1%)
+2025-03-25 22:23:51,767 - INFO - [Train/Validation Split END] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8501.4MB | System Memory: 29.5GB / 63.7GB (46.2%)
+2025-03-25 22:23:51,767 - INFO - [TIMING] Train/Validation Split completed in 0.02 seconds
+2025-03-25 22:23:51,767 - INFO - 初始模型 A₀ 训练：头部河段训练数据构造完毕。
+2025-03-25 22:23:51,769 - INFO - [Model Creation START] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8501.4MB | System Memory: 29.5GB / 63.7GB (46.2%)
+2025-03-25 22:23:51,770 - INFO - [Model Init] [MEMORY] GPU Memory: 0.0MB / 8191.5MB (0.0%) | Peak: 0.0MB | Process Memory: 8501.4MB | System Memory: 29.5GB / 63.7GB (46.2%)
+2025-03-25 22:23:51,772 - INFO - Model architecture initialized:
+2025-03-25 22:23:51,773 - INFO -  - LSTM: input_dim=39, hidden_size=64, num_layers=1
+2025-03-25 22:23:51,774 - INFO -  - Attribute network: attr_dim=20, fc_dim=32
+2025-03-25 22:23:51,774 - INFO -  - Output dimension: 1
+2025-03-25 22:23:51,775 - INFO - Total parameters: 28,705
+2025-03-25 22:23:51,868 - INFO - Model moved to cuda
+2025-03-25 22:23:51,909 - INFO - Model tested on cuda with dummy input
+2025-03-25 22:23:51,909 - INFO - Parameter devices:
+2025-03-25 22:23:51,910 - INFO -  - lstm.weight_ih_l0: cuda:0
+2025-03-25 22:23:51,910 - INFO -  - lstm.weight_hh_l0: cuda:0
+2025-03-25 22:23:51,910 - INFO -  - lstm.bias_ih_l0: cuda:0
+2025-03-25 22:23:51,910 - INFO -  - lstm.bias_hh_l0: cuda:0
+2025-03-25 22:23:51,911 - INFO -  - attr_fc.0.weight: cuda:0
+2025-03-25 22:23:51,911 - INFO -  - attr_fc.0.bias: cuda:0
+2025-03-25 22:23:51,911 - INFO -  - attr_fc.2.weight: cuda:0
+2025-03-25 22:23:51,911 - INFO -  - attr_fc.2.bias: cuda:0
+2025-03-25 22:23:51,911 - INFO -  - final_fc.weight: cuda:0
+2025-03-25 22:23:51,911 - INFO -  - final_fc.bias: cuda:0
+2025-03-25 22:23:51,912 - INFO - [Model Created] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8639.4MB | System Memory: 29.6GB / 63.7GB (46.4%)
+2025-03-25 22:23:51,914 - INFO - [Model Creation END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8639.4MB | System Memory: 29.6GB / 63.7GB (46.4%)
+2025-03-25 22:23:51,914 - INFO - [TIMING] Model Creation completed in 0.14 seconds
+2025-03-25 22:23:51,915 - INFO - [Model Loading START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8639.4MB | System Memory: 29.6GB / 63.7GB (46.4%)
+2025-03-25 22:23:51,916 - INFO - [Model Loading START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8639.4MB | System Memory: 29.6GB / 63.7GB (46.4%)
+2025-03-25 22:23:51,917 - ERROR - D:\PGRWQ\src_PGRWQ\model_training\models.py:418: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+2025-03-25 22:23:51,917 - ERROR -   self.base_model.load_state_dict(torch.load(path))
+2025-03-25 22:23:51,933 - INFO - [Model Loaded] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8639.9MB | System Memory: 29.6GB / 63.7GB (46.5%)
+2025-03-25 22:23:51,934 - INFO - [Model Loading END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8639.9MB | System Memory: 29.6GB / 63.7GB (46.5%)
+2025-03-25 22:23:51,935 - INFO - [TIMING] Model Loading completed in 0.02 seconds
+2025-03-25 22:23:51,935 - INFO - 模型加载成功：models/model_initial_A0_v1.pth
+2025-03-25 22:23:51,936 - INFO - [Model Loading END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8639.9MB | System Memory: 29.6GB / 63.7GB (46.5%)
+2025-03-25 22:23:51,936 - INFO - [TIMING] Model Loading completed in 0.02 seconds
+2025-03-25 22:23:51,937 - INFO - 初始汇流计算：使用 A₀ 进行预测。
+2025-03-25 22:23:51,938 - INFO - [Flow Routing Calculation START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 8639.9MB | System Memory: 29.6GB / 63.7GB (46.5%)
+2025-03-25 22:23:52,759 - INFO - ===== MODEL DEVICE CHECK =====
+2025-03-25 22:23:52,759 - INFO - Model is on device: cuda:0
+2025-03-25 22:23:52,759 - INFO - Model type: <class 'model_training.models.MultiBranchModel'>
+2025-03-25 22:23:52,760 - INFO - ===============================
+2025-03-25 22:23:53,791 - INFO - Flow routing calculation for iteration 0 started
+2025-03-25 22:23:55,926 - INFO - 标识出 1244 个缺失数据的河段
+2025-03-25 22:23:55,936 - INFO - 在河网拓扑中绕过了 2075 个缺失数据的河段
+2025-03-25 22:23:55,936 - INFO - Temperature data available, will apply temperature adjustment
+2025-03-25 22:24:02,678 - INFO - 将保存E值到目录: flow_results/E_values_v1
+2025-03-25 22:24:02,680 - INFO - 使用模型计算河段E值 (iteration 0)
+2025-03-25 22:24:02,680 - INFO - Processing 7825 river segments in batches...
+2025-03-25 22:24:02,683 - INFO - Processing river segments for iteration 0:   0%|       | 0/7825 [00:00<?, ?it/s]
+2025-03-25 22:24:12,691 - INFO - Processing river segments for iteration 0:   0%|       | 0/7825 [00:10<?, ?it/s]
+2025-03-25 22:24:18,542 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 22698.8MB | System Memory: 43.1GB / 63.7GB (67.6%)
+2025-03-25 22:24:46,462 - INFO - [GPU Batch Processing START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 24204.3MB | System Memory: 44.5GB / 63.7GB (69.8%)
+2025-03-25 22:24:48,000 - INFO - 处理 822 个河段，共 1392468 个预测点
+2025-03-25 22:24:48,001 - INFO - [Batch Prediction START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 26382.1MB | System Memory: 46.6GB / 63.7GB (73.1%)
+2025-03-25 22:24:48,003 - INFO - Starting with batch size: 436453 (estimated 2047.87MB)
+2025-03-25 22:24:48,005 - INFO - [Prediction Start] Processing 1392468 samples[MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 9.2MB | Process Memory: 26382.1MB | System Memory: 46.6GB / 63.7GB (73.1%)
+2025-03-25 22:24:49,092 - INFO - [Periodic Check] [MEMORY] GPU Memory: 26726.5MB / 8191.5MB (326.3%) | Peak: 26726.5MB | Process Memory: 26390.2MB | System Memory: 48.2GB / 63.7GB (75.7%)
+2025-03-25 22:25:19,106 - INFO - [Periodic Check] [MEMORY] GPU Memory: 693.9MB / 8191.5MB (8.5%) | Peak: 26728.1MB | Process Memory: 40562.3MB | System Memory: 55.0GB / 63.7GB (86.3%)
+2025-03-25 22:25:23,866 - INFO - Processed 1392468/1392468 samples (100.0%)
+2025-03-25 22:25:23,878 - INFO - [Batch Prediction END] [MEMORY] GPU Memory: 8.6MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 24627.8MB | System Memory: 39.1GB / 63.7GB (61.4%)
+2025-03-25 22:25:23,878 - INFO - [TIMING] Batch Prediction completed in 35.88 seconds
+2025-03-25 22:25:24,225 - INFO - After cleanup: 8.2MB allocated, 22.0MB reserved
+2025-03-25 22:25:24,234 - INFO - [GPU Batch Processing END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 22468.1MB | System Memory: 37.0GB / 63.7GB (58.0%)
+2025-03-25 22:25:24,234 - INFO - [TIMING] GPU Batch Processing completed in 37.76 seconds
+2025-03-25 22:25:41,571 - INFO - Batch 1/8: Processed 822 COMIDs in 98.89s
+2025-03-25 22:25:41,571 - INFO - GPU Memory: 8.24MB allocated, 22.00MB reserved
+2025-03-25 22:25:41,571 - INFO - Processing river segments for iteration 0:  13%|1| 1000/7825 [01:38<11:14, 10.11
+2025-03-25 22:25:49,123 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 21674.0MB | System Memory: 35.7GB / 63.7GB (56.0%)
+2025-03-25 22:26:19,185 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 23195.9MB | System Memory: 37.6GB / 63.7GB (59.0%)
+2025-03-25 22:26:26,535 - INFO - [GPU Batch Processing START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 23564.4MB | System Memory: 37.9GB / 63.7GB (59.5%)
+2025-03-25 22:26:28,228 - INFO - 处理 809 个河段，共 1370446 个预测点
+2025-03-25 22:26:28,228 - INFO - [Batch Prediction START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 25707.8MB | System Memory: 40.0GB / 63.7GB (62.8%)
+2025-03-25 22:26:28,234 - INFO - Starting with batch size: 436453 (estimated 2047.87MB)
+2025-03-25 22:26:28,234 - INFO - [Prediction Start] Processing 1370446 samples[MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 25707.9MB | System Memory: 40.0GB / 63.7GB (62.8%)
+2025-03-25 22:26:48,485 - INFO - Processed 1370446/1370446 samples (100.0%)
+2025-03-25 22:26:48,489 - INFO - [Batch Prediction END] [MEMORY] GPU Memory: 8.5MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 25681.5MB | System Memory: 38.8GB / 63.7GB (60.8%)
+2025-03-25 22:26:48,489 - INFO - [TIMING] Batch Prediction completed in 20.26 seconds
+2025-03-25 22:26:49,063 - INFO - After cleanup: 8.2MB allocated, 22.0MB reserved
+2025-03-25 22:26:49,066 - INFO - [GPU Batch Processing END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 23538.1MB | System Memory: 36.7GB / 63.7GB (57.5%)
+2025-03-25 22:26:49,066 - INFO - [TIMING] GPU Batch Processing completed in 22.53 seconds
+2025-03-25 22:26:49,194 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 23527.6MB | System Memory: 36.6GB / 63.7GB (57.5%)
+2025-03-25 22:27:06,382 - INFO - Processing river segments for iteration 0:  26%|2| 2000/7825 [03:03<08:47, 11.04
+2025-03-25 22:27:19,235 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 16893.1MB | System Memory: 31.6GB / 63.7GB (49.6%)
+2025-03-25 22:27:49,264 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 18709.4MB | System Memory: 33.2GB / 63.7GB (52.1%)
+2025-03-25 22:27:56,526 - INFO - [GPU Batch Processing START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 19120.7MB | System Memory: 33.7GB / 63.7GB (52.9%)
+2025-03-25 22:27:58,422 - INFO - 处理 872 个河段，共 1477168 个预测点
+2025-03-25 22:27:58,423 - INFO - [Batch Prediction START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 21431.5MB | System Memory: 36.0GB / 63.7GB (56.5%)
+2025-03-25 22:27:58,424 - INFO - Starting with batch size: 436453 (estimated 2047.87MB)
+2025-03-25 22:27:58,425 - INFO - [Prediction Start] Processing 1477168 samples[MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 21431.5MB | System Memory: 36.0GB / 63.7GB (56.5%)
+2025-03-25 22:28:19,906 - INFO - [Periodic Check] [MEMORY] GPU Memory: 9.9MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 21801.6MB | System Memory: 33.9GB / 63.7GB (53.2%)
+2025-03-25 22:28:21,334 - INFO - Processed 1477168/1477168 samples (100.0%)
+2025-03-25 22:28:21,338 - INFO - [Batch Prediction END] [MEMORY] GPU Memory: 8.9MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 21872.4MB | System Memory: 34.0GB / 63.7GB (53.4%)
+2025-03-25 22:28:21,339 - INFO - [TIMING] Batch Prediction completed in 22.91 seconds
+2025-03-25 22:28:22,356 - INFO - After cleanup: 8.2MB allocated, 22.0MB reserved
+2025-03-25 22:28:22,357 - INFO - [GPU Batch Processing END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 19242.1MB | System Memory: 31.4GB / 63.7GB (49.3%)
+2025-03-25 22:28:22,357 - INFO - [TIMING] GPU Batch Processing completed in 25.83 seconds
+2025-03-25 22:28:41,833 - INFO - Processing river segments for iteration 0:  38%|3| 3000/7825 [04:39<07:27, 10.77
+2025-03-25 22:28:49,928 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 18428.2MB | System Memory: 30.7GB / 63.7GB (48.2%)
+2025-03-25 22:29:19,955 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 20212.7MB | System Memory: 32.4GB / 63.7GB (50.8%)
+2025-03-25 22:29:27,614 - INFO - [GPU Batch Processing START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 20686.3MB | System Memory: 32.9GB / 63.7GB (51.6%)
+2025-03-25 22:29:29,211 - INFO - 处理 825 个河段，共 1397550 个预测点
+2025-03-25 22:29:29,213 - INFO - [Batch Prediction START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 22872.5MB | System Memory: 35.0GB / 63.7GB (54.9%)
+2025-03-25 22:29:29,214 - INFO - Starting with batch size: 436453 (estimated 2047.87MB)
+2025-03-25 22:29:29,215 - INFO - [Prediction Start] Processing 1397550 samples[MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 22872.5MB | System Memory: 35.0GB / 63.7GB (54.9%)
+2025-03-25 22:29:47,661 - INFO - Processed 1397550/1397550 samples (100.0%)
+2025-03-25 22:29:47,666 - INFO - [Batch Prediction END] [MEMORY] GPU Memory: 8.6MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 22914.0MB | System Memory: 35.3GB / 63.7GB (55.4%)
+2025-03-25 22:29:47,666 - INFO - [TIMING] Batch Prediction completed in 18.45 seconds
+2025-03-25 22:29:48,885 - INFO - After cleanup: 8.2MB allocated, 22.0MB reserved
+2025-03-25 22:29:48,886 - INFO - [GPU Batch Processing END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 20692.2MB | System Memory: 33.3GB / 63.7GB (52.3%)
+2025-03-25 22:29:48,886 - INFO - [TIMING] GPU Batch Processing completed in 21.27 seconds
+2025-03-25 22:29:49,957 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 20692.6MB | System Memory: 33.4GB / 63.7GB (52.4%)
+2025-03-25 22:30:04,415 - INFO - Processing river segments for iteration 0:  51%|5| 4000/7825 [06:01<05:39, 11.26
+2025-03-25 22:30:19,991 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 20434.3MB | System Memory: 33.2GB / 63.7GB (52.0%)
+2025-03-25 22:30:49,252 - INFO - [GPU Batch Processing START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 22197.9MB | System Memory: 34.8GB / 63.7GB (54.6%)
+2025-03-25 22:30:49,994 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 24338.7MB | System Memory: 36.9GB / 63.7GB (57.9%)
+2025-03-25 22:30:50,918 - INFO - 处理 838 个河段，共 1419572 个预测点
+2025-03-25 22:30:50,919 - INFO - [Batch Prediction START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 24418.6MB | System Memory: 37.0GB / 63.7GB (58.0%)
+2025-03-25 22:30:50,920 - INFO - Starting with batch size: 436453 (estimated 2047.87MB)
+2025-03-25 22:30:50,921 - INFO - [Prediction Start] Processing 1419572 samples[MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 24418.6MB | System Memory: 37.0GB / 63.7GB (58.0%)
+2025-03-25 22:31:10,410 - INFO - Processed 1419572/1419572 samples (100.0%)
+2025-03-25 22:31:10,413 - INFO - [Batch Prediction END] [MEMORY] GPU Memory: 8.7MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 24615.8MB | System Memory: 37.1GB / 63.7GB (58.2%)
+2025-03-25 22:31:10,413 - INFO - [TIMING] Batch Prediction completed in 19.49 seconds
+2025-03-25 22:31:11,904 - INFO - After cleanup: 8.2MB allocated, 22.0MB reserved
+2025-03-25 22:31:11,905 - INFO - [GPU Batch Processing END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 22203.5MB | System Memory: 34.8GB / 63.7GB (54.6%)
+2025-03-25 22:31:11,905 - INFO - [TIMING] GPU Batch Processing completed in 22.65 seconds
+2025-03-25 22:31:20,002 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 20421.9MB | System Memory: 33.2GB / 63.7GB (52.0%)
+2025-03-25 22:31:26,606 - INFO - Processing river segments for iteration 0:  64%|6| 5000/7825 [07:23<04:04, 11.57
+2025-03-25 22:31:50,019 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 22349.4MB | System Memory: 35.0GB / 63.7GB (55.0%)
+2025-03-25 22:32:09,776 - INFO - [GPU Batch Processing START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 17117.3MB | System Memory: 35.8GB / 63.7GB (56.2%)
+2025-03-25 22:32:11,366 - INFO - 处理 810 个河段，共 1372140 个预测点
+2025-03-25 22:32:11,367 - INFO - [Batch Prediction START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 19263.8MB | System Memory: 37.6GB / 63.7GB (59.0%)
+2025-03-25 22:32:11,368 - INFO - Starting with batch size: 436453 (estimated 2047.87MB)
+2025-03-25 22:32:11,368 - INFO - [Prediction Start] Processing 1372140 samples[MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 19263.8MB | System Memory: 37.6GB / 63.7GB (59.0%)
+2025-03-25 22:32:20,045 - INFO - [Periodic Check] [MEMORY] GPU Memory: 693.9MB / 8191.5MB (8.5%) | Peak: 26728.1MB | Process Memory: 33066.8MB | System Memory: 47.6GB / 63.7GB (74.7%)
+2025-03-25 22:32:30,674 - INFO - Processed 1372140/1372140 samples (100.0%)
+2025-03-25 22:32:30,678 - INFO - [Batch Prediction END] [MEMORY] GPU Memory: 8.5MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 19157.2MB | System Memory: 32.5GB / 63.7GB (50.9%)
+2025-03-25 22:32:30,678 - INFO - [TIMING] Batch Prediction completed in 19.31 seconds
+2025-03-25 22:32:32,489 - INFO - After cleanup: 8.2MB allocated, 22.0MB reserved
+2025-03-25 22:32:32,490 - INFO - [GPU Batch Processing END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 17011.2MB | System Memory: 30.4GB / 63.7GB (47.6%)
+2025-03-25 22:32:32,490 - INFO - [TIMING] GPU Batch Processing completed in 22.71 seconds
+2025-03-25 22:32:48,117 - INFO - Batch 6/8: Processed 810 COMIDs in 81.51s
+2025-03-25 22:32:48,118 - INFO - GPU Memory: 8.24MB allocated, 22.00MB reserved
+2025-03-25 22:32:48,118 - INFO - Processing river segments for iteration 0:  77%|7| 6000/7825 [08:45<02:34, 11.80
+2025-03-25 22:32:50,062 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 15952.2MB | System Memory: 29.6GB / 63.7GB (46.4%)
+2025-03-25 22:33:20,080 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 17728.1MB | System Memory: 31.3GB / 63.7GB (49.1%)
+2025-03-25 22:33:34,424 - INFO - [GPU Batch Processing START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 18484.8MB | System Memory: 32.0GB / 63.7GB (50.2%)
+2025-03-25 22:33:36,067 - INFO - 处理 849 个河段，共 1438206 个预测点
+2025-03-25 22:33:36,069 - INFO - [Batch Prediction START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 20734.6MB | System Memory: 34.2GB / 63.7GB (53.7%)
+2025-03-25 22:33:36,070 - INFO - Starting with batch size: 436453 (estimated 2047.87MB)
+2025-03-25 22:33:36,071 - INFO - [Prediction Start] Processing 1438206 samples[MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 20734.6MB | System Memory: 34.2GB / 63.7GB (53.7%)
+2025-03-25 22:33:50,100 - INFO - [Periodic Check] [MEMORY] GPU Memory: 693.9MB / 8191.5MB (8.5%) | Peak: 26728.1MB | Process Memory: 33341.7MB | System Memory: 46.9GB / 63.7GB (73.6%)
+2025-03-25 22:33:54,889 - INFO - Processed 1438206/1438206 samples (100.0%)
+2025-03-25 22:33:54,893 - INFO - [Batch Prediction END] [MEMORY] GPU Memory: 8.7MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 21080.3MB | System Memory: 34.9GB / 63.7GB (54.7%)
+2025-03-25 22:33:54,893 - INFO - [TIMING] Batch Prediction completed in 18.82 seconds
+2025-03-25 22:33:56,479 - INFO - After cleanup: 8.2MB allocated, 22.0MB reserved
+2025-03-25 22:33:56,480 - INFO - [GPU Batch Processing END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 18554.9MB | System Memory: 32.4GB / 63.7GB (50.8%)
+2025-03-25 22:33:56,480 - INFO - [TIMING] GPU Batch Processing completed in 22.06 seconds
+2025-03-25 22:34:11,437 - INFO - Processing river segments for iteration 0:  89%|8| 7000/7825 [10:08<01:09, 11.87
+2025-03-25 22:34:20,118 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 17778.4MB | System Memory: 31.6GB / 63.7GB (49.6%)
+2025-03-25 22:34:50,148 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 19475.5MB | System Memory: 33.1GB / 63.7GB (52.0%)
+2025-03-25 22:34:50,789 - INFO - [GPU Batch Processing START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 19514.1MB | System Memory: 33.2GB / 63.7GB (52.1%)
+2025-03-25 22:34:52,246 - INFO - 处理 756 个河段，共 1280664 个预测点
+2025-03-25 22:34:52,248 - INFO - [Batch Prediction START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 21517.4MB | System Memory: 35.2GB / 63.7GB (55.2%)
+2025-03-25 22:34:52,249 - INFO - Starting with batch size: 436453 (estimated 2047.87MB)
+2025-03-25 22:34:52,250 - INFO - [Prediction Start] Processing 1280664 samples[MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 21517.4MB | System Memory: 35.2GB / 63.7GB (55.2%)
+2025-03-25 22:35:09,152 - INFO - Processed 1280664/1280664 samples (100.0%)
+2025-03-25 22:35:09,156 - INFO - [Batch Prediction END] [MEMORY] GPU Memory: 9.9MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 21904.5MB | System Memory: 35.6GB / 63.7GB (55.9%)
+2025-03-25 22:35:09,156 - INFO - [TIMING] Batch Prediction completed in 16.91 seconds
+2025-03-25 22:35:11,248 - INFO - After cleanup: 8.2MB allocated, 22.0MB reserved
+2025-03-25 22:35:11,249 - INFO - [GPU Batch Processing END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 19517.6MB | System Memory: 33.3GB / 63.7GB (52.2%)
+2025-03-25 22:35:11,250 - INFO - [TIMING] GPU Batch Processing completed in 20.46 seconds
+2025-03-25 22:35:20,156 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 17988.7MB | System Memory: 31.8GB / 63.7GB (49.9%)
+2025-03-25 22:35:25,225 - INFO - Batch 8/8: Processed 756 COMIDs in 73.79s
+2025-03-25 22:35:25,225 - INFO - GPU Memory: 8.24MB allocated, 22.00MB reserved
+2025-03-25 22:35:25,226 - INFO - Processing river segments for iteration 0: 100%|#| 7825/7825 [11:22<00:00, 11.67
+2025-03-25 22:35:25,226 - INFO - Processing river segments for iteration 0: 100%|#| 7825/7825 [11:22<00:00, 11.46
+2025-03-25 22:35:25,226 - INFO - 保存E值到 flow_results/E_values_v1
+2025-03-25 22:35:50,162 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 18691.8MB | System Memory: 32.8GB / 63.7GB (51.4%)
+2025-03-25 22:35:55,259 - INFO - 已保存参数 TN 的E值，共 11207443 条记录，保存至 flow_results/E_values_v1\E_0_TN.csv
+2025-03-25 22:35:55,259 - INFO - Calculating node indegrees...
+2025-03-25 22:35:55,615 - INFO - Found 4102 headwater segments
+2025-03-25 22:35:56,309 - INFO - Starting flow routing calculation...
+2025-03-25 22:36:00,494 - INFO - Processed 1000 segments so far
+2025-03-25 22:36:05,166 - INFO - Processed 2000 segments so far
+2025-03-25 22:36:09,763 - INFO - Processed 3000 segments so far
+2025-03-25 22:36:14,115 - INFO - Processed 4000 segments so far
+2025-03-25 22:36:18,685 - INFO - Processed 5000 segments so far
+2025-03-25 22:36:20,178 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 19204.0MB | System Memory: 33.1GB / 63.7GB (52.0%)
+2025-03-25 22:36:23,761 - INFO - Processed 6000 segments so far
+2025-03-25 22:36:26,787 - INFO - Merging results...
+2025-03-25 22:36:42,852 - INFO - Flow routing calculation for iteration 0 complete
+2025-03-25 22:36:50,193 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 6670.7MB | System Memory: 20.6GB / 63.7GB (32.3%)
+2025-03-25 22:37:20,212 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 6669.4MB | System Memory: 20.9GB / 63.7GB (32.8%)
+2025-03-25 22:37:50,228 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 6680.1MB | System Memory: 21.0GB / 63.7GB (32.9%)
+2025-03-25 22:38:20,257 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 6679.9MB | System Memory: 21.0GB / 63.7GB (32.9%)
+2025-03-25 22:38:50,266 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 6667.9MB | System Memory: 21.0GB / 63.7GB (32.9%)
+2025-03-25 22:39:20,290 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 6679.6MB | System Memory: 21.0GB / 63.7GB (32.9%)
+2025-03-25 22:39:50,303 - INFO - [Periodic Check] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 6667.9MB | System Memory: 21.7GB / 63.7GB (34.0%)
+2025-03-25 22:40:12,543 - INFO - 初始汇流计算结果已保存至 flow_results\flow_routing_iteration_0_v1.csv
+2025-03-25 22:40:12,544 - INFO - 初始汇流计算结果已保存至 flow_results\flow_routing_iteration_0_v1.csv
+2025-03-25 22:40:12,545 - INFO - [Flow Routing Calculation END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 6667.8MB | System Memory: 21.1GB / 63.7GB (33.1%)
+2025-03-25 22:40:12,545 - INFO - [TIMING] Flow Routing Calculation completed in 980.61 seconds
+2025-03-25 22:40:12,546 - INFO - [Iteration 1/5 START] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 6667.8MB | System Memory: 21.1GB / 63.7GB (33.1%)
+2025-03-25 22:40:12,546 - INFO - 
+2025-03-25 22:40:12,546 - INFO - 迭代 1/5
+2025-03-25 22:40:12,547 - INFO - [Iteration 1 Start] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 6667.8MB | System Memory: 21.1GB / 63.7GB (33.1%)
+2025-03-25 22:40:12,548 - INFO - [Iteration 1/5 END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 6667.8MB | System Memory: 21.1GB / 63.7GB (33.1%)
+2025-03-25 22:40:12,549 - INFO - [TIMING] Iteration 1/5 completed in 0.00 seconds
+2025-03-25 22:40:12,549 - INFO - [Iterative Training Process END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 6667.8MB | System Memory: 21.1GB / 63.7GB (33.1%)
+2025-03-25 22:40:12,550 - INFO - [TIMING] Iterative Training Process completed in 983.53 seconds
+2025-03-25 22:40:12,550 - INFO - [PGRWQ Training Pipeline END] [MEMORY] GPU Memory: 8.2MB / 8191.5MB (0.1%) | Peak: 26728.1MB | Process Memory: 6667.8MB | System Memory: 21.1GB / 63.7GB (33.1%)
+2025-03-25 22:40:12,551 - INFO - [TIMING] PGRWQ Training Pipeline completed in 1014.23 seconds
+2025-03-25 22:40:12,551 - ERROR - Error in main execution: "['Date', 'y_n_0', 'y_up_0'] not in index"
+Traceback (most recent call last):
+  File "D:\PGRWQ\src_PGRWQ\main.py", line 410, in <module>
+    main()
+  File "D:\PGRWQ\src_PGRWQ\main.py", line 338, in main
+    final_model = iterative_training_procedure(
+  File "D:\PGRWQ\src_PGRWQ\model_training\train.py", line 490, in iterative_training_procedure
+    merged = pd.merge(df, df_flow[['COMID', 'Date', col_y_n, col_y_up]], on=['COMID', 'Date'], how='left')
+  File "e:\research\envs\PGRWQ\lib\site-packages\pandas\core\frame.py", line 4108, in __getitem__
+    indexer = self.columns._get_indexer_strict(key, "columns")[1]
+  File "e:\research\envs\PGRWQ\lib\site-packages\pandas\core\indexes\base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "e:\research\envs\PGRWQ\lib\site-packages\pandas\core\indexes\base.py", line 6252, in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+KeyError: "['Date', 'y_n_0', 'y_up_0'] not in index"
+2025-03-25 22:40:13,178 - INFO - Training process completed

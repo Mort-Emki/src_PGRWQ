@@ -495,7 +495,7 @@ def iterative_training_procedure(df: pd.DataFrame,
             print(f"  最大残差: {max_resid:.4f}")
             
             if max_resid < epsilon:
-                print("收敛！")
+                print("收敛！") 
                 break
                 
             # 为下一轮训练准备数据

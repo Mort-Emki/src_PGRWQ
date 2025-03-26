@@ -304,7 +304,7 @@ def main():
             columns_to_check=['Qout'], 
             # check_negative=True,
             # check_outliers=True,
-            # fix_negative=True,
+            fix_negative=True,
             # fix_outliers=False,
             negative_replacement=0.001,
             outlier_method='iqr',
