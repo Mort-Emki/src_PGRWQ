@@ -59,6 +59,21 @@ except ImportError:
                 log_memory_usage("[Final Memory Report] ")
             return {}
 
+def check_existing_flow_routing_results(iteration: int, model_version: str, flow_results_dir: str) -> (bool, str):
+    """
+    检查是否已存在特定迭代和模型版本的汇流计算结果文件
+    
+    参数:
+        iteration: 迭代次数
+        model_version: 模型版本号
+        flow_results_dir: 汇流结果保存目录
+        
+    返回:
+        (exists, file_path): 元组，包含是否存在的布尔值和文件路径
+    """
+    file_path = os.path.join(flow_results_dir, f"flow_routing_iteration_{iteration}_{model_version}.csv")
+    exists = os.path.isfile(file_path)
+    return exists, file_path
 
 def iterative_training_procedure(df: pd.DataFrame,
                                  attr_df: pd.DataFrame,
@@ -82,7 +97,8 @@ def iterative_training_procedure(df: pd.DataFrame,
                                  start_iteration: int = 0,
                                  model_version: str = "v1",
                                  flow_results_dir: str = "flow_results",
-                                 model_dir: str = "models"):
+                                 model_dir: str = "models",
+                                 reuse_existing_flow_results: bool = True):
     """
     PG-RWQ 迭代训练过程
     输入：
@@ -101,6 +117,7 @@ def iterative_training_procedure(df: pd.DataFrame,
         model_version: 模型版本号，用于区分不同版本的模型
         flow_results_dir: 汇流结果保存目录
         model_dir: 模型保存目录
+        reuse_existing_flow_results: 是否重用已存在的汇流计算结果，默认为True
     输出：
         返回训练好的模型对象
     """
@@ -383,32 +400,44 @@ def iterative_training_procedure(df: pd.DataFrame,
         
         #===========================================================================
         # 阶段4: 初始汇流计算
-        # - 使用初始模型A₀进行预测
-        # - 执行汇流计算
+        # - 检查是否存在已完成的汇流计算结果
+        # - 若不存在，使用初始模型A₀进行预测并执行汇流计算
         # - 保存结果到CSV
         #===========================================================================
         print("初始汇流计算：使用 A₀ 进行预测。")
         
-        with TimingAndMemoryContext("Flow Routing Calculation"):
-            # 初始迭代使用E_save=1来保存E值
-            df_flow = flow_routing_calculation(df = df.copy(), 
-                                              iteration=0, 
-                                              model_func=batch_model_func, 
-                                              river_info=river_info, 
-                                              v_f_TN=35.0,
-                                              v_f_TP=44.5,
-                                              attr_dict=attr_dict,
-                                              model=model,
-                                              target_cols=target_cols,
-                                              attr_df=attr_df,
-                                              E_save=1,  # 保存初始E值
-                                              E_save_path=f"{output_dir}/E_values_{model_version}")
-            
-            # 保存初始汇流计算结果
-            initial_result_path = os.path.join(output_dir, f"flow_routing_iteration_0_{model_version}.csv")
-            df_flow.to_csv(initial_result_path, index=False)
-            logging.info(f"初始汇流计算结果已保存至 {initial_result_path}")
-            print(f"初始汇流计算结果已保存至 {initial_result_path}")
+        # 检查是否存在已完成的汇流计算结果
+        exists, flow_result_path = check_existing_flow_routing_results(0, model_version, output_dir)
+        
+        if exists and reuse_existing_flow_results:
+            # 如果存在且配置为重用，直接加载已有结果
+            with TimingAndMemoryContext("Loading Existing Flow Routing Results"):
+                print(f"发现已存在的汇流计算结果，加载：{flow_result_path}")
+                logging.info(f"Loading existing flow routing results from {flow_result_path}")
+                df_flow = pd.read_csv(flow_result_path)
+                print(f"成功加载汇流计算结果，共 {len(df_flow)} 条记录")
+        else:
+            # 如果不存在或配置为不重用，执行汇流计算
+            with TimingAndMemoryContext("Flow Routing Calculation"):
+                # 初始迭代使用E_save=1来保存E值
+                df_flow = flow_routing_calculation(df = df.copy(), 
+                                                  iteration=0, 
+                                                  model_func=batch_model_func, 
+                                                  river_info=river_info, 
+                                                  v_f_TN=35.0,
+                                                  v_f_TP=44.5,
+                                                  attr_dict=attr_dict,
+                                                  model=model,
+                                                  target_cols=target_cols,
+                                                  attr_df=attr_df,
+                                                  E_save=1,  # 保存初始E值
+                                                  E_save_path=f"{output_dir}/E_values_{model_version}")
+                
+                # 保存初始汇流计算结果
+                initial_result_path = os.path.join(output_dir, f"flow_routing_iteration_0_{model_version}.csv")
+                df_flow.to_csv(initial_result_path, index=False)
+                logging.info(f"初始汇流计算结果已保存至 {initial_result_path}")
+                print(f"初始汇流计算结果已保存至 {initial_result_path}")
     else:
         # 如果start_iteration > 0，跳过初始模型训练和初始汇流计算
         # 创建模型实例
@@ -569,7 +598,7 @@ def iterative_training_procedure(df: pd.DataFrame,
                 
             Y_label_iter = []
             for cid, date_val in zip(COMIDs_iter, Dates_iter):
-                subset = merged[(merged["COMID"] == cid) & (merged["Date"] == date_val)]
+                subset = merged[(merged["COMID"] == cid) & (merged["date"] == date_val)]
                 if not subset.empty:
                     label_val = subset["E_label"].mean()
                 else:
@@ -620,19 +649,30 @@ def iterative_training_procedure(df: pd.DataFrame,
                 preds = model.predict(X_ts_local, X_attr_local)
                 return pd.Series(preds, index=pd.to_datetime(Dates_local))
             
-            # 执行新一轮汇流计算
-            with TimingAndMemoryContext(f"Flow Routing for Iteration {it+1}"):
-                df_flow = flow_routing_calculation(df.copy(), iteration=it+1, model_func=updated_model_func, 
-                                                river_info=river_info, v_f_TN=35.0, v_f_TP=44.5,
-                                                target_cols=target_cols,
-                                                E_save=1,  # 保存E值
-                                                E_save_path=f"{output_dir}/E_values_{model_version}")
-                
-                # 保存当前迭代结果
-                iter_result_path = os.path.join(output_dir, f"flow_routing_iteration_{it+1}_{model_version}.csv")
-                df_flow.to_csv(iter_result_path, index=False)
-                logging.info(f"迭代 {it+1} 汇流计算结果已保存至 {iter_result_path}")
-                print(f"迭代 {it+1} 汇流计算结果已保存至 {iter_result_path}")
+            # 检查是否存在已计算的结果
+            exists, flow_result_path = check_existing_flow_routing_results(it+1, model_version, output_dir)
+            
+            if exists and reuse_existing_flow_results:
+                # 如果存在且配置为重用，直接加载已有结果
+                with TimingAndMemoryContext(f"Loading Existing Flow Routing Results for Iteration {it+1}"):
+                    print(f"发现已存在的迭代 {it+1} 汇流计算结果，加载：{flow_result_path}")
+                    logging.info(f"Loading existing flow routing results for iteration {it+1} from {flow_result_path}")
+                    df_flow = pd.read_csv(flow_result_path)
+                    print(f"成功加载迭代 {it+1} 汇流计算结果，共 {len(df_flow)} 条记录")
+            else:
+                # 如果不存在或配置为不重用，执行汇流计算
+                with TimingAndMemoryContext(f"Flow Routing for Iteration {it+1}"):
+                    df_flow = flow_routing_calculation(df.copy(), iteration=it+1, model_func=updated_model_func, 
+                                                    river_info=river_info, v_f_TN=35.0, v_f_TP=44.5,
+                                                    target_cols=target_cols,
+                                                    E_save=1,  # 保存E值
+                                                    E_save_path=f"{output_dir}/E_values_{model_version}")
+                    
+                    # 保存当前迭代结果
+                    iter_result_path = os.path.join(output_dir, f"flow_routing_iteration_{it+1}_{model_version}.csv")
+                    df_flow.to_csv(iter_result_path, index=False)
+                    logging.info(f"迭代 {it+1} 汇流计算结果已保存至 {iter_result_path}")
+                    print(f"迭代 {it+1} 汇流计算结果已保存至 {iter_result_path}")
     
     #===========================================================================
     # 阶段6: 完成与清理
@@ -655,3 +695,39 @@ def iterative_training_procedure(df: pd.DataFrame,
     print(f"最终模型已保存至 {final_model_path}")
     
     return model
+
+
+
+# 方法一：在上一轮模型基础上继续训练
+# 优势:
+
+# 计算效率更高：继续训练比从头开始训练通常需要更少的迭代次数和计算资源
+# 参数演化连续性：参数变化更平滑，可能导致更稳定的收敛过程
+# 更快的收敛：已有的参数可能更接近目标解，加速收敛
+
+# 劣势:
+
+# 可能陷入局部最优：继承前一轮参数可能限制模型探索整个参数空间
+# 误差累积风险：如果前一轮模型有系统性偏差，可能会延续到后续迭代
+
+# 方法二：每轮训练全新模型（文档中的设计）
+# 优势:
+
+# 避免误差累积：每轮独立训练，不会继承前一轮的偏差
+# 更符合理论设计：分离不同迭代阶段的模型，符合递归框架
+# 更好的理论解释性：每个模型AnA_n
+# An​对应一个特定的迭代步骤，关系清晰
+
+
+# 劣势:
+
+# 计算成本高：每轮从头开始训练需要更多资源
+# 可能收敛较慢：每轮重新随机初始化可能导致收敛不稳定
+
+# 结论
+# 从科学严谨性角度，我认为每轮训练全新模型更加符合您算法的理论框架。您的算法设计中明确将每轮迭代视为独立的模型训练过程，旨在让模型An+1A_{n+1}
+# An+1​拟合特定的标签EnlabelE^{label}_n
+# Enlabel​。
+
+# 从实用角度考虑，如果最终目标是获得最佳预测结果且计算资源有限，在前一轮基础上继续训练可能是合理的折衷方案。
+# 最优解决方案可能是：在算法初期使用从头训练的方法以确保理论一致性，当迭代接近收敛时再考虑采用继续训练的方法来加速收敛过程。
