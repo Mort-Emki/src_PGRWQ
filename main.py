@@ -351,6 +351,7 @@ def main():
             attr_dim=attr_dim,
             fc_dim=32,
             device=device,
+            model_version = "v0327_1"
             comid_wq_list=comid_wq_list,
             comid_era5_list=comid_era5_list,
             input_cols=input_features

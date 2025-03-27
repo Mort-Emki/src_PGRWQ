@@ -17,6 +17,32 @@ try:
 except ImportError:
     from tqdm import tqdm
 
+def get_river_length(comid, attr_dict, length_index):
+    """
+    Get the river segment length for a given COMID
+    
+    Parameters:
+    -----------
+    comid : str or int
+        The COMID of the river segment
+    attr_dict : dict
+        Dictionary mapping COMID to attribute arrays
+    length_index : int
+        The index position of the length attribute in the array
+        
+    Returns:
+    --------
+    float
+        The length of the river segment in km
+    """
+    comid_str = str(comid)
+    if comid_str in attr_dict:
+        return attr_dict[comid_str][length_index]
+    else:
+        # Default length if COMID not found
+        logging.warning(f"Length not found for COMID {comid}, using default")
+        return 1.0  # Default 1km length
+    
 def calculate_river_width(Q: pd.Series) -> pd.Series:
     """
     根据流量计算河道宽度 W = aQ^b
@@ -39,7 +65,7 @@ def calculate_river_width(Q: pd.Series) -> pd.Series:
 
 def compute_temperature_factor(temperature: pd.Series, parameter: str = "TN") -> pd.Series:
     """
-    计算温度调整因子 f(t) = α^(t-20)
+    计算温度调整因子 f(t) = α^(t-20) * (t - 20)
     
     输入：
         temperature: 温度序列 (°C)
@@ -52,7 +78,8 @@ def compute_temperature_factor(temperature: pd.Series, parameter: str = "TN") ->
     else:  # TP
         alpha = 1.06    # TP的α值
     
-    return np.power(alpha, temperature - 20)
+    # 计算 α^(t-20) * (t - 20) 
+    return np.power(alpha, temperature - 20) * (temperature - 20)
 
 def compute_nitrogen_concentration_factor(N_concentration: pd.Series) -> pd.Series:
     """
@@ -100,7 +127,8 @@ def compute_nitrogen_concentration_factor(N_concentration: pd.Series) -> pd.Seri
     return result
 
 def compute_retainment_factor(v_f: float, Q_up: pd.Series, Q_down: pd.Series, 
-                             S_up: pd.Series, S_down: pd.Series,
+                             W_up: pd.Series, W_down: pd.Series,
+                             length_up: float, length_down: float,
                              temperature: pd.Series = None,
                              N_concentration: pd.Series = None,
                              parameter: str = "TN") -> pd.Series:
@@ -112,8 +140,10 @@ def compute_retainment_factor(v_f: float, Q_up: pd.Series, Q_down: pd.Series,
         v_f: 基础吸收速率参数 (m/yr)
         Q_up: 上游流量序列 (m³/s)
         Q_down: 下游流量序列 (m³/s)
-        S_up: 上游河段宽度序列 (m)
-        S_down: 下游河段宽度序列 (m)
+        W_up: 上游河段宽度序列 (m)
+        W_down: 下游河段宽度序列 (m)
+        length_up: 上游河段长度 (km)
+        length_down: 下游河段长度 (km)
         temperature: 温度序列 (°C)，若提供则计算温度调整因子
         N_concentration: 氮浓度序列 (mg/L)，若提供且参数为TN，则计算浓度调整因子
         parameter: 水质参数，"TN"或"TP"
@@ -136,6 +166,11 @@ def compute_retainment_factor(v_f: float, Q_up: pd.Series, Q_down: pd.Series,
         conc_factor = compute_nitrogen_concentration_factor(N_concentration)
         v_f_adjusted = v_f_adjusted * conc_factor
     
+    # 计算河段面积 (宽度*长度)
+    # 注意转换单位：长度从km转换为m
+    S_up = W_up * (length_up * 1000)  # 面积单位：m²
+    S_down = W_down * (length_down * 1000)  # 面积单位：m²
+    
     # 计算保留系数
     R_up = 1 - np.exp(-v_f_adjusted * S_up / (2 * Q_up_adj))
     R_down = 1 - np.exp(-v_f_adjusted * S_down / (2 * Q_down_adj))
@@ -143,6 +178,7 @@ def compute_retainment_factor(v_f: float, Q_up: pd.Series, Q_down: pd.Series,
     
     # 填充可能的NaN值
     return R.fillna(0.0)
+
 def flow_routing_calculation(df: pd.DataFrame, 
                              iteration: int, 
                              model_func, 
@@ -585,19 +621,26 @@ def flow_routing_calculation(df: pd.DataFrame,
                 
                 # 提取当前参数的y_n值
                 y_n_current = current_data[f'y_n_{param}'].reindex(common_dates)
-                
+
+
+                length_index = attr_features.index('lengthkm')  # Get the index position of length
+                # Get lengths for current and downstream segments
+                length_current = get_river_length(current, attr_dict, length_index)
+                length_down = get_river_length(next_down, attr_dict, length_index)
+
                 # 计算保留系数
                 R_series = compute_retainment_factor(
                     v_f=v_f, 
                     Q_up=Q_current, 
                     Q_down=Q_down,
-                    S_up=S_current,
-                    S_down=S_down,
+                    W_up=S_current,  # This is width
+                    W_down=S_down,   # This is width
+                    length_up=length_current,  
+                    length_down=length_down,   
                     temperature=temperature,
                     N_concentration=N_concentration,
                     parameter=param
                 )
-                
                 # 计算贡献并累加到下游负荷累加器
                 contribution = y_n_current * R_series * Q_current
                 load_acc[param][next_down] = load_acc[param][next_down].add(contribution, fill_value=0.0)
