@@ -559,16 +559,16 @@ def iterative_training_procedure(df: pd.DataFrame,
                                  right_on=[required_cols[0], required_cols[1]], 
                                  how='left')
                 
-                # If date columns had different names, we'll have both in the result
-                if required_cols[1] != 'date' and required_cols[1] + '_y' in merged.columns:
-                    merged = merged.drop(columns=[required_cols[1] + '_y'])
-                    merged = merged.rename(columns={'date_x': 'date'})
+                # # If date columns had different names, we'll have both in the result
+                # if required_cols[1] != 'date' and required_cols[1] + '_y' in merged.columns:
+                #     merged = merged.drop(columns=[required_cols[1] + '_y'])
+                #     merged = merged.rename(columns={'date_x': 'date'})
                 
-                # Map the potentially different column names to expected names for calculations
-                if col_y_n != required_cols[2]:
-                    merged[col_y_n] = merged[required_cols[2]]
-                if col_y_up != required_cols[3]:
-                    merged[col_y_up] = merged[required_cols[3]]
+                # # Map the potentially different column names to expected names for calculations
+                # if col_y_n != required_cols[2]:
+                #     merged[col_y_n] = merged[required_cols[2]]
+                # if col_y_up != required_cols[3]:
+                #     merged[col_y_up] = merged[required_cols[3]]
                 
             except Exception as e:
                 print(f"Merge failed: {e}")

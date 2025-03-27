@@ -9,6 +9,7 @@ import logging
 
 # Global verbosity setting for memory logging
 MEMORY_LOG_VERBOSITY = 1  # 0: minimal, 1: normal, 2: verbose
+MONITORING_ENABLED = True  # Global switch to enable/disable all monitoring
 
 def set_memory_log_verbosity(level: int):
     """Set the verbosity level for memory logging.
@@ -19,6 +20,18 @@ def set_memory_log_verbosity(level: int):
     global MEMORY_LOG_VERBOSITY
     MEMORY_LOG_VERBOSITY = level
     logging.info(f"Memory logging verbosity set to {level}")
+
+def set_monitoring_enabled(enabled: bool):
+    """Enable or disable all monitoring globally.
+    
+    Args:
+        enabled: True to enable monitoring, False to disable all monitoring
+    """
+    global MONITORING_ENABLED
+    MONITORING_ENABLED = enabled
+    status = "enabled" if enabled else "disabled"
+    logging.info(f"Performance monitoring {status}")
+    print(f"Performance monitoring {status}")
 
 def get_gpu_memory_info():
     """Return GPU memory usage in a human-readable format."""
@@ -83,8 +96,8 @@ def log_memory_usage(prefix="", level=1):
         prefix: String prefix for the log message
         level: Minimum verbosity level required to log this message
     """
-    # Skip logging if verbosity is lower than required level
-    if MEMORY_LOG_VERBOSITY < level:
+    # Skip logging if monitoring is disabled or verbosity is lower than required level
+    if not MONITORING_ENABLED or MEMORY_LOG_VERBOSITY < level:
         return
     
     sys_memory = get_system_memory_info()
@@ -124,6 +137,11 @@ class MemoryTracker:
     
     def start(self):
         """Start tracking memory usage in a background thread."""
+        # Check if monitoring is globally disabled
+        if not MONITORING_ENABLED:
+            print("Memory tracking disabled (monitoring is turned off)")
+            return
+            
         if self.tracking:
             print("Memory tracking already running.")
             return
@@ -212,8 +230,13 @@ def periodic_memory_check(interval_seconds=300):
     Args:
         interval_seconds: Interval between checks in seconds (default: 300s = 5 minutes)
     """
+    # If monitoring is disabled, return a dummy thread object
+    if not MONITORING_ENABLED:
+        logging.info("Periodic memory monitoring disabled (monitoring is turned off)")
+        return None
+    
     def _check_thread():
-        while True:
+        while MONITORING_ENABLED:  # Check the global flag
             log_memory_usage("[Periodic Check] ", level=1)
             time.sleep(interval_seconds)
     
@@ -233,18 +256,21 @@ class TimingAndMemoryContext:
     def __enter__(self):
         self.start_time = time.time()
         # Only log memory at start for important operations (level 1) or if verbosity is high
-        if self.log_memory:
+        if self.log_memory and MONITORING_ENABLED:
             log_memory_usage(f"[{self.name} START] ", level=self.memory_log_level)
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         duration = time.time() - self.start_time
-        # Always log memory at end of operations
-        if self.log_memory:
+        # Log memory at end of operations if monitoring is enabled
+        if self.log_memory and MONITORING_ENABLED:
             log_memory_usage(f"[{self.name} END] ", level=self.memory_log_level)
-        if MEMORY_LOG_VERBOSITY >= 1 or self.memory_log_level <= 1:
-            logging.info(f"[TIMING] {self.name} completed in {duration:.2f} seconds")
-        print(f"[TIMING] {self.name} completed in {duration:.2f} seconds")
+        
+        # Always log timing information if monitoring is enabled, otherwise skip it
+        if MONITORING_ENABLED:
+            if MEMORY_LOG_VERBOSITY >= 1 or self.memory_log_level <= 1:
+                logging.info(f"[TIMING] {self.name} completed in {duration:.2f} seconds")
+            print(f"[TIMING] {self.name} completed in {duration:.2f} seconds")
 
 
 def get_safe_batch_size(input_shape, attr_shape, memory_fraction=0.25):
@@ -279,8 +305,8 @@ def force_cuda_memory_cleanup():
         # Force CUDA synchronization
         torch.cuda.synchronize()
         
-        # Log current memory state if verbosity is high enough
-        if MEMORY_LOG_VERBOSITY >= 1:
+        # Log current memory state if monitoring is enabled and verbosity is high enough
+        if MONITORING_ENABLED and MEMORY_LOG_VERBOSITY >= 1:
             allocated = torch.cuda.memory_allocated() / (1024**2)
             reserved = torch.cuda.memory_reserved() / (1024**2)
             print(f"After cleanup: {allocated:.1f}MB allocated, {reserved:.1f}MB reserved")

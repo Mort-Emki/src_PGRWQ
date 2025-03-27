@@ -23,7 +23,9 @@ try:
         TimingAndMemoryContext, 
         MemoryTracker, 
         periodic_memory_check,
-        get_gpu_memory_info
+        get_gpu_memory_info,
+        set_memory_log_verbosity, 
+        set_monitoring_enabled
     )
 except ImportError:
     # Create a minimal implementation of memory monitoring
@@ -170,7 +172,6 @@ def create_memory_monitor_file(interval_seconds=300, log_dir="logs"):
     return monitor_thread
 
 
-
 def main():
     # Parse arguments first to get log_dir
     parser = argparse.ArgumentParser()
@@ -188,11 +189,28 @@ def main():
     parser.add_argument("--log_dir", type=str, default="logs",
                         help="日志保存目录")
     parser.add_argument("--memory_log_verbosity", type=int, default=1, choices=[0, 1, 2],
-                    help="Memory logging verbosity (0: minimal, 1: normal, 2: verbose)")
-    
-    
+                        help="Memory logging verbosity (0: minimal, 1: normal, 2: verbose)")
+    parser.add_argument("--disable_monitoring", action="store_true",
+                        help="Disable all performance monitoring (overrides verbosity settings)")
     args = parser.parse_args()
-    
+
+
+    if args.disable_monitoring:
+        set_monitoring_enabled(False)
+        # Skip starting any monitoring services
+        logging.info("All performance monitoring is disabled")
+    else:
+        set_monitoring_enabled(True)
+        # Set verbosity level
+        set_memory_log_verbosity(args.memory_log_verbosity)
+        
+        # Start GPU memory monitoring if enabled
+        if torch.cuda.is_available():
+            # Start periodic memory check in console
+            periodic_monitor = periodic_memory_check(interval_seconds=300)
+            # Start file-based memory logging
+            file_monitor = create_memory_monitor_file(interval_seconds=300, log_dir=log_dir)
+
     # Ensure log directory exists before any operation
     log_dir = ensure_dir_exists(args.log_dir)
     
@@ -296,7 +314,7 @@ def main():
 
     # 提取河段信息
     with TimingAndMemoryContext("Extracting River Network Info"):
-        river_info = attr_df[['COMID', 'NextDownID']].copy()
+        river_info = attr_df[['COMID', 'NextDownID','lengthkm','order_']].copy()
         # 确保 NextDownID 为数字；若存在缺失值则填为 0
         river_info['NextDownID'] = pd.to_numeric(river_info['NextDownID'], errors='coerce').fillna(0).astype(int)
         
@@ -368,7 +386,7 @@ def main():
             attr_dim=attr_dim,
             fc_dim=32,
             device=device,
-            model_version = "v0327_1",
+            model_version = "v0327_2",
             comid_wq_list=comid_wq_list,
             comid_era5_list=comid_era5_list,
             input_cols=input_features
