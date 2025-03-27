@@ -17,7 +17,7 @@ try:
 except ImportError:
     from tqdm import tqdm
 
-def get_river_length(comid, attr_dict, length_index):
+def get_river_length(comid, attr_dict, river_info=None):
     """
     Get the river segment length for a given COMID
     
@@ -27,8 +27,8 @@ def get_river_length(comid, attr_dict, length_index):
         The COMID of the river segment
     attr_dict : dict
         Dictionary mapping COMID to attribute arrays
-    length_index : int
-        The index position of the length attribute in the array
+    river_info : pd.DataFrame, optional
+        DataFrame containing river network information
         
     Returns:
     --------
@@ -36,12 +36,25 @@ def get_river_length(comid, attr_dict, length_index):
         The length of the river segment in km
     """
     comid_str = str(comid)
+    
+    # Try to get length from attr_dict first
     if comid_str in attr_dict:
-        return attr_dict[comid_str][length_index]
-    else:
-        # Default length if COMID not found
-        logging.warning(f"Length not found for COMID {comid}, using default")
-        return 1.0  # Default 1km length
+        # Get all attribute values for this COMID
+        attrs = attr_dict[comid_str]
+        
+        # Check if 'lengthkm' is a key in the attribute dict
+        if isinstance(attrs, dict) and 'lengthkm' in attrs:
+            return float(attrs['lengthkm'])
+    
+    # If river_info is provided, try to get length from there
+    if river_info is not None and 'COMID' in river_info.columns and 'lengthkm' in river_info.columns:
+        length_data = river_info[river_info['COMID'] == comid]
+        if not length_data.empty:
+            return float(length_data['lengthkm'].iloc[0])
+    
+    # Default length if COMID not found
+    logging.warning(f"Length not found for COMID {comid}, using default value")
+    return 1.0  # Default 1km length
     
 def calculate_river_width(Q: pd.Series) -> pd.Series:
     """
@@ -125,7 +138,6 @@ def compute_nitrogen_concentration_factor(N_concentration: pd.Series) -> pd.Seri
     result[mask_high] = 0.37
     
     return result
-
 def compute_retainment_factor(v_f: float, Q_up: pd.Series, Q_down: pd.Series, 
                              W_up: pd.Series, W_down: pd.Series,
                              length_up: float, length_down: float,
@@ -154,12 +166,22 @@ def compute_retainment_factor(v_f: float, Q_up: pd.Series, Q_down: pd.Series,
     Q_up_adj = Q_up.replace(0, np.nan)
     Q_down_adj = Q_down.replace(0, np.nan)
     
+    # 单位转换：
+    # 1. 长度从km转成m
+    length_up_m = length_up * 1000.0  # km -> m
+    length_down_m = length_down * 1000.0  # km -> m
+    
+    # 2. v_f从m/yr转成m/s
+    # 1年 = 365.25天 = 31,557,600秒
+    seconds_per_year = 365.25 * 24 * 60 * 60  # 31,557,600秒
+    v_f_m_per_second = v_f / seconds_per_year  # m/yr -> m/s
+    
     # 应用温度调整因子（如果提供温度数据）
     if temperature is not None:
         temp_factor = compute_temperature_factor(temperature, parameter)
-        v_f_adjusted = v_f * temp_factor
+        v_f_adjusted = v_f_m_per_second * temp_factor
     else:
-        v_f_adjusted = v_f
+        v_f_adjusted = v_f_m_per_second
     
     # 应用浓度调整因子（如果提供浓度数据且参数为TN）
     if parameter == "TN" and N_concentration is not None:
@@ -167,9 +189,8 @@ def compute_retainment_factor(v_f: float, Q_up: pd.Series, Q_down: pd.Series,
         v_f_adjusted = v_f_adjusted * conc_factor
     
     # 计算河段面积 (宽度*长度)
-    # 注意转换单位：长度从km转换为m
-    S_up = W_up * (length_up * 1000)  # 面积单位：m²
-    S_down = W_down * (length_down * 1000)  # 面积单位：m²
+    S_up = W_up * length_up_m  # 面积单位：m²
+    S_down = W_down * length_down_m  # 面积单位：m²
     
     # 计算保留系数
     R_up = 1 - np.exp(-v_f_adjusted * S_up / (2 * Q_up_adj))
@@ -623,10 +644,9 @@ def flow_routing_calculation(df: pd.DataFrame,
                 y_n_current = current_data[f'y_n_{param}'].reindex(common_dates)
 
 
-                length_index = attr_features.index('lengthkm')  # Get the index position of length
-                # Get lengths for current and downstream segments
-                length_current = get_river_length(current, attr_dict, length_index)
-                length_down = get_river_length(next_down, attr_dict, length_index)
+                # Get the river lengths for current and downstream segments
+                length_current = get_river_length(current, attr_dict, river_info)
+                length_down = get_river_length(next_down, attr_dict, river_info)
 
                 # 计算保留系数
                 R_series = compute_retainment_factor(
