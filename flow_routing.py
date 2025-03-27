@@ -56,22 +56,48 @@ def compute_temperature_factor(temperature: pd.Series, parameter: str = "TN") ->
 
 def compute_nitrogen_concentration_factor(N_concentration: pd.Series) -> pd.Series:
     """
-    计算氮浓度调整因子 f(CN)
+    Calculate the nitrogen concentration adjustment factor f(CN) based on specified values:
+    - f(CN) = 7.2 at CN = 0.0001 mg L−1
+    - f(CN) = 1 for CN = 1 mg L−1
+    - f(CN) = 0.37 for CN = 100 mg L−1
+    - Constant at higher concentrations
     
-    输入：
-        N_concentration: 氮浓度序列 (mg/L)
-    输出：
-        返回浓度调整因子序列
+    Performs log-linear interpolation between the specified points.
+    
+    Parameters:
+    -----------
+    N_concentration: pd.Series
+        Nitrogen concentration series (mg/L)
+    
+    Returns:
+    --------
+    pd.Series
+        Concentration adjustment factor series
     """
-    # 注意：这里需要根据实际模型要求实现具体的计算公式
-    # 以下为示例实现，可能需要根据实际研究调整
+    # Create a copy to avoid modifying the original
+    result = pd.Series(index=N_concentration.index, dtype=float)
     
-    # 常见的浓度限制函数形式：Michaelis-Menten型动力学
-    K_half = 0.5  # 半饱和常数 (mg/L)，需根据实际校准
-    f_CN = N_concentration / (K_half + N_concentration)
+    # Case 1: CN ≤ 0.0001 mg L−1
+    mask_lowest = N_concentration <= 0.0001
+    result[mask_lowest] = 7.2
     
-    # 限制因子范围在0-1之间
-    return f_CN.clip(0, 1)
+    # Case 2: 0.0001 < CN ≤ 1 mg L−1
+    mask_low = (N_concentration > 0.0001) & (N_concentration <= 1)
+    # Log-linear interpolation between (0.0001, 7.2) and (1, 1)
+    log_ratio_low = (np.log10(N_concentration[mask_low]) - np.log10(0.0001)) / (np.log10(1) - np.log10(0.0001))
+    result[mask_low] = 7.2 - log_ratio_low * (7.2 - 1)
+    
+    # Case 3: 1 < CN ≤ 100 mg L−1
+    mask_mid = (N_concentration > 1) & (N_concentration <= 100)
+    # Log-linear interpolation between (1, 1) and (100, 0.37)
+    log_ratio_mid = (np.log10(N_concentration[mask_mid]) - np.log10(1)) / (np.log10(100) - np.log10(1))
+    result[mask_mid] = 1 - log_ratio_mid * (1 - 0.37)
+    
+    # Case 4: CN > 100 mg L−1
+    mask_high = N_concentration > 100
+    result[mask_high] = 0.37
+    
+    return result
 
 def compute_retainment_factor(v_f: float, Q_up: pd.Series, Q_down: pd.Series, 
                              S_up: pd.Series, S_down: pd.Series,
@@ -578,7 +604,7 @@ def flow_routing_calculation(df: pd.DataFrame,
             
         # 减少下游河段的入度
         indegree[next_down] -= 1
-        
+         
         # 如果下游河段所有上游都已处理完毕，计算其y_up和y_n并加入队列
         if indegree[next_down] == 0:
             down_data = comid_data[next_down]
