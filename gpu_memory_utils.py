@@ -5,6 +5,20 @@ from typing import Optional, Callable
 import os
 import psutil
 import numpy as np
+import logging
+
+# Global verbosity setting for memory logging
+MEMORY_LOG_VERBOSITY = 1  # 0: minimal, 1: normal, 2: verbose
+
+def set_memory_log_verbosity(level: int):
+    """Set the verbosity level for memory logging.
+    
+    Args:
+        level: 0 for minimal logging, 1 for normal, 2 for verbose
+    """
+    global MEMORY_LOG_VERBOSITY
+    MEMORY_LOG_VERBOSITY = level
+    logging.info(f"Memory logging verbosity set to {level}")
 
 def get_gpu_memory_info():
     """Return GPU memory usage in a human-readable format."""
@@ -62,8 +76,17 @@ def get_system_memory_info():
         "percent": memory.percent
     }
 
-def log_memory_usage(prefix=""):
-    """Log both GPU and system memory usage."""
+def log_memory_usage(prefix="", level=1):
+    """Log both GPU and system memory usage if verbosity level is high enough.
+    
+    Args:
+        prefix: String prefix for the log message
+        level: Minimum verbosity level required to log this message
+    """
+    # Skip logging if verbosity is lower than required level
+    if MEMORY_LOG_VERBOSITY < level:
+        return
+    
     sys_memory = get_system_memory_info()
     proc_memory_mb = get_process_memory_info()
     
@@ -72,14 +95,20 @@ def log_memory_usage(prefix=""):
     
     if torch.cuda.is_available():
         gpu_mem_str = get_gpu_memory_summary()
+        
+        # Only log to file for level >= 1, but print to console at all levels
+        if level <= 1:
+            logging.info(f"{prefix}[MEMORY] {gpu_mem_str} | {process_mem_str} | {system_mem_str}")
         print(f"{prefix}[MEMORY] {gpu_mem_str} | {process_mem_str} | {system_mem_str}")
     else:
+        if level <= 1:
+            logging.info(f"{prefix}[MEMORY] {process_mem_str} | {system_mem_str}")
         print(f"{prefix}[MEMORY] {process_mem_str} | {system_mem_str}")
 
 class MemoryTracker:
     """Track memory usage over time with timestamps."""
     
-    def __init__(self, interval_seconds=5.0, track_gpu=True, track_system=True):
+    def __init__(self, interval_seconds=30.0, track_gpu=True, track_system=True):
         self.interval = interval_seconds
         self.track_gpu = track_gpu and torch.cuda.is_available()
         self.track_system = track_system
@@ -177,11 +206,15 @@ class MemoryTracker:
         
         return stats
 
-def periodic_memory_check(interval_seconds=60):
-    """Start a background thread to log memory status periodically."""
+def periodic_memory_check(interval_seconds=300):
+    """Start a background thread to log memory status periodically.
+    
+    Args:
+        interval_seconds: Interval between checks in seconds (default: 300s = 5 minutes)
+    """
     def _check_thread():
         while True:
-            log_memory_usage("[Periodic Check] ")
+            log_memory_usage("[Periodic Check] ", level=1)
             time.sleep(interval_seconds)
     
     monitor_thread = threading.Thread(target=_check_thread, daemon=True)
@@ -191,48 +224,28 @@ def periodic_memory_check(interval_seconds=60):
 
 # Context manager for timing and memory tracking
 class TimingAndMemoryContext:
-    def __init__(self, name="Operation", log_memory=True):
+    def __init__(self, name="Operation", log_memory=True, memory_log_level=1):
         self.name = name
         self.log_memory = log_memory
+        self.memory_log_level = memory_log_level
         self.start_time = None
     
     def __enter__(self):
         self.start_time = time.time()
+        # Only log memory at start for important operations (level 1) or if verbosity is high
         if self.log_memory:
-            log_memory_usage(f"[{self.name} START] ")
+            log_memory_usage(f"[{self.name} START] ", level=self.memory_log_level)
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         duration = time.time() - self.start_time
+        # Always log memory at end of operations
         if self.log_memory:
-            log_memory_usage(f"[{self.name} END] ")
+            log_memory_usage(f"[{self.name} END] ", level=self.memory_log_level)
+        if MEMORY_LOG_VERBOSITY >= 1 or self.memory_log_level <= 1:
+            logging.info(f"[TIMING] {self.name} completed in {duration:.2f} seconds")
         print(f"[TIMING] {self.name} completed in {duration:.2f} seconds")
 
-
-def diagnose_model_device(model):
-    """Diagnose if a PyTorch model is correctly on GPU."""
-    if not hasattr(model, 'parameters'):
-        print("Not a PyTorch model with parameters")
-        return False
-    
-    device_counts = {}
-    for name, param in model.named_parameters():
-        device = param.device
-        device_counts[str(device)] = device_counts.get(str(device), 0) + 1
-    
-    print(f"Model parameter device distribution:")
-    for device, count in device_counts.items():
-        print(f"  - {device}: {count} parameters")
-    
-    # Check if all parameters are on the same device
-    is_consistent = len(device_counts) == 1
-    print(f"Model has consistent device: {is_consistent}")
-    
-    # Check if model is on GPU
-    is_on_gpu = 'cuda' in next(iter(device_counts.keys()))
-    print(f"Model is on GPU: {is_on_gpu}")
-    
-    return is_on_gpu and is_consistent
 
 def get_safe_batch_size(input_shape, attr_shape, memory_fraction=0.25):
     """Calculate a safe batch size given input shapes and desired memory fraction"""
@@ -266,7 +279,33 @@ def force_cuda_memory_cleanup():
         # Force CUDA synchronization
         torch.cuda.synchronize()
         
-        # Log current memory state
-        allocated = torch.cuda.memory_allocated() / (1024**2)
-        reserved = torch.cuda.memory_reserved() / (1024**2)
-        print(f"After cleanup: {allocated:.1f}MB allocated, {reserved:.1f}MB reserved")
+        # Log current memory state if verbosity is high enough
+        if MEMORY_LOG_VERBOSITY >= 1:
+            allocated = torch.cuda.memory_allocated() / (1024**2)
+            reserved = torch.cuda.memory_reserved() / (1024**2)
+            print(f"After cleanup: {allocated:.1f}MB allocated, {reserved:.1f}MB reserved")
+
+def diagnose_model_device(model):
+    """Diagnose if a PyTorch model is correctly on GPU."""
+    if not hasattr(model, 'parameters'):
+        print("Not a PyTorch model with parameters")
+        return False
+    
+    device_counts = {}
+    for name, param in model.named_parameters():
+        device = param.device
+        device_counts[str(device)] = device_counts.get(str(device), 0) + 1
+    
+    print(f"Model parameter device distribution:")
+    for device, count in device_counts.items():
+        print(f"  - {device}: {count} parameters")
+    
+    # Check if all parameters are on the same device
+    is_consistent = len(device_counts) == 1
+    print(f"Model has consistent device: {is_consistent}")
+    
+    # Check if model is on GPU
+    is_on_gpu = 'cuda' in next(iter(device_counts.keys()))
+    print(f"Model is on GPU: {is_on_gpu}")
+    
+    return is_on_gpu and is_consistent

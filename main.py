@@ -112,8 +112,14 @@ except ImportError:
             "total_memory_mb": total_memory / (1024 * 1024),
             "usage_percent": usage_percent
         }
+def create_memory_monitor_file(interval_seconds=300, log_dir="logs"):
+    """
+    Create a file to monitor GPU memory usage, with a reasonable interval to avoid cluttering logs.
     
-def create_memory_monitor_file(interval_seconds=30, log_dir="logs"):
+    Args:
+        interval_seconds: Time between recordings (default: 300s = 5 minutes)
+        log_dir: Directory to save the log file
+    """
     # Use absolute path for the log directory
     original_dir = os.getcwd()
     log_dir = os.path.abspath(log_dir)
@@ -157,6 +163,13 @@ def create_memory_monitor_file(interval_seconds=30, log_dir="logs"):
                 logging.error(f"Error in GPU memory monitoring: {str(e)}")
             
             time.sleep(interval_seconds)
+    
+    monitor_thread = threading.Thread(target=_monitor_file, daemon=True)
+    monitor_thread.start()
+    logging.info(f"Started GPU memory file logging (interval: {interval_seconds}s)")
+    return monitor_thread
+
+
 
 def main():
     # Parse arguments first to get log_dir
@@ -174,6 +187,10 @@ def main():
                         help="训练批次大小")
     parser.add_argument("--log_dir", type=str, default="logs",
                         help="日志保存目录")
+    parser.add_argument("--memory_log_verbosity", type=int, default=1, choices=[0, 1, 2],
+                    help="Memory logging verbosity (0: minimal, 1: normal, 2: verbose)")
+    
+    
     args = parser.parse_args()
     
     # Ensure log directory exists before any operation
@@ -351,7 +368,7 @@ def main():
             attr_dim=attr_dim,
             fc_dim=32,
             device=device,
-            model_version = "v0327_1"
+            model_version = "v0327_1",
             comid_wq_list=comid_wq_list,
             comid_era5_list=comid_era5_list,
             input_cols=input_features

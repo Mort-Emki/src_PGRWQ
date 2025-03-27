@@ -128,12 +128,12 @@ def iterative_training_procedure(df: pd.DataFrame,
     # - 确保结果保存目录存在
     #===========================================================================
     # 启动内存跟踪
-    memory_tracker = MemoryTracker(interval_seconds=10)
+    memory_tracker = MemoryTracker(interval_seconds=120)
     memory_tracker.start()
-    
+
     # 初始内存状态记录
     if device == 'cuda' and torch.cuda.is_available():
-        log_memory_usage("[Training Start] ")
+        log_memory_usage("[Training Start] ", level=0)
     
     # 创建结果保存目录
     output_dir = ensure_dir_exists(flow_results_dir)
@@ -160,7 +160,7 @@ def iterative_training_procedure(df: pd.DataFrame,
         # - 标准化数据
         #===========================================================================
         # 构建河段属性字典
-        with TimingAndMemoryContext("Building Attribute Dictionary"):
+        with TimingAndMemoryContext("Building Attribute Dictionary", memory_log_level=1):
             attr_df_head_upstream = attr_df[attr_df['order_'] <= 2]
             df_head_upstream = df[df['COMID'].isin(attr_df_head_upstream['COMID'])]
             
