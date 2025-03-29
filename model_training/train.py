@@ -637,14 +637,30 @@ def check_convergence(
     valid_y_pred = y_pred[valid_mask]
     residual = valid_y_true - valid_y_pred
 
-    # 计算误差统计量
+    # 计算误差统计量 - 修复溢出问题
+    mae = np.mean(np.abs(residual))
+    
+    # 使用更安全的方式计算MSE，避免溢出
+    try:
+        # 先转换为float64以增加精度，然后使用np.square代替**2
+        residual_64 = residual.astype(np.float64)
+        mse = np.mean(np.square(residual_64))
+    except:
+        # 如果仍然溢出，使用更安全的方法
+        mse = np.mean([float(r)**2 for r in residual])
+    
+    # 计算RMSE和最大残差
+    rmse = np.sqrt(mse)
+    max_resid = np.max(np.abs(residual))
+
+    # 汇总统计信息
     stats = {
         'iteration': it,
-        'mae': np.mean(np.abs(residual)),            # 平均绝对误差
-        'mse': np.mean(residual ** 2),               # 均方误差
-        'rmse': np.sqrt(np.mean(residual ** 2)),     # 均方根误差
-        'max_resid': np.max(np.abs(residual)),       # 最大绝对残差
-        'valid_data_points': np.sum(valid_mask)      # 有效数据点数量
+        'mae': mae,                   # 平均绝对误差
+        'mse': mse,                   # 均方误差
+        'rmse': rmse,                 # 均方根误差
+        'max_resid': max_resid,       # 最大绝对残差
+        'valid_data_points': np.sum(valid_mask)  # 有效数据点数量
     }
 
     # 输出误差信息
@@ -905,9 +921,21 @@ def iterative_training_procedure(
             
             # 构建下一轮迭代的训练数据
             with TimingAndMemoryContext(f"Building Sliding Windows for Iteration {it+1}"):
-                X_ts_iter, Y_label_iter, COMIDs_iter, Dates_iter = build_sliding_windows_for_subset(
+                X_ts_iter, _, COMIDs_iter, Dates_iter = build_sliding_windows_for_subset(
                     df, comid_list_iter, input_cols=input_cols, target_cols=[target_col], time_window=5
                 )
+            
+            # 准备标签和属性数据
+            Y_label_iter = []
+            for cid, date_val in zip(COMIDs_iter, Dates_iter):
+                subset = merged[(merged["COMID"] == cid) & (merged["date"] == date_val)]
+                if not subset.empty:
+                    label_val = subset["E_label"].mean()
+                else:
+                    label_val = 0.0
+                Y_label_iter.append(label_val)
+                
+            Y_label_iter = np.array(Y_label_iter, dtype=np.float32)
             
             # 构建属性矩阵
             X_attr_iter = np.vstack([
@@ -922,7 +950,7 @@ def iterative_training_procedure(
             if not os.path.exists(model_path):
                 # 训练更新模型
                 with TimingAndMemoryContext(f"Model Training for Iteration {it+1}"):
-                    model.train_model(X_attr_iter, COMIDs_iter, X_ts_iter, Y_label_iter, 
+                    model.train_model(attr_dict, COMIDs_iter, X_ts_iter, Y_label_iter, 
                                      epochs=5, lr=1e-3, patience=2, batch_size=32)
                 
                 # 保存本轮迭代的模型
