@@ -18,106 +18,117 @@ import threading
 import time
 import datetime
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# 将日志级别改为 DEBUG
+logging.getLogger().setLevel(logging.DEBUG) 
 
-# Import memory monitoring utilities or define fallback functions
-try:
-    from model_training.gpu_memory_utils import (
-        log_memory_usage, 
-        TimingAndMemoryContext, 
-        MemoryTracker, 
-        periodic_memory_check,
-        get_gpu_memory_info,
-        set_memory_log_verbosity, 
-        set_monitoring_enabled
-    )
-except ImportError:
-    # Create a minimal implementation of memory monitoring
-    def log_memory_usage(prefix=""):
-        """Log GPU memory usage with a prefix."""
-        if torch.cuda.is_available():
-            allocated = torch.cuda.memory_allocated() / (1024 * 1024)
-            reserved = torch.cuda.memory_reserved() / (1024 * 1024)
-            print(f"{prefix}GPU Memory: {allocated:.2f}MB allocated, {reserved:.2f}MB reserved")
+from PGRWQI.model_training.gpu_memory_utils import (
+    log_memory_usage, 
+    TimingAndMemoryContext, 
+    MemoryTracker, 
+    periodic_memory_check,
+    get_gpu_memory_info,
+    set_memory_log_verbosity, 
+    set_monitoring_enabled
+)
+
+# # Import memory monitoring utilities or define fallback functions
+# try:
+#     from model_training.gpu_memory_utils import (
+#         log_memory_usage, 
+#         TimingAndMemoryContext, 
+#         MemoryTracker, 
+#         periodic_memory_check,
+#         get_gpu_memory_info,
+#         set_memory_log_verbosity, 
+#         set_monitoring_enabled
+#     )
+# except ImportError:
+#     # Create a minimal implementation of memory monitoring
+#     def log_memory_usage(prefix=""):
+#         """Log GPU memory usage with a prefix."""
+#         if torch.cuda.is_available():
+#             allocated = torch.cuda.memory_allocated() / (1024 * 1024)
+#             reserved = torch.cuda.memory_reserved() / (1024 * 1024)
+#             print(f"{prefix}GPU Memory: {allocated:.2f}MB allocated, {reserved:.2f}MB reserved")
     
-    class TimingAndMemoryContext:
-        """Context manager for timing and GPU memory tracking."""
-        def __init__(self, name="Operation", log_memory=True):
-            self.name = name
-            self.log_memory = log_memory
-            self.start_time = None
+#     class TimingAndMemoryContext:
+#         """Context manager for timing and GPU memory tracking."""
+#         def __init__(self, name="Operation", log_memory=True):
+#             self.name = name
+#             self.log_memory = log_memory
+#             self.start_time = None
         
-        def __enter__(self):
-            self.start_time = time.time()
-            if self.log_memory and torch.cuda.is_available():
-                log_memory_usage(f"[{self.name} START] ")
-            return self
+#         def __enter__(self):
+#             self.start_time = time.time()
+#             if self.log_memory and torch.cuda.is_available():
+#                 log_memory_usage(f"[{self.name} START] ")
+#             return self
         
-        def __exit__(self, exc_type, exc_val, exc_tb):
-            duration = time.time() - self.start_time
-            if self.log_memory and torch.cuda.is_available():
-                log_memory_usage(f"[{self.name} END] ")
-            print(f"[TIMING] {self.name} completed in {duration:.2f} seconds")
+#         def __exit__(self, exc_type, exc_val, exc_tb):
+#             duration = time.time() - self.start_time
+#             if self.log_memory and torch.cuda.is_available():
+#                 log_memory_usage(f"[{self.name} END] ")
+#             print(f"[TIMING] {self.name} completed in {duration:.2f} seconds")
     
-    def periodic_memory_check(interval_seconds=60):
-        """Start periodic memory check in background thread."""
-        import threading
+#     def periodic_memory_check(interval_seconds=60):
+#         """Start periodic memory check in background thread."""
+#         import threading
         
-        def _check_memory():
-            while True:
-                if torch.cuda.is_available():
-                    log_memory_usage("[Periodic] ")
-                time.sleep(interval_seconds)
+#         def _check_memory():
+#             while True:
+#                 if torch.cuda.is_available():
+#                     log_memory_usage("[Periodic] ")
+#                 time.sleep(interval_seconds)
         
-        monitor_thread = threading.Thread(target=_check_memory, daemon=True)
-        monitor_thread.start()
-        print(f"Started periodic memory monitoring (interval: {interval_seconds}s)")
-        return monitor_thread
+#         monitor_thread = threading.Thread(target=_check_memory, daemon=True)
+#         monitor_thread.start()
+#         print(f"Started periodic memory monitoring (interval: {interval_seconds}s)")
+#         return monitor_thread
     
-    class MemoryTracker:
-        """Simple memory tracker class."""
-        def __init__(self, interval_seconds=10): 
-            self.interval = interval_seconds
+#     class MemoryTracker:
+#         """Simple memory tracker class."""
+#         def __init__(self, interval_seconds=10): 
+#             self.interval = interval_seconds
         
-        def start(self):
-            log_memory_usage("[Memory Tracker Started] ")
+#         def start(self):
+#             log_memory_usage("[Memory Tracker Started] ")
         
-        def stop(self):
-            log_memory_usage("[Memory Tracker Stopped] ")
+#         def stop(self):
+#             log_memory_usage("[Memory Tracker Stopped] ")
         
-        def report(self):
-            log_memory_usage("[Memory Report] ")
-            return {}
+#         def report(self):
+#             log_memory_usage("[Memory Report] ")
+#             return {}
     
-    def get_gpu_memory_info():
-        """Get GPU memory info as a dictionary."""
-        if not torch.cuda.is_available():
-            return {"available": False}
+#     def get_gpu_memory_info():
+#         """Get GPU memory info as a dictionary."""
+#         if not torch.cuda.is_available():
+#             return {"available": False}
         
-        # Get memory usage in bytes
-        allocated = torch.cuda.memory_allocated()
-        reserved = torch.cuda.memory_reserved()
-        max_allocated = torch.cuda.max_memory_allocated()
+#         # Get memory usage in bytes
+#         allocated = torch.cuda.memory_allocated()
+#         reserved = torch.cuda.memory_reserved()
+#         max_allocated = torch.cuda.max_memory_allocated()
         
-        # Convert to MB for readability
-        allocated_mb = allocated / (1024 * 1024)
-        reserved_mb = reserved / (1024 * 1024)
-        max_allocated_mb = max_allocated / (1024 * 1024)
+#         # Convert to MB for readability
+#         allocated_mb = allocated / (1024 * 1024)
+#         reserved_mb = reserved / (1024 * 1024)
+#         max_allocated_mb = max_allocated / (1024 * 1024)
         
-        # Get total memory of the GPU for percentage calculation
-        device_props = torch.cuda.get_device_properties(torch.cuda.current_device())
-        total_memory = device_props.total_memory
+#         # Get total memory of the GPU for percentage calculation
+#         device_props = torch.cuda.get_device_properties(torch.cuda.current_device())
+#         total_memory = device_props.total_memory
         
-        # Calculate percentage of usage
-        usage_percent = (allocated / total_memory) * 100
+#         # Calculate percentage of usage
+#         usage_percent = (allocated / total_memory) * 100
         
-        return {
-            "allocated_mb": allocated_mb,
-            "reserved_mb": reserved_mb,
-            "max_allocated_mb": max_allocated_mb,
-            "total_memory_mb": total_memory / (1024 * 1024),
-            "usage_percent": usage_percent
-        }
+#         return {
+#             "allocated_mb": allocated_mb,
+#             "reserved_mb": reserved_mb,
+#             "max_allocated_mb": max_allocated_mb,
+#             "total_memory_mb": total_memory / (1024 * 1024),
+#             "usage_percent": usage_percent
+#         }
 def create_memory_monitor_file(interval_seconds=300, log_dir="logs"):
     """
     Create a file to monitor GPU memory usage, with a reasonable interval to avoid cluttering logs.
@@ -391,7 +402,7 @@ def main():
             attr_dim=attr_dim,
             fc_dim=32,
             device=device,
-            model_version = "v0327_2",
+            model_version = "v0329_1",
             comid_wq_list=comid_wq_list,
             comid_era5_list=comid_era5_list,
             input_cols=input_features

@@ -4,6 +4,7 @@ from typing import List, Optional
 import numba
 import time
 import logging
+import sys
 
 # Import our custom tqdm that supports logging
 try:
@@ -456,228 +457,228 @@ def merge_datasets(daily_df: pd.DataFrame, info_df: pd.DataFrame, attr_df: pd.Da
 #     return X_windows, Y_windows
 
 
-def build_sliding_windows_for_subset_3(
-    df: pd.DataFrame,
-    comid_list: List[str],
-    input_cols: Optional[List[str]] = None,
-    target_cols: List[str] = ["TN","TP"],
-    time_window: int = 10,
-    skip_missing_targets: bool = True
-):
-    """
-    构造滑动窗口数据切片（纯 Python 版本，增加进度条显示）
-    输入：
-        df: 包含日尺度数据的 DataFrame，必须包含 'COMID' 和 'date'
-        comid_list: 要构造数据切片的 COMID 列表
-        input_cols: 输入特征列名列表；若为 None，则除去 {"COMID", "date"} 与 target_cols 后的所有列
-        target_cols: 目标变量列名列表
-        time_window: 时间窗口长度
-        skip_missing_targets: 若为 True，则跳过目标变量包含缺失值的滑窗；若为 False，则保留这些滑窗
-    输出：
-        返回 (X_array, Y_array, COMIDs, Dates)
-            X_array: 形状为 (N, time_window, len(input_cols)) 的数组
-            Y_array: 形状为 (N, len(target_cols)) 的数组，通常取时间窗口最后一时刻的目标值
-            COMIDs: 形状为 (N,) 的数组，每个切片对应的 COMID
-            Dates: 形状为 (N,) 的数组，每个切片最后时刻的日期
-    """
-    sub_df = df[df["COMID"].isin(comid_list)].copy()
-    if input_cols is None:
-        exclude_cols = {"COMID", "date"}.union(target_cols)
-        input_cols = [col for col in df.columns if col not in exclude_cols]
-    X_list, Y_list, comid_track, date_track = [], [], [], []
+# def build_sliding_windows_for_subset_3(
+#     df: pd.DataFrame,
+#     comid_list: List[str],
+#     input_cols: Optional[List[str]] = None,
+#     target_cols: List[str] = ["TN","TP"],
+#     time_window: int = 10,
+#     skip_missing_targets: bool = True
+# ):
+#     """
+#     构造滑动窗口数据切片（纯 Python 版本，增加进度条显示）
+#     输入：
+#         df: 包含日尺度数据的 DataFrame，必须包含 'COMID' 和 'date'
+#         comid_list: 要构造数据切片的 COMID 列表
+#         input_cols: 输入特征列名列表；若为 None，则除去 {"COMID", "date"} 与 target_cols 后的所有列
+#         target_cols: 目标变量列名列表
+#         time_window: 时间窗口长度
+#         skip_missing_targets: 若为 True，则跳过目标变量包含缺失值的滑窗；若为 False，则保留这些滑窗
+#     输出：
+#         返回 (X_array, Y_array, COMIDs, Dates)
+#             X_array: 形状为 (N, time_window, len(input_cols)) 的数组
+#             Y_array: 形状为 (N, len(target_cols)) 的数组，通常取时间窗口最后一时刻的目标值
+#             COMIDs: 形状为 (N,) 的数组，每个切片对应的 COMID
+#             Dates: 形状为 (N,) 的数组，每个切片最后时刻的日期
+#     """
+#     sub_df = df[df["COMID"].isin(comid_list)].copy()
+#     if input_cols is None:
+#         exclude_cols = {"COMID", "date"}.union(target_cols)
+#         input_cols = [col for col in df.columns if col not in exclude_cols]
+#     X_list, Y_list, comid_track, date_track = [], [], [], []
     
-    # 使用 tqdm 显示每个 COMID 组的处理进度
-    for comid, group_df in tqdm(sub_df.groupby("COMID"), desc="Processing groups (subset_3)"):
-        group_df = group_df.sort_values("date").reset_index(drop=True)
-        needed_cols = input_cols + target_cols
-        sub_data = group_df[needed_cols].values  # shape=(n_rows, len(needed_cols))
+#     # 使用 tqdm 显示每个 COMID 组的处理进度
+#     for comid, group_df in tqdm(sub_df.groupby("COMID"), desc="Processing groups (subset_3)"):
+#         group_df = group_df.sort_values("date").reset_index(drop=True)
+#         needed_cols = input_cols + target_cols
+#         sub_data = group_df[needed_cols].values  # shape=(n_rows, len(needed_cols))
         
-        for start_idx in range(len(sub_data) - time_window + 1):
-            window_data = sub_data[start_idx : start_idx + time_window]
-            x_window = window_data[:, :len(input_cols)]
-            y_values = window_data[-1, len(input_cols):]
+#         for start_idx in range(len(sub_data) - time_window + 1):
+#             window_data = sub_data[start_idx : start_idx + time_window]
+#             x_window = window_data[:, :len(input_cols)]
+#             y_values = window_data[-1, len(input_cols):]
             
-            # 根据 skip_missing_targets 参数决定是否跳过含有缺失值的滑窗
-            if skip_missing_targets and np.isnan(y_values).any():
-                continue  # 跳过包含缺失值的滑窗
+#             # 根据 skip_missing_targets 参数决定是否跳过含有缺失值的滑窗
+#             if skip_missing_targets and np.isnan(y_values).any():
+#                 continue  # 跳过包含缺失值的滑窗
             
-            X_list.append(x_window)
-            Y_list.append(y_values)
-            comid_track.append(comid)
-            date_track.append(group_df.loc[start_idx + time_window - 1, "date"])
+#             X_list.append(x_window)
+#             Y_list.append(y_values)
+#             comid_track.append(comid)
+#             date_track.append(group_df.loc[start_idx + time_window - 1, "date"])
     
-    if not X_list:
-        return None, None, None, None
+#     if not X_list:
+#         return None, None, None, None
     
-    X_array = np.array(X_list, dtype=np.float32)
-    Y_array = np.array(Y_list, dtype=np.float32)
-    COMIDs = np.array(comid_track)
-    Dates = np.array(date_track)
-    return X_array, Y_array, COMIDs, Dates
+#     X_array = np.array(X_list, dtype=np.float32)
+#     Y_array = np.array(Y_list, dtype=np.float32)
+#     COMIDs = np.array(comid_track)
+#     Dates = np.array(date_track)
+#     return X_array, Y_array, COMIDs, Dates
 
-@numba.njit
-def extract_windows_with_indices_numba(data: np.ndarray, time_window: int, input_dim: int):
-    n, total_features = data.shape
-    target_dim = total_features - input_dim
-    valid_count = 0
-    # 第一遍扫描：计数有效窗口
-    for i in range(n - time_window + 1):
-        valid = True
-        for j in range(target_dim):
-            if np.isnan(data[i + time_window - 1, input_dim + j]):
-                valid = False
-                break
-        if valid:
-            valid_count += 1
+# @numba.njit
+# def extract_windows_with_indices_numba(data: np.ndarray, time_window: int, input_dim: int):
+#     n, total_features = data.shape
+#     target_dim = total_features - input_dim
+#     valid_count = 0
+#     # 第一遍扫描：计数有效窗口
+#     for i in range(n - time_window + 1):
+#         valid = True
+#         for j in range(target_dim):
+#             if np.isnan(data[i + time_window - 1, input_dim + j]):
+#                 valid = False
+#                 break
+#         if valid:
+#             valid_count += 1
 
-    # 预分配输出数组
-    X_windows = np.empty((valid_count, time_window, input_dim), dtype=data.dtype)
-    Y_windows = np.empty((valid_count, target_dim), dtype=data.dtype)
-    valid_indices = np.empty(valid_count, dtype=np.int64)
-    idx = 0
-    for i in range(n - time_window + 1):
-        valid = True
-        for j in range(target_dim):
-            if np.isnan(data[i + time_window - 1, input_dim + j]):
-                valid = False
-                break
-        if valid:
-            X_windows[idx, :, :] = data[i:i + time_window, :input_dim]
-            Y_windows[idx, :] = data[i + time_window - 1, input_dim:]
-            valid_indices[idx] = i
-            idx += 1
-    return X_windows, Y_windows, valid_indices
+#     # 预分配输出数组
+#     X_windows = np.empty((valid_count, time_window, input_dim), dtype=data.dtype)
+#     Y_windows = np.empty((valid_count, target_dim), dtype=data.dtype)
+#     valid_indices = np.empty(valid_count, dtype=np.int64)
+#     idx = 0
+#     for i in range(n - time_window + 1):
+#         valid = True
+#         for j in range(target_dim):
+#             if np.isnan(data[i + time_window - 1, input_dim + j]):
+#                 valid = False
+#                 break
+#         if valid:
+#             X_windows[idx, :, :] = data[i:i + time_window, :input_dim]
+#             Y_windows[idx, :] = data[i + time_window - 1, input_dim:]
+#             valid_indices[idx] = i
+#             idx += 1
+#     return X_windows, Y_windows, valid_indices
 
-def build_sliding_windows_for_subset_4(
-    df: pd.DataFrame,
-    comid_list: List[str],
-    input_cols: Optional[List[str]] = None,
-    target_cols: List[str] = ["TN"],
-    time_window: int = 10
-):
-    """
-    在 df 中，根据 comid_list 指定的河段进行滑窗切片。
-      1. 先筛选 df["COMID"] 在 comid_list 中
-      2. 若未指定 input_cols，使用除 COMID, date, target_cols 外的全部列作为输入
-      3. 每个河段按时间升序，构造 (X, Y, COMID, Date) 切片
-      4. X.shape = (N, time_window, len(input_cols))
-         Y.shape = (N, len(target_cols))
-         COMIDs.shape = (N,)
-         Dates.shape = (N,)
+# def build_sliding_windows_for_subset_4(
+#     df: pd.DataFrame,
+#     comid_list: List[str],
+#     input_cols: Optional[List[str]] = None,
+#     target_cols: List[str] = ["TN"],
+#     time_window: int = 10
+# ):
+#     """
+#     在 df 中，根据 comid_list 指定的河段进行滑窗切片。
+#       1. 先筛选 df["COMID"] 在 comid_list 中
+#       2. 若未指定 input_cols，使用除 COMID, date, target_cols 外的全部列作为输入
+#       3. 每个河段按时间升序，构造 (X, Y, COMID, Date) 切片
+#       4. X.shape = (N, time_window, len(input_cols))
+#          Y.shape = (N, len(target_cols))
+#          COMIDs.shape = (N,)
+#          Dates.shape = (N,)
 
-    参数:
-        df: 已包含 [COMID, date] 及相关特征列(如 flow, temperature_2m_mean 等)
-        comid_list: 需要切片的 COMID 列表(字符串或整数均可，但需和 df["COMID"] 的 dtype 对应)
-        input_cols: 用作时序输入的列。如果未指定，将自动选用 df 的所有列，排除 ["COMID", "date"] + target_cols
-        target_cols: 目标列列表 (如 ["TN", "TP"])
-        time_window: 滑窗大小 (默认10)
-    """
-    # 1. 先将 df 筛选到 comid_list
-    sub_df = df[df["COMID"].isin(comid_list)].copy()
+#     参数:
+#         df: 已包含 [COMID, date] 及相关特征列(如 flow, temperature_2m_mean 等)
+#         comid_list: 需要切片的 COMID 列表(字符串或整数均可，但需和 df["COMID"] 的 dtype 对应)
+#         input_cols: 用作时序输入的列。如果未指定，将自动选用 df 的所有列，排除 ["COMID", "date"] + target_cols
+#         target_cols: 目标列列表 (如 ["TN", "TP"])
+#         time_window: 滑窗大小 (默认10)
+#     """
+#     # 1. 先将 df 筛选到 comid_list
+#     sub_df = df[df["COMID"].isin(comid_list)].copy()
     
-    # 2. 若未指定 input_cols，默认使用所有列，排除 ["COMID", "date"] + target_cols
-    if input_cols is None:
-        exclude_cols = {"COMID", "date"}.union(target_cols)
-        input_cols = [col for col in df.columns if col not in exclude_cols]
+#     # 2. 若未指定 input_cols，默认使用所有列，排除 ["COMID", "date"] + target_cols
+#     if input_cols is None:
+#         exclude_cols = {"COMID", "date"}.union(target_cols)
+#         input_cols = [col for col in df.columns if col not in exclude_cols]
     
-    # 3. 分组并做滑窗
-    X_list, Y_list, comid_track, date_track = [], [], [], []
+#     # 3. 分组并做滑窗
+#     X_list, Y_list, comid_track, date_track = [], [], [], []
     
-    for comid, group_df in sub_df.groupby("COMID"):
-        group_df = group_df.sort_values("date").reset_index(drop=True)
-        # 确保滑窗只包含 input_cols 和 target_cols
-        needed_cols = input_cols + target_cols
-        sub_data = group_df[needed_cols].values  # shape=(n_rows, len(needed_cols))
+#     for comid, group_df in sub_df.groupby("COMID"):
+#         group_df = group_df.sort_values("date").reset_index(drop=True)
+#         # 确保滑窗只包含 input_cols 和 target_cols
+#         needed_cols = input_cols + target_cols
+#         sub_data = group_df[needed_cols].values  # shape=(n_rows, len(needed_cols))
         
-        for start_idx in range(len(sub_data) - time_window + 1):
-            window_data = sub_data[start_idx : start_idx + time_window]
+#         for start_idx in range(len(sub_data) - time_window + 1):
+#             window_data = sub_data[start_idx : start_idx + time_window]
             
-            # X 部分
-            x_window = window_data[:, :len(input_cols)]  # 输入特征部分
+#             # X 部分
+#             x_window = window_data[:, :len(input_cols)]  # 输入特征部分
             
-            # Y 部分
-            y_values = window_data[-1, len(input_cols):]  # 最后一天的目标列值
-            if np.isnan(y_values).any():
-                continue  # 跳过该滑窗
+#             # Y 部分
+#             y_values = window_data[-1, len(input_cols):]  # 最后一天的目标列值
+#             if np.isnan(y_values).any():
+#                 continue  # 跳过该滑窗
             
-            # Date 部分
-            date_value = group_df.loc[start_idx + time_window - 1, "date"]  # 滑窗最后一天的日期
+#             # Date 部分
+#             date_value = group_df.loc[start_idx + time_window - 1, "date"]  # 滑窗最后一天的日期
             
-            # 添加到结果列表
-            X_list.append(x_window)
-            Y_list.append(y_values)
-            comid_track.append(comid)
-            date_track.append(date_value)
+#             # 添加到结果列表
+#             X_list.append(x_window)
+#             Y_list.append(y_values)
+#             comid_track.append(comid)
+#             date_track.append(date_value)
     
-    if not X_list:
-        return None, None, None, None
+#     if not X_list:
+#         return None, None, None, None
     
-    X_array = np.array(X_list, dtype=np.float32)  # (N, time_window, len(input_cols))
-    Y_array = np.array(Y_list, dtype=np.float32)  # (N, len(target_cols))
-    COMIDs = np.array(comid_track)                # (N,)  # 保持原类型或转成 str
-    Dates = np.array(date_track)                  # (N,)  # 日期部分
+#     X_array = np.array(X_list, dtype=np.float32)  # (N, time_window, len(input_cols))
+#     Y_array = np.array(Y_list, dtype=np.float32)  # (N, len(target_cols))
+#     COMIDs = np.array(comid_track)                # (N,)  # 保持原类型或转成 str
+#     Dates = np.array(date_track)                  # (N,)  # 日期部分
     
-    return X_array, Y_array, COMIDs, Dates
+#     return X_array, Y_array, COMIDs, Dates
 
 
 
-def build_sliding_windows_for_subset_5(
-    df: pd.DataFrame,
-    comid_list: List[str],
-    input_cols: Optional[List[str]] = None,
-    target_cols: List[str] = ["TN"],
-    time_window: int = 10
-):
-    """
-    构造滑动窗口数据切片（结合 tqdm 进度条与 Numba 加速，并整合了有效窗口索引的计算）
-    输入：
-        df: 包含日尺度数据的 DataFrame，必须包含 'COMID' 和 'date'
-        comid_list: 要构造数据切片的 COMID 列表
-        input_cols: 输入特征列名列表；若为 None，则除去 {"COMID", "date"} 与 target_cols 后的所有列
-        target_cols: 目标变量列名列表
-        time_window: 时间窗口长度
-    输出：
-        返回 (X_array, Y_array, COMIDs, Dates)
-            X_array: 形状为 (N, time_window, input_dim) 的数组
-            Y_array: 形状为 (N, len(target_cols)) 的数组，通常取时间窗口最后时刻的目标值
-            COMIDs: 形状为 (N,) 的数组，每个切片对应的 COMID
-            Dates: 形状为 (N,) 的数组，每个切片最后时刻的日期
-    """
-    sub_df = df[df["COMID"].isin(comid_list)].copy()
-    if input_cols is None:
-        exclude = {"COMID", "date"}.union(set(target_cols))
-        input_cols = [col for col in df.columns if col not in exclude]
-    X_list, Y_list, comid_track, date_track = [], [], [], []
+# def build_sliding_windows_for_subset_5(
+#     df: pd.DataFrame,
+#     comid_list: List[str],
+#     input_cols: Optional[List[str]] = None,
+#     target_cols: List[str] = ["TN"],
+#     time_window: int = 10
+# ):
+#     """
+#     构造滑动窗口数据切片（结合 tqdm 进度条与 Numba 加速，并整合了有效窗口索引的计算）
+#     输入：
+#         df: 包含日尺度数据的 DataFrame，必须包含 'COMID' 和 'date'
+#         comid_list: 要构造数据切片的 COMID 列表
+#         input_cols: 输入特征列名列表；若为 None，则除去 {"COMID", "date"} 与 target_cols 后的所有列
+#         target_cols: 目标变量列名列表
+#         time_window: 时间窗口长度
+#     输出：
+#         返回 (X_array, Y_array, COMIDs, Dates)
+#             X_array: 形状为 (N, time_window, input_dim) 的数组
+#             Y_array: 形状为 (N, len(target_cols)) 的数组，通常取时间窗口最后时刻的目标值
+#             COMIDs: 形状为 (N,) 的数组，每个切片对应的 COMID
+#             Dates: 形状为 (N,) 的数组，每个切片最后时刻的日期
+#     """
+#     sub_df = df[df["COMID"].isin(comid_list)].copy()
+#     if input_cols is None:
+#         exclude = {"COMID", "date"}.union(set(target_cols))
+#         input_cols = [col for col in df.columns if col not in exclude]
+#     X_list, Y_list, comid_track, date_track = [], [], [], []
     
-    for comid, group_df in tqdm(sub_df.groupby("COMID"), desc="Processing groups (subset_4)"):
-        group_df = group_df.sort_values("date").reset_index(drop=True)
-        cols = input_cols + target_cols
-        data_array = group_df[cols].values
-        if data_array.shape[0] < time_window:
-            print(f"警告：COMID {comid} 数据不足，跳过。")
-            continue
+#     for comid, group_df in tqdm(sub_df.groupby("COMID"), desc="Processing groups (subset_4)"):
+#         group_df = group_df.sort_values("date").reset_index(drop=True)
+#         cols = input_cols + target_cols
+#         data_array = group_df[cols].values
+#         if data_array.shape[0] < time_window:
+#             print(f"警告：COMID {comid} 数据不足，跳过。")
+#             continue
 
-        # 利用 numba 优化函数同时提取滑动窗口数据和对应的起始索引
-        X_windows, Y_windows, valid_indices = extract_windows_with_indices_numba(data_array, time_window, len(input_cols))
-        if valid_indices.size == 0:
-            print(f"警告：COMID {comid} 无有效窗口，跳过。")
-            continue
+#         # 利用 numba 优化函数同时提取滑动窗口数据和对应的起始索引
+#         X_windows, Y_windows, valid_indices = extract_windows_with_indices_numba(data_array, time_window, len(input_cols))
+#         if valid_indices.size == 0:
+#             print(f"警告：COMID {comid} 无有效窗口，跳过。")
+#             continue
 
-        for idx, start_idx in enumerate(valid_indices):
-            X_list.append(X_windows[idx])
-            Y_list.append(Y_windows[idx])
-            comid_track.append(comid)
-            # 直接用有效索引获取对应窗口最后一时刻的日期
-            date_val = pd.to_datetime(group_df.loc[start_idx + time_window - 1, "date"])
-            date_track.append(date_val)
+#         for idx, start_idx in enumerate(valid_indices):
+#             X_list.append(X_windows[idx])
+#             Y_list.append(Y_windows[idx])
+#             comid_track.append(comid)
+#             # 直接用有效索引获取对应窗口最后一时刻的日期
+#             date_val = pd.to_datetime(group_df.loc[start_idx + time_window - 1, "date"])
+#             date_track.append(date_val)
             
-    if not X_list:
-        return None, None, None, None
-    X_array = np.array(X_list, dtype=np.float32)
-    Y_array = np.array(Y_list, dtype=np.float32)
-    COMIDs = np.array(comid_track)
-    Dates = np.array(date_track)
-    return X_array, Y_array, COMIDs, Dates
+#     if not X_list:
+#         return None, None, None, None
+#     X_array = np.array(X_list, dtype=np.float32)
+#     Y_array = np.array(Y_list, dtype=np.float32)
+#     COMIDs = np.array(comid_track)
+#     Dates = np.array(date_track)
+#     return X_array, Y_array, COMIDs, Dates
 
 def build_sliding_windows_for_subset_6(
     df: pd.DataFrame,
@@ -739,6 +740,69 @@ def build_sliding_windows_for_subset_6(
     Dates = np.array(date_track)
     return X_array, Y_array, COMIDs, Dates
 
+def build_sliding_windows_for_subset_7(
+    df: pd.DataFrame,
+    comid_list: List[str],
+    input_cols: Optional[List[str]] = None,
+    target_cols: List[str] = ["TN"],
+    all_target_cols: List[str] = ["TN","TP"],
+    time_window: int = 10,
+    skip_missing_targets: bool = True
+):
+    """
+    构造滑动窗口数据切片（带进度条版本）
+    输入：
+        df: 包含日尺度数据的 DataFrame，必须包含 'COMID' 和 'date'
+        comid_list: 要构造数据切片的 COMID 列表
+        input_cols: 输入特征列名列表；若为 None，则除去 {"COMID", "date"} 与 target_cols 后的所有列
+        target_cols: 目标变量列名列表
+        time_window: 时间窗口长度
+        skip_missing_targets: 若为 True，则跳过目标变量包含缺失值的滑窗；若为 False，则保留这些滑窗
+    输出：
+        返回 (X_array, Y_array, COMIDs, Dates)
+            X_array: 形状为 (N, time_window, len(input_cols)) 的数组
+            Y_array: 形状为 (N, len(target_cols)) 的数组，通常取时间窗口最后一时刻的目标值
+            COMIDs: 形状为 (N,) 的数组，每个切片对应的 COMID
+            Dates: 形状为 (N,) 的数组，每个切片最后时刻的日期
+    """
+    sub_df = df[df["COMID"].isin(comid_list)].copy()
+    if input_cols is None:
+        exclude_cols = {"COMID", "date"}.union(all_target_cols)
+        input_cols = [col for col in df.columns if col not in exclude_cols]
+    X_list, Y_list, comid_track, date_track = [], [], [], []
+    
+    # 使用tqdm添加进度条
+    from tqdm import tqdm
+    
+    # 获取COMID分组并创建进度条
+    comid_groups = list(sub_df.groupby("COMID"))
+    for comid, group_df in tqdm(comid_groups, desc="Processing COMIDs",file=sys.stdout):
+        group_df = group_df.sort_values("date").reset_index(drop=True)
+        needed_cols = input_cols + all_target_cols
+        sub_data = group_df[needed_cols].values  # shape=(n_rows, len(needed_cols))
+        
+        for start_idx in range(len(sub_data) - time_window + 1):
+            window_data = sub_data[start_idx : start_idx + time_window]
+            x_window = window_data[:, :len(input_cols)]
+            y_values = window_data[-1, len(input_cols):]
+            
+            # 根据 skip_missing_targets 参数决定是否跳过含有缺失值的滑窗
+            if skip_missing_targets and np.isnan(y_values).any():
+                continue  # 跳过包含缺失值的滑窗
+            
+            X_list.append(x_window)
+            Y_list.append(y_values)
+            comid_track.append(comid)
+            date_track.append(group_df.loc[start_idx + time_window - 1, "date"])
+    
+    if not X_list:
+        return None, None, None, None
+    
+    X_array = np.array(X_list, dtype=np.float32)
+    Y_array = np.array(Y_list, dtype=np.float32)
+    COMIDs = np.array(comid_track)
+    Dates = np.array(date_track)
+    return X_array, Y_array, COMIDs, Dates
 
 # 为方便引用，提供别名，_4的意思是第四版,其他地方很多地方用到这个函数名称，遗留问题
 build_sliding_windows_for_subset = build_sliding_windows_for_subset_6
