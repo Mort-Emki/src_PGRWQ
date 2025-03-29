@@ -578,16 +578,74 @@ def iterative_training_procedure(df: pd.DataFrame,
                 print(f"df_flow columns being used: {required_cols}")
                 raise
             
-            # Rest of the function remains the same
+            # 提取y_true和y_pred
             y_true = merged[target_col].values
             y_pred = merged[col_y_n].values
-            residual = y_true - y_pred
-            max_resid = np.abs(residual).max()
-            print(f"  最大残差: {max_resid:.4f}")
-            
-            if max_resid < epsilon:
-                print("收敛！") 
+
+            # 检查y_true是否存在有效值
+            valid_mask = ~np.isnan(y_true)
+            if np.sum(valid_mask) == 0:
+                print("警告：没有有效的观测数据，无法评估收敛性")
+                # 当没有观测数据时使用最大迭代次数控制
+                if it + 1 >= max_iterations:
+                    print("已达到最大迭代次数，停止迭代")
+                    break
+                continue  # 跳过当前迭代的收敛判断
+
+            # 只使用有效数据计算残差
+            valid_y_true = y_true[valid_mask]
+            valid_y_pred = y_pred[valid_mask]
+            residual = valid_y_true - valid_y_pred
+
+            # 计算误差统计量
+            mae = np.mean(np.abs(residual))  # 平均绝对误差
+            mse = np.mean(residual ** 2)     # 均方误差
+            rmse = np.sqrt(mse)              # 均方根误差
+            max_resid = np.max(np.abs(residual))  # 最大绝对残差
+
+            # 记录本次迭代的误差统计信息
+            if not hasattr(iterative_training_procedure, 'error_history'):
+                iterative_training_procedure.error_history = []
+            iterative_training_procedure.error_history.append({
+                'iteration': it,
+                'mae': mae, 
+                'mse': mse,
+                'rmse': rmse,
+                'max_resid': max_resid,
+                'valid_data_points': np.sum(valid_mask)
+            })
+
+            # 输出误差信息
+            print(f"  迭代 {it+1} 误差统计 (基于 {np.sum(valid_mask)} 个有效观测点):")
+            print(f"    平均绝对误差 (MAE): {mae:.4f}")
+            print(f"    均方误差 (MSE): {mse:.4f}")
+            print(f"    均方根误差 (RMSE): {rmse:.4f}")
+            print(f"    最大绝对残差: {max_resid:.4f}")
+
+            # 判断收敛条件 - 根据算法文档描述
+            # 方法1: 达到预定精度
+            if mae < epsilon:
+                print(f"收敛! 平均绝对误差 ({mae:.4f}) 小于阈值 ({epsilon})")
+                logging.info(f"迭代 {it+1} 收敛: MAE = {mae:.4f} < epsilon = {epsilon}")
                 break
+
+            # 方法2: 误差变化率收敛判断
+            if len(iterative_training_procedure.error_history) >= 3:
+                # 取最近三轮的平均误差
+                recent_errors = [entry['mae'] for entry in iterative_training_procedure.error_history[-3:]]
+                # 计算误差变化率
+                error_changes = []
+                for i in range(1, len(recent_errors)):
+                    prev_error = recent_errors[i-1]
+                    if prev_error > 0:
+                        change = (prev_error - recent_errors[i]) / prev_error
+                        error_changes.append(change)
+                
+                # 如果连续误差变化率都很小，也认为收敛
+                if error_changes and all(abs(change) < 0.01 for change in error_changes):
+                    print(f"收敛! 误差变化趋于稳定，最近三轮MAE: {recent_errors}")
+                    logging.info(f"迭代 {it+1} 收敛: 误差变化趋于稳定，最近三轮MAE: {recent_errors}")
+                    break
                 
             # 为下一轮训练准备数据
             merged["E_label"] = merged[target_col] - merged[col_y_up]
