@@ -1,20 +1,24 @@
+import os
+import time
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import argparse
 import pandas as pd
 import numpy as np
 import torch
 from sklearn.preprocessing import StandardScaler
-from data_processing import load_daily_data, load_river_attributes
-from model_training.train import iterative_training_procedure
-import os
-import time
-import sys
+from PGRWQI.data_processing import load_daily_data, load_river_attributes
+from PGRWQI.model_training.train import iterative_training_procedure
 import logging
 import datetime
-from logging_utils import setup_logging, restore_stdout_stderr, ensure_dir_exists
-from tqdm_logging import tqdm
+from PGRWQI.logging_utils import setup_logging, restore_stdout_stderr, ensure_dir_exists
+from PGRWQI.tqdm_logging import tqdm
 import threading
 import time
 import datetime
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import memory monitoring utilities or define fallback functions
 try:
@@ -194,25 +198,26 @@ def main():
                         help="Disable all performance monitoring (overrides verbosity settings)")
     args = parser.parse_args()
 
-
-    if args.disable_monitoring:
-        set_monitoring_enabled(False)
-        # Skip starting any monitoring services
-        logging.info("All performance monitoring is disabled")
-    else:
-        set_monitoring_enabled(True)
-        # Set verbosity level
-        set_memory_log_verbosity(args.memory_log_verbosity)
-        
-        # Start GPU memory monitoring if enabled
-        if torch.cuda.is_available():
-            # Start periodic memory check in console
-            periodic_monitor = periodic_memory_check(interval_seconds=300)
-            # Start file-based memory logging
-            file_monitor = create_memory_monitor_file(interval_seconds=300, log_dir=log_dir)
-
     # Ensure log directory exists before any operation
     log_dir = ensure_dir_exists(args.log_dir)
+
+    # if args.disable_monitoring:
+    #     set_monitoring_enabled(False)
+    #     # Skip starting any monitoring services
+    #     logging.info("All performance monitoring is disabled")
+    # else:
+    #     set_monitoring_enabled(True)
+    #     # Set verbosity level
+    #     set_memory_log_verbosity(args.memory_log_verbosity)
+        
+    #     # Start GPU memory monitoring if enabled
+    #     if torch.cuda.is_available():
+    #         # Start periodic memory check in console
+    #         periodic_monitor = periodic_memory_check(interval_seconds=300)
+    #         # Start file-based memory logging
+    #         file_monitor = create_memory_monitor_file(interval_seconds=300, log_dir=log_dir)
+
+
     
     # Initialize logging system
     logger = setup_logging(log_dir=log_dir)

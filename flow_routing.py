@@ -260,8 +260,8 @@ def flow_routing_calculation(df: pd.DataFrame,
     logging.info(f"Flow routing calculation for iteration {iteration} started")
     logging.debug(f"DataFrame head:\n{df.head()}")
     
-    # 确保日期列为datetime格式
-    df['date'] = pd.to_datetime(df['date'])
+    # # 确保日期列为datetime格式
+    # df['date'] = pd.to_datetime(df['date'])
     
     # 标识缺失数据的河段
     missing_data_comids = set()

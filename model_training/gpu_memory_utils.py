@@ -9,7 +9,7 @@ import logging
 
 # Global verbosity setting for memory logging
 MEMORY_LOG_VERBOSITY = 1  # 0: minimal, 1: normal, 2: verbose
-MONITORING_ENABLED = True  # Global switch to enable/disable all monitoring
+MONITORING_ENABLED = False  # Global switch to enable/disable all monitoring
 
 def set_memory_log_verbosity(level: int):
     """Set the verbosity level for memory logging.

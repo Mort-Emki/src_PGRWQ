@@ -1,63 +1,65 @@
 import numpy as np
 import pandas as pd
 from typing import List
-from data_processing import build_sliding_windows_for_subset, standardize_time_series_all, standardize_attributes
-from model_training.models import CatchmentModel
-from flow_routing import flow_routing_calculation ##目录层次问题
+from PGRWQI.flow_routing import flow_routing_calculation 
+from PGRWQI.data_processing import build_sliding_windows_for_subset, standardize_time_series_all, standardize_attributes
+from PGRWQI.model_training.models import CatchmentModel 
 from tqdm import tqdm
 import numba
 import time
 import os
 import torch
 import logging 
-from logging_utils import setup_logging, restore_stdout_stderr, ensure_dir_exists
 
-# Import memory monitoring utilities
-try:
-    from gpu_memory_utils import log_memory_usage, TimingAndMemoryContext, MemoryTracker,force_cuda_memory_cleanup
-except ImportError:
-    # Fallback implementation if the module is not available
-    def log_memory_usage(prefix=""):
-        if torch.cuda.is_available():
-            allocated = torch.cuda.memory_allocated() / (1024 * 1024)
-            reserved = torch.cuda.memory_reserved() / (1024 * 1024)
-            print(f"{prefix}GPU Memory: {allocated:.2f}MB allocated, {reserved:.2f}MB reserved")
+from PGRWQI.logging_utils import setup_logging, restore_stdout_stderr, ensure_dir_exists
+from PGRWQI.model_training.gpu_memory_utils import log_memory_usage, TimingAndMemoryContext, MemoryTracker,force_cuda_memory_cleanup
+
+# # Import memory monitoring utilities
+# try:
+#     from gpu_memory_utils import log_memory_usage, TimingAndMemoryContext, MemoryTracker,force_cuda_memory_cleanup
+# except ImportError:
+#     # Fallback implementation if the module is not available
+#     def log_memory_usage(prefix=""):
+#         if torch.cuda.is_available():
+#             allocated = torch.cuda.memory_allocated() / (1024 * 1024)
+#             reserved = torch.cuda.memory_reserved() / (1024 * 1024)
+#             print(f"{prefix}GPU Memory: {allocated:.2f}MB allocated, {reserved:.2f}MB reserved")
     
-    class TimingAndMemoryContext:
-        def __init__(self, name="Operation", log_memory=True):
-            self.name = name
-            self.log_memory = log_memory
-            self.start_time = None
+#     class TimingAndMemoryContext:
+#         def __init__(self, name="Operation", log_memory=True):
+#             self.name = name
+#             self.log_memory = log_memory
+#             self.start_time = None
         
-        def __enter__(self):
-            self.start_time = time.time()
-            if self.log_memory and torch.cuda.is_available():
-                log_memory_usage(f"[{self.name} START] ")
-            return self
+#         def __enter__(self):
+#             self.start_time = time.time()
+#             if self.log_memory and torch.cuda.is_available():
+#                 log_memory_usage(f"[{self.name} START] ")
+#             return self
         
-        def __exit__(self, exc_type, exc_val, exc_tb):
-            duration = time.time() - self.start_time
-            if self.log_memory and torch.cuda.is_available():
-                log_memory_usage(f"[{self.name} END] ")
-            print(f"[TIMING] {self.name} completed in {duration:.2f} seconds")
+#         def __exit__(self, exc_type, exc_val, exc_tb):
+#             duration = time.time() - self.start_time
+#             if self.log_memory and torch.cuda.is_available():
+#                 log_memory_usage(f"[{self.name} END] ")
+#             print(f"[TIMING] {self.name} completed in {duration:.2f} seconds")
     
-    class MemoryTracker:
-        def __init__(self, interval_seconds=5):
-            self.interval = interval_seconds
-            self.tracking = False
+#     class MemoryTracker:
+#         def __init__(self, interval_seconds=5):
+#             self.interval = interval_seconds
+#             self.tracking = False
         
-        def start(self):
-            print("Memory tracking started (simplified version)")
-            self.tracking = True
+#         def start(self):
+#             print("Memory tracking started (simplified version)")
+#             self.tracking = True
         
-        def stop(self):
-            self.tracking = False
-            print("Memory tracking stopped")
+#         def stop(self):
+#             self.tracking = False
+#             print("Memory tracking stopped")
         
-        def report(self):
-            if torch.cuda.is_available():
-                log_memory_usage("[Final Memory Report] ")
-            return {}
+#         def report(self):
+#             if torch.cuda.is_available():
+#                 log_memory_usage("[Final Memory Report] ")
+#             return {}
 
 def check_existing_flow_routing_results(iteration: int, model_version: str, flow_results_dir: str) -> (bool, str):
     """
