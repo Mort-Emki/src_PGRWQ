@@ -1,17 +1,17 @@
 """
-branch_lstm_model.py - 多分支LSTM模型实现
+branch_lstm.py - 分支LSTM模型实现
 
-该模块包含用于水质预测的多分支LSTM模型实现，独立于其他模型类型。
-所有模型共享标准化的接口，便于在主程序中灵活切换不同模型类型。
+该模块继承CatchmentModel父类，提供多分支LSTM模型的完整实现。
+保留了父类定义的接口，并实现了所有必要的抽象方法。
 """
 
 import torch
 import torch.nn as nn
 import numpy as np
-import time
 import logging
 from torch.utils.data import DataLoader, Dataset
-from PGRWQI.model_training.gpu_memory_utils import log_memory_usage, TimingAndMemoryContext
+from PGRWQI.model_training.gpu_memory_utils import log_memory_usage, TimingAndMemoryContext 
+from PGRWQI.model_training.models.models import CatchmentModel
 
 # =============================================================================
 # 数据集类
@@ -19,7 +19,7 @@ from PGRWQI.model_training.gpu_memory_utils import log_memory_usage, TimingAndMe
 
 class MultiBranchDataset(Dataset):
     """
-    多分支模型的数据集类
+    多分支LSTM模型的数据集类
     
     用于处理时间序列特征+属性特征的混合输入数据
     """
@@ -61,16 +61,7 @@ class MultiBranchDataset(Dataset):
 # =============================================================================
 
 def calculate_nse(preds, targets):
-    """
-    计算纳什效率系数 (Nash–Sutcliffe Efficiency)
-    
-    参数:
-        preds: 预测值张量
-        targets: 目标值张量
-        
-    返回:
-        NSE系数
-    """
+    """计算纳什效率系数 (Nash–Sutcliffe Efficiency)"""
     mean_targets = targets.mean()
     numerator = torch.sum((preds - targets) ** 2)
     denominator = torch.sum((targets - mean_targets) ** 2)
@@ -78,16 +69,7 @@ def calculate_nse(preds, targets):
     return nse
 
 def mean_absolute_percentage_error(y_pred, y_true):
-    """
-    计算平均绝对百分比误差 (MAPE)
-    
-    参数:
-        y_pred: 预测值张量
-        y_true: 真实值张量
-        
-    返回:
-        MAPE值
-    """
+    """计算平均绝对百分比误差 (MAPE)"""
     epsilon = 1e-6  # 防止除零错误
     return torch.mean(torch.abs((y_pred - y_true) / (y_true + epsilon))) * 100
 
@@ -172,99 +154,98 @@ class MultiBranchLSTM(nn.Module):
         return out.squeeze(-1)
 
 # =============================================================================
-# 模型管理类
+# 分支LSTM模型 - 继承自CatchmentModel
 # =============================================================================
 
-class BranchLSTMModel:
+class BranchLSTMModel(CatchmentModel):
     """
-    分支LSTM模型管理类
+    分支LSTM模型实现 - 继承自CatchmentModel基类
     
-    提供模型创建、训练、预测和保存/加载功能
+    实现父类定义的接口，并提供LSTM特有的功能
     """
     def __init__(self, input_dim, hidden_size=64, num_layers=1, attr_dim=20, 
-                 fc_dim=32, output_dim=1, device='cuda', memory_check_interval=5):
+                 fc_dim=32, device='cpu', memory_check_interval=5):
         """
-        初始化分支LSTM模型管理器
+        初始化分支LSTM模型
         
         参数:
-            input_dim: 输入维度
+            input_dim: 时间序列输入维度
             hidden_size: LSTM隐藏层大小
             num_layers: LSTM层数
-            attr_dim: 属性维度
+            attr_dim: 属性数据维度
             fc_dim: 全连接层维度
-            output_dim: 输出维度
-            device: 训练设备('cpu'或'cuda')
+            device: 训练设备
             memory_check_interval: 内存检查间隔(epochs)
         """
-        self.device = device
-        self.memory_check_interval = memory_check_interval
+        # 调用父类构造函数
+        super(BranchLSTMModel, self).__init__(
+            model_type='lstm',
+            device=device,
+            memory_check_interval=memory_check_interval
+        )
+        
+        # 存储模型参数
+        self.input_dim = input_dim
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.attr_dim = attr_dim
+        self.fc_dim = fc_dim
         
         # 记录初始内存状态
         if self.device == 'cuda':
-            log_memory_usage("[模型初始化] ")
-        
-        # 创建模型
-        self.model = MultiBranchLSTM(
-            input_dim=input_dim, 
-            hidden_size=hidden_size,
-            num_layers=num_layers, 
-            attr_dim=attr_dim, 
-            fc_dim=fc_dim,
-            output_dim=output_dim
-        )
-        
-        # 将模型移动到指定设备
-        self.model = self.model.to(self.device)
-        print(f"模型已移动到{self.device}")
+            log_memory_usage("[BranchLSTM模型初始化] ")
+            
+        # 初始化LSTM模型
+        self._init_model()
+    
+    def _init_model(self):
+        """初始化LSTM模型"""
+        # 创建多分支LSTM模型
+        self.base_model = MultiBranchLSTM(
+            input_dim=self.input_dim, 
+            hidden_size=self.hidden_size,
+            num_layers=self.num_layers, 
+            attr_dim=self.attr_dim, 
+            fc_dim=self.fc_dim
+        ).to(self.device)
         
         # 在GPU上测试模型
         if self.device == 'cuda':
-            self._test_model_on_device(input_dim, attr_dim)
-        
-        # 记录模型创建后的内存使用情况
-        if self.device == 'cuda':
-            log_memory_usage("[模型创建完成] ")
-            
-    def _test_model_on_device(self, input_dim, attr_dim):
-        """
-        测试模型是否正确加载到设备上
-        
-        参数:
-            input_dim: 输入维度
-            attr_dim: 属性维度
-        """
-        dummy_ts = torch.zeros((1, 10, input_dim), device=self.device)
-        dummy_attr = torch.zeros((1, attr_dim), device=self.device)
+            self._test_model_on_device()
+    
+    def _test_model_on_device(self):
+        """测试模型是否正确加载到设备上"""
+        dummy_ts = torch.zeros((1, 10, self.input_dim), device=self.device)
+        dummy_attr = torch.zeros((1, self.attr_dim), device=self.device)
         with torch.no_grad():
-            _ = self.model(dummy_ts, dummy_attr)
+            _ = self.base_model(dummy_ts, dummy_attr)
         print(f"已在{self.device}上测试模型, 使用虚拟输入")
         
         # 打印每个参数的设备以确认
         print("参数设备:")
-        for name, param in self.model.named_parameters():
+        for name, param in self.base_model.named_parameters():
             print(f" - {name}: {param.device}")
-
-    def train(self, attr_dict, comid_arr_train, X_ts_train, Y_train, 
-              comid_arr_val=None, X_ts_val=None, Y_val=None, 
-              epochs=10, lr=1e-3, patience=3, batch_size=32):
+        
+    def train_model(self, attr_dict, comid_arr_train, X_ts_train, Y_train, 
+                   comid_arr_val=None, X_ts_val=None, Y_val=None, 
+                   epochs=10, lr=1e-3, patience=3, batch_size=32):
         """
-        训练模型
+        训练分支LSTM模型
+        
+        实现父类的抽象方法，完成LSTM模型的训练逻辑
         
         参数:
             attr_dict: 属性字典
-            comid_arr_train: 训练集COMID数组
-            X_ts_train: 训练集时间序列数据
-            Y_train: 训练集标签
-            comid_arr_val: 验证集COMID数组
-            X_ts_val: 验证集时间序列数据
-            Y_val: 验证集标签
+            comid_arr_train: 训练集河段ID数组
+            X_ts_train: 训练集时间序列特征
+            Y_train: 训练集目标值
+            comid_arr_val: 验证集河段ID数组
+            X_ts_val: 验证集时间序列特征
+            Y_val: 验证集目标值
             epochs: 训练轮数
             lr: 学习率
             patience: 早停耐心值
-            batch_size: 批次大小
-            
-        返回:
-            训练历史记录
+            batch_size: 批处理大小
         """
         import torch.optim as optim
         
@@ -281,13 +262,12 @@ class BranchLSTMModel:
         
         # 初始化损失函数和优化器
         criterion = nn.MSELoss()
-        optimizer = optim.Adam(self.model.parameters(), lr=lr)
+        optimizer = optim.Adam(self.base_model.parameters(), lr=lr)
         
         # 初始化早停变量
         best_val_loss = float('inf')
         no_improve = 0
-        history = {'train_loss': [], 'val_loss': [], 'val_mape': [], 'val_nse': []}
-
+        
         # 按轮次进行训练
         for ep in range(epochs):
             # 记录轮次开始时的内存使用情况
@@ -295,36 +275,87 @@ class BranchLSTMModel:
                 log_memory_usage(f"[轮次 {ep+1}/{epochs} 开始] ")
             
             # 训练阶段
-            train_loss = self._train_epoch(train_loader, optimizer, criterion, ep)
-            history['train_loss'].append(train_loss)
-            
+            with TimingAndMemoryContext(f"轮次 {ep+1} 训练", 
+                                       log_memory=(ep % self.memory_check_interval == 0)):
+                self.base_model.train()
+                total_loss = 0.0
+                
+                for batch_idx, (x_ts_batch, x_attr_batch, y_batch) in enumerate(train_loader):
+                    # 记录首批次和定期的内存使用情况
+                    if self.device == 'cuda' and ep % self.memory_check_interval == 0 and batch_idx == 0:
+                        log_memory_usage(f"[轮次 {ep+1} 首批次] ")
+                    
+                    # 将数据移动到设备
+                    x_ts_batch = x_ts_batch.to(self.device, dtype=torch.float32)
+                    x_attr_batch = x_attr_batch.to(self.device, dtype=torch.float32)
+                    y_batch = y_batch.to(self.device, dtype=torch.float32)
+                    
+                    # 前向传播, 计算损失和反向传播
+                    optimizer.zero_grad()
+                    preds = self.base_model(x_ts_batch, x_attr_batch)
+                    loss = criterion(preds, y_batch)
+                    loss.backward()
+                    optimizer.step()
+                    total_loss += loss.item() * x_ts_batch.size(0)
+                    
+                    # 定期清理GPU缓存
+                    if self.device == 'cuda' and batch_idx % 50 == 0:
+                        torch.cuda.empty_cache()
+                
+                avg_train_loss = total_loss / len(train_loader.dataset)
+
             # 验证阶段
             if val_loader is not None:
-                val_metrics = self._validate_epoch(val_loader, criterion, ep)
-                history['val_loss'].append(val_metrics['loss'])
-                history['val_mape'].append(val_metrics['mape'])
-                history['val_nse'].append(val_metrics['nse'])
-                
-                # 打印训练和验证指标
-                self._print_epoch_metrics(ep, epochs, train_loss, val_metrics)
-                
-                # 早停检查
-                current_val_loss = val_metrics['loss']
-                if current_val_loss < best_val_loss:
-                    best_val_loss = current_val_loss
-                    no_improve = 0
-                else:
-                    no_improve += 1
-                
-                if no_improve >= patience:
-                    print("触发早停!")
+                with TimingAndMemoryContext(f"轮次 {ep+1} 验证", 
+                                           log_memory=(ep % self.memory_check_interval == 0)):
+                    self.base_model.eval()
+                    total_val_loss = 0.0
+                    total_val_mape = 0.0
+                    total_val_nse = 0.0
+
+                    with torch.no_grad():
+                        for x_ts_val, x_attr_val, y_val in val_loader:
+                            # 将数据移动到设备
+                            x_ts_val = x_ts_val.to(self.device, dtype=torch.float32)
+                            x_attr_val = x_attr_val.to(self.device, dtype=torch.float32)
+                            y_val = y_val.to(self.device, dtype=torch.float32)
+                            
+                            # 获取预测并计算指标
+                            preds_val = self.base_model(x_ts_val, x_attr_val)
+                            loss_val = criterion(preds_val, y_val)
+                            total_val_loss += loss_val.item() * x_ts_val.size(0)
+                            total_val_mape += mean_absolute_percentage_error(preds_val, y_val) * x_ts_val.size(0)
+                            total_val_nse += calculate_nse(preds_val, y_val) * x_ts_val.size(0)
+
+                    # 计算平均指标
+                    avg_val_loss = total_val_loss / len(val_dataset)
+                    avg_val_mape = total_val_mape / len(val_dataset)
+                    avg_val_nse = total_val_nse / len(val_dataset)
+
+                    # 打印训练和验证指标
+                    print(f"轮次 [{ep+1}/{epochs}]")
+                    print(" 验证  | "
+                          f"训练损失={avg_train_loss:.4f}, "
+                          f"验证损失={avg_val_loss:.4f}, "
+                          f"验证MAPE={avg_val_mape:.4f}, "
+                          f"验证NSE={avg_val_nse:.4f}")
+
+                    # 早停检查
+                    if avg_val_loss < best_val_loss:
+                        best_val_loss = avg_val_loss
+                        no_improve = 0
+                    else:
+                        no_improve += 1
                     
-                    # 早停前的最终内存检查
-                    if self.device == 'cuda':
-                        log_memory_usage("[早停触发] ")
-                    break
+                    if no_improve >= patience:
+                        print("触发早停!")
+                        
+                        # 早停前的最终内存检查
+                        if self.device == 'cuda':
+                            log_memory_usage("[早停触发] ")
+                        break
             else:
-                print(f"[轮次 {ep+1}/{epochs}] 训练MSE: {train_loss:.4f}")
+                print(f"[轮次 {ep+1}/{epochs}] 训练MSE: {avg_train_loss:.4f}")
             
             # 清理轮次结束时的内存
             if self.device == 'cuda':
@@ -333,128 +364,26 @@ class BranchLSTMModel:
         # 训练完成后的最终内存使用情况
         if self.device == 'cuda':
             log_memory_usage("[训练完成] ")
-            
-        return history
     
-    def _train_epoch(self, train_loader, optimizer, criterion, ep):
-        """
-        训练一个epoch
-        
-        参数:
-            train_loader: 训练数据加载器
-            optimizer: 优化器
-            criterion: 损失函数
-            ep: 当前轮次
-            
-        返回:
-            平均训练损失
-        """
-        with TimingAndMemoryContext(f"轮次 {ep+1} 训练", 
-                                   log_memory=(ep % self.memory_check_interval == 0)):
-            self.model.train()
-            total_loss = 0.0
-            
-            for batch_idx, (x_ts_batch, x_attr_batch, y_batch) in enumerate(train_loader):
-                # 记录首批次和定期的内存使用情况
-                if self.device == 'cuda' and ep % self.memory_check_interval == 0 and batch_idx == 0:
-                    log_memory_usage(f"[轮次 {ep+1} 首批次] ")
-                
-                # 将数据移动到设备
-                x_ts_batch = x_ts_batch.to(self.device, dtype=torch.float32)
-                x_attr_batch = x_attr_batch.to(self.device, dtype=torch.float32)
-                y_batch = y_batch.to(self.device, dtype=torch.float32)
-                
-                # 前向传播, 计算损失和反向传播
-                optimizer.zero_grad()
-                preds = self.model(x_ts_batch, x_attr_batch)
-                loss = criterion(preds, y_batch)
-                loss.backward()
-                optimizer.step()
-                total_loss += loss.item() * x_ts_batch.size(0)
-                
-                # 定期清理GPU缓存
-                if self.device == 'cuda' and batch_idx % 50 == 0:
-                    torch.cuda.empty_cache()
-            
-            avg_train_loss = total_loss / len(train_loader.dataset)
-            return avg_train_loss
-    
-    def _validate_epoch(self, val_loader, criterion, ep):
-        """
-        验证一个epoch
-        
-        参数:
-            val_loader: 验证数据加载器
-            criterion: 损失函数
-            ep: 当前轮次
-            
-        返回:
-            包含验证指标的字典
-        """
-        with TimingAndMemoryContext(f"轮次 {ep+1} 验证", 
-                                   log_memory=(ep % self.memory_check_interval == 0)):
-            self.model.eval()
-            total_val_loss = 0.0
-            total_val_mape = 0.0
-            total_val_nse = 0.0
-
-            with torch.no_grad():
-                for x_ts_val, x_attr_val, y_val in val_loader:
-                    # 将数据移动到设备
-                    x_ts_val = x_ts_val.to(self.device, dtype=torch.float32)
-                    x_attr_val = x_attr_val.to(self.device, dtype=torch.float32)
-                    y_val = y_val.to(self.device, dtype=torch.float32)
-                    
-                    # 获取预测并计算指标
-                    preds_val = self.model(x_ts_val, x_attr_val)
-                    loss_val = criterion(preds_val, y_val)
-                    total_val_loss += loss_val.item() * x_ts_val.size(0)
-                    total_val_mape += mean_absolute_percentage_error(preds_val, y_val) * x_ts_val.size(0)
-                    total_val_nse += calculate_nse(preds_val, y_val) * x_ts_val.size(0)
-
-            # 计算平均指标
-            dataset_size = len(val_loader.dataset)
-            metrics = {
-                'loss': total_val_loss / dataset_size,
-                'mape': total_val_mape / dataset_size,
-                'nse': total_val_nse / dataset_size
-            }
-            return metrics
-    
-    def _print_epoch_metrics(self, ep, epochs, train_loss, val_metrics):
-        """
-        打印轮次指标
-        
-        参数:
-            ep: 当前轮次
-            epochs: 总轮次
-            train_loss: 训练损失
-            val_metrics: 验证指标字典
-        """
-        print(f"轮次 [{ep+1}/{epochs}]")
-        print(" 验证  | "
-              f"训练损失={train_loss:.4f}, "
-              f"验证损失={val_metrics['loss']:.4f}, "
-              f"验证MAPE={val_metrics['mape']:.4f}, "
-              f"验证NSE={val_metrics['nse']:.4f}")
-
     def predict(self, X_ts, X_attr):
         """
         批量预测
+        
+        实现父类的抽象方法，执行LSTM模型的预测流程
         
         参数:
             X_ts: 时间序列输入, 形状为(N, T, D)
             X_attr: 属性输入, 形状为(N, attr_dim)
             
         返回:
-            预测结果
+            预测结果, 形状为(N,)
         """
         with TimingAndMemoryContext("批量预测"):
-            self.model.eval()
+            self.base_model.eval()
             
             # 确保模型在正确的设备上
             if self.device == 'cuda':
-                self.model = self.model.to(self.device)
+                self.base_model = self.base_model.to(self.device)
             
             total_samples = X_ts.shape[0]
             
@@ -480,7 +409,7 @@ class BranchLSTMModel:
                     
                     # 获取预测
                     with torch.no_grad():
-                        batch_preds = self.model(X_ts_torch, X_attr_torch)
+                        batch_preds = self.base_model(X_ts_torch, X_attr_torch)
                     
                     # 存储预测结果
                     all_preds.append(batch_preds.cpu().numpy())
@@ -518,84 +447,64 @@ class BranchLSTMModel:
                 
             return np.concatenate(all_preds)
     
-    def _calculate_safe_batch_size(self, X_ts, X_attr):
-        """
-        计算安全的批处理大小
-        
-        参数:
-            X_ts: 时间序列输入
-            X_attr: 属性输入
-            
-        返回:
-            批处理大小
-        """
-        if torch.cuda.is_available():
-            # 获取GPU规格
-            total_memory = torch.cuda.get_device_properties(0).total_memory / (1024**2)  # 单位: MB
-            # 使用总内存的40%进行安全处理
-            safe_memory_usage = total_memory * 0.40  # MB
-            
-            # 估计每个样本的内存(单位: MB)
-            bytes_per_float = 4  # float32是4字节
-            sample_size = X_ts.shape[1] * X_ts.shape[2] + X_attr.shape[1]
-            bytes_per_sample = sample_size * bytes_per_float * 3  # 输入, 输出, 梯度
-            mb_per_sample = bytes_per_sample / (1024**2)
-            
-            # 计算安全的批处理大小
-            initial_batch_size = int(safe_memory_usage / mb_per_sample)
-            batch_size = max(1000, initial_batch_size)
-            print(f"起始批处理大小: {batch_size} (估计占用 {batch_size * mb_per_sample:.2f}MB)")
-        else:
-            batch_size = 1000
-        
-        return batch_size
-
-    def predict_single(self, X_ts_single, X_attr_single):
-        """
-        对单个样本预测
-        
-        参数:
-            X_ts_single: 时间序列数据, 形状为(T, input_dim)
-            X_attr_single: 属性数据, 形状为(attr_dim,)
-            
-        返回:
-            单个预测值
-        """
-        return self.predict(X_ts_single[None, :], X_attr_single[None, :])[0]
-
-    def save(self, path):
+    def save_model(self, path):
         """
         保存模型
         
+        实现父类的抽象方法，保存LSTM模型
+        
         参数:
-            path: 模型保存路径
+            path: 保存路径
         """
-        torch.save(self.model.state_dict(), path)
+        torch.save(self.base_model.state_dict(), path)
+        print(f"模型已保存到 {path}")
         
         # 保存后记录内存
         if self.device == 'cuda':
             log_memory_usage("[模型已保存] ")
 
-    def load(self, path):
+    def load_model(self, path):
         """
         加载模型
         
+        实现父类的抽象方法，加载LSTM模型
+        
         参数:
-            path: 模型保存路径
+            path: 模型路径
         """
         with TimingAndMemoryContext("加载模型"):
-            self.model.load_state_dict(torch.load(path))
+            self.base_model.load_state_dict(torch.load(path, map_location=self.device))
+            print(f"模型已从 {path} 加载")
             
             # 加载后记录内存
             if self.device == 'cuda':
                 log_memory_usage("[模型已加载] ")
+    
+    def get_model_info(self):
+        """
+        获取模型信息
+        
+        扩展父类方法，添加LSTM特有信息
+        
+        返回:
+            包含模型信息的字典
+        """
+        info = super().get_model_info()
+        info.update({
+            "input_dim": self.input_dim,
+            "hidden_size": self.hidden_size,
+            "num_layers": self.num_layers,
+            "attr_dim": self.attr_dim,
+            "fc_dim": self.fc_dim
+        })
+        return info
 
 # =============================================================================
 # 创建模型实例的工厂函数
 # =============================================================================
 
-def create_branchlstm_model(input_dim, hidden_size=64, num_layers=1, attr_dim=20, 
-                            fc_dim=32, output_dim=1, device='cuda', memory_check_interval=5):
+def create_branch_lstm_model(input_dim, hidden_size=64, num_layers=1, attr_dim=20, 
+                             fc_dim=32, device='cuda', memory_check_interval=5):
     """
     创建分支LSTM模型的工厂函数
     
@@ -605,7 +514,6 @@ def create_branchlstm_model(input_dim, hidden_size=64, num_layers=1, attr_dim=20
         num_layers: LSTM层数
         attr_dim: 属性维度
         fc_dim: 全连接层维度
-        output_dim: 输出维度
         device: 训练设备('cpu'或'cuda')
         memory_check_interval: 内存检查间隔(epochs)
         
@@ -618,7 +526,6 @@ def create_branchlstm_model(input_dim, hidden_size=64, num_layers=1, attr_dim=20
         num_layers=num_layers,
         attr_dim=attr_dim,
         fc_dim=fc_dim,
-        output_dim=output_dim,
         device=device,
         memory_check_interval=memory_check_interval
     )

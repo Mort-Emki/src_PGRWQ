@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from model_training.models import CatchmentModel
+from PGRWQI.model_training.models.models import CatchmentModel
 import logging
 import time
 import os

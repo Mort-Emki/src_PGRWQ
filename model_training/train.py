@@ -10,7 +10,7 @@ from tqdm import tqdm
 # 引入相关模块
 from PGRWQI.flow_routing import flow_routing_calculation 
 from PGRWQI.data_processing import build_sliding_windows_for_subset, standardize_time_series_all, standardize_attributes
-from PGRWQI.model_training.models import CatchmentModel 
+from PGRWQI.model_training.models.models import CatchmentModel 
 from PGRWQI.logging_utils import setup_logging, restore_stdout_stderr, ensure_dir_exists
 from PGRWQI.model_training.gpu_memory_utils import (
     log_memory_usage, 
@@ -18,6 +18,7 @@ from PGRWQI.model_training.gpu_memory_utils import (
     MemoryTracker,
     force_cuda_memory_cleanup
 )
+from PGRWQI.model_training.models.model_factory import create_model
 
 # ===============================================================================
 # 辅助函数
@@ -232,15 +233,14 @@ def create_or_load_model(
         创建或加载的模型
     """
     with TimingAndMemoryContext(context_name):
-        model = CatchmentModel(
+        model = create_model(
             model_type=model_type,
             input_dim=input_dim,
             hidden_size=hidden_size,
             num_layers=num_layers,
             attr_dim=attr_dim,
             fc_dim=fc_dim,
-            device=device,
-            memory_check_interval=2  # 每2个epoch检查一次内存
+            device=device
         )
     
     # 检查是否存在预训练模型
