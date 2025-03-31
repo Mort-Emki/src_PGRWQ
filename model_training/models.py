@@ -6,34 +6,7 @@ from .dataset import MyMultiBranchDataset
 import time
 import logging
 from PGRWQI.model_training.gpu_memory_utils import log_memory_usage, TimingAndMemoryContext 
-# Import memory monitoring utilities
-# try:
-#     from gpu_memory_utils import log_memory_usage, TimingAndMemoryContext
-# except ImportError:
-#     # Fallback implementation if the module is not available
-#     def log_memory_usage(prefix=""):
-#         if torch.cuda.is_available():
-#             allocated = torch.cuda.memory_allocated() / (1024 * 1024)
-#             reserved = torch.cuda.memory_reserved() / (1024 * 1024)
-#             print(f"{prefix}GPU Memory: {allocated:.2f}MB allocated, {reserved:.2f}MB reserved")
-    
-#     class TimingAndMemoryContext:
-#         def __init__(self, name="Operation", log_memory=True):
-#             self.name = name
-#             self.log_memory = log_memory
-#             self.start_time = None
-        
-#         def __enter__(self):
-#             self.start_time = time.time()
-#             if self.log_memory:
-#                 log_memory_usage(f"[{self.name} START] ")
-#             return self
-        
-#         def __exit__(self, exc_type, exc_val, exc_tb):
-#             duration = time.time() - self.start_time
-#             if self.log_memory:
-#                 log_memory_usage(f"[{self.name} END] ")
-#             print(f"[TIMING] {self.name} completed in {duration:.2f} seconds")
+
 
 def calculate_nse(preds, targets):
     """Calculate the Nash–Sutcliffe efficiency (NSE)."""
@@ -113,7 +86,7 @@ class MultiBranchModel(nn.Module):
         else:
             out = self.final_fc(ts_feat)
 
-        return out.squeeze(-1)
+        return out.squeeze(-1)                     
 
 class CatchmentModel:
     """

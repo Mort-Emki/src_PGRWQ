@@ -1,7 +1,10 @@
 import os
 import time
 import sys
+import logging
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# 将日志级别改为 DEBUG
+logging.getLogger().setLevel(logging.DEBUG) 
 
 import argparse
 import pandas as pd
@@ -10,16 +13,13 @@ import torch
 from sklearn.preprocessing import StandardScaler
 from PGRWQI.data_processing import load_daily_data, load_river_attributes
 from PGRWQI.model_training.train import iterative_training_procedure
-import logging
+
 import datetime
 from PGRWQI.logging_utils import setup_logging, restore_stdout_stderr, ensure_dir_exists
 from PGRWQI.tqdm_logging import tqdm
 import threading
 import time
 import datetime
-
-# 将日志级别改为 DEBUG
-logging.getLogger().setLevel(logging.DEBUG) 
 
 from PGRWQI.model_training.gpu_memory_utils import (
     log_memory_usage, 

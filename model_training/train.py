@@ -922,29 +922,20 @@ def iterative_training_procedure(
             ##在日志中打印Here标志
             logging.info("Here: 准备下一轮迭代的训练数据")
 
-            # 构建下一轮迭代的训练数据
-            with TimingAndMemoryContext(f"Building Sliding Windows for Iteration {it+1}"):
-                X_ts_iter, _, COMIDs_iter, Dates_iter = build_sliding_windows_for_subset(
-                    df, comid_list_iter, input_cols=input_cols, target_cols=[target_col], time_window=5
-                )
-            
-            logging.info("Here: 准备下一轮迭代的训练数据完成")
+            # 直接让函数返回所需的E_label (一行代码替换原来复杂的处理)
+            timeStart = time.time()
+            X_ts_iter, Y_label_iter, COMIDs_iter, Dates_iter = build_sliding_windows_for_subset(
+                merged,                # 使用已包含E_label的merged DataFrame
+                comid_list_iter,       # COMID列表不变
+                input_cols=input_cols, # 输入特征不变
+                target_cols=["E_label"], # 关键：将E_label作为目标列
+                time_window=10
+            )
+            timeEnd = time.time()
+            timeElapsed = timeEnd - timeStart
+            logging.info(f"准备训练数据耗时: {timeElapsed:.2f}秒")
 
-            # 准备标签和属性数据
-            Y_label_iter = []
-            for cid, date_val in zip(COMIDs_iter, Dates_iter):
-                logging.debug(f"  准备标签数据: COMID {cid}, 日期 {date_val}")
-                print(f"  准备标签数据: COMID {cid}, 日期 {date_val}")
-                subset = merged[(merged["COMID"] == cid) & (merged["date"] == date_val)]
-                if not subset.empty:
-                    label_val = subset["E_label"].mean()
-                else:
-                    label_val = 0.0
-                Y_label_iter.append(label_val)
-            
-            Y_label_iter = np.array(Y_label_iter, dtype=np.float32)
-            
-            logging.debug('构建属性矩阵')
+            logging.info('构建属性矩阵中...')
 
             # 构建属性矩阵
             X_attr_iter = np.vstack([
