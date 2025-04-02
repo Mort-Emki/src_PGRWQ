@@ -48,13 +48,17 @@
     },
     "models": {
       "lstm": {
-        "hidden_size": 64,
-        "num_layers": 1,
-        "fc_dim": 32,
-        "epochs": 100,
-        "lr": 0.001,
-        "patience": 3,
-        "batch_size": 32
+        "build":{
+          "hidden_size": 64,
+          "num_layers": 1,
+          "fc_dim": 32
+        },
+        "train": {
+          "epochs": 100,
+          "lr": 0.001,
+          "patience": 3,
+          "batch_size": 32
+        }
       }
     }
   }

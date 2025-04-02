@@ -195,6 +195,34 @@ def split_train_val_data(
         Y_val = Y_head[valid_indices]
 
     return X_ts_train, comid_arr_train, Y_train, X_ts_val, comid_arr_val, Y_val
+def get_model_params(config: Dict[str, Any], model_type: str) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    """
+    提取模型特定参数，分别返回构建参数和训练参数
+    
+    参数:
+        config: 配置字典
+        model_type: 模型类型字符串（如'lstm', 'rf'）
+    
+    返回:
+        (build_params, train_params): 包含构建参数和训练参数的两个字典
+    """
+    if model_type not in config['models']:
+        raise ValueError(f"在配置中未找到模型类型'{model_type}'")
+    
+    model_config = config['models'][model_type]
+    
+    # 获取构建参数
+    build_params = model_config.get('build', {}).copy()
+    
+    # 获取训练参数
+    train_params = model_config.get('train', {}).copy()
+    
+    # 添加特征维度参数到构建参数
+    build_params['input_dim'] = len(config['features']['input_features'])
+    build_params['attr_dim'] = len(config['features']['attr_features'])
+    
+    logging.info(f"已提取'{model_type}'模型的参数，特征维度: {build_params['input_dim']}，属性维度: {build_params['attr_dim']}")
+    return build_params, train_params
 
 # ===============================================================================
 # 模型创建和批量预测函数
@@ -225,9 +253,14 @@ def create_or_load_model(
     """
     with TimingAndMemoryContext(context_name):
         # Pass model_type and device separately, and model_params as kwargs
-        model_params_copy = model_params.copy()
-        model_params_copy['device'] = device
-        
+        # 获取模型特定配置
+        build_params, train_params = get_model_params(config, model_type)
+
+        # 然后在调用创建模型时只传递build_params
+        model = create_model(
+            model_type=model_type,
+            **build_params
+        )
         model = create_model(
             model_type=model_type,
             **model_params_copy
