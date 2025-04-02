@@ -431,7 +431,7 @@ def main():
                 input_features=input_features,
                 attr_features=attr_features,
                 river_info=river_info,
-                target_cols=basic_config.get('target_cols', ['TN']),
+                all_target_cols=basic_config.get('target_cols', ['TN', 'TP']),
                 target_col=basic_config.get('target_col', 'TN'),
                 max_iterations=basic_config.get('max_iterations', 5),
                 epsilon=basic_config.get('epsilon', 0.01),

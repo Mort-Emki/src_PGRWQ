@@ -684,7 +684,7 @@ def build_sliding_windows_for_subset_6(
     df: pd.DataFrame,
     comid_list: List[str],
     input_cols: Optional[List[str]] = None,
-    target_cols: List[str] = ["TN"],
+    target_col: str = "TN",
     all_target_cols: List[str] = ["TN","TP"],
     time_window: int = 10,
     skip_missing_targets: bool = True

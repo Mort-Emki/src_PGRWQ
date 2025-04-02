@@ -80,7 +80,8 @@ def prepare_training_data_for_head_segments(
     attr_df: pd.DataFrame,
     comid_wq_list: List,
     comid_era5_list: List,
-    target_cols: List[str],
+    all_target_cols: List[str],
+    target_col: str,
     output_dir: str,
     model_version: str
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -117,27 +118,28 @@ def prepare_training_data_for_head_segments(
     # 构造训练数据
     print('构造初始训练数据（滑窗切片）......')
     with TimingAndMemoryContext("Building Sliding Windows"):
-        X_ts_head, Y_head_orig, COMIDs_head, Dates_head = build_sliding_windows_for_subset(
+        X_ts_head, Y_head_all_cols, COMIDs_head, Dates_head = build_sliding_windows_for_subset(
             df, 
             comid_list_head, 
             input_cols=None, 
-            target_cols=target_cols, 
+            all_target_cols=all_target_cols, 
+            target_col = target_col,
             time_window=10
         )
 
     # 输出数据维度信息
     print("X_ts_all.shape =", X_ts_head.shape)
-    print("Y.shape        =", Y_head_orig.shape)
+    print("Y.shape        =", Y_head_all_cols.shape)
     print("COMID.shape    =", COMIDs_head.shape)  
     print("Date.shape     =", Dates_head.shape)
 
     # 保存训练数据
     with TimingAndMemoryContext("Saving Training Data"):
         np.savez(f"{output_dir}/upstreams_trainval_{model_version}.npz", 
-                X=X_ts_head, Y=Y_head_orig, COMID=COMIDs_head, Date=Dates_head)
+                X=X_ts_head, Y=Y_head_all_cols, COMID=COMIDs_head, Date=Dates_head)
         print("训练数据保存成功！")
         
-    return X_ts_head, Y_head_orig, COMIDs_head, Dates_head
+    return X_ts_head, Y_head_all_cols, COMIDs_head, Dates_head
 
 def standardize_data(
     X_ts_head: np.ndarray, 
@@ -195,34 +197,25 @@ def split_train_val_data(
         Y_val = Y_head[valid_indices]
 
     return X_ts_train, comid_arr_train, Y_train, X_ts_val, comid_arr_val, Y_val
-def get_model_params(config: Dict[str, Any], model_type: str) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-    """
-    提取模型特定参数，分别返回构建参数和训练参数
+# def get_model_params(model_params: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:  
+#     """
+#     提取模型特定参数，分别返回构建参数和训练参数
     
-    参数:
-        config: 配置字典
-        model_type: 模型类型字符串（如'lstm', 'rf'）
+#     参数:
+#         model_params: 包含模型参数的字典
+
+#     返回:
+#         (build_params, train_params): 包含构建参数和训练参数的两个字典
+#     """
+#     model_config = model_params
     
-    返回:
-        (build_params, train_params): 包含构建参数和训练参数的两个字典
-    """
-    if model_type not in config['models']:
-        raise ValueError(f"在配置中未找到模型类型'{model_type}'")
+#     # 获取构建参数
+#     build_params = model_config.get('build', {}).copy()
     
-    model_config = config['models'][model_type]
+#     # 获取训练参数
+#     train_params = model_config.get('train', {}).copy()
     
-    # 获取构建参数
-    build_params = model_config.get('build', {}).copy()
-    
-    # 获取训练参数
-    train_params = model_config.get('train', {}).copy()
-    
-    # 添加特征维度参数到构建参数
-    build_params['input_dim'] = len(config['features']['input_features'])
-    build_params['attr_dim'] = len(config['features']['attr_features'])
-    
-    logging.info(f"已提取'{model_type}'模型的参数，特征维度: {build_params['input_dim']}，属性维度: {build_params['attr_dim']}")
-    return build_params, train_params
+#     return build_params, train_params
 
 # ===============================================================================
 # 模型创建和批量预测函数
@@ -231,7 +224,8 @@ def create_or_load_model(
     model_type: str,
     device: str,
     model_path: str,
-    model_params: dict,
+    build_params: dict,
+    train_params: dict,
     attr_dict: Dict[str, np.ndarray] = None,
     train_data: Optional[Tuple] = None,
     context_name: str = "Model Operation"
@@ -254,16 +248,12 @@ def create_or_load_model(
     with TimingAndMemoryContext(context_name):
         # Pass model_type and device separately, and model_params as kwargs
         # 获取模型特定配置
-        build_params, train_params = get_model_params(config, model_type)
+        # build_params, train_params = get_model_params(config, model_type)
 
         # 然后在调用创建模型时只传递build_params
         model = create_model(
             model_type=model_type,
             **build_params
-        )
-        model = create_model(
-            model_type=model_type,
-            **model_params_copy
         )
     
     # Check if a pre-trained model exists
@@ -276,18 +266,12 @@ def create_or_load_model(
         X_ts_train, comid_arr_train, Y_train, X_ts_val, comid_arr_val, Y_val = train_data
         
         # Training parameters from model_params or defaults
-        train_config = {
-            'epochs': model_params.get('epochs', 100),
-            'lr': model_params.get('lr', 1e-3),
-            'patience': model_params.get('patience', 2),
-            'batch_size': model_params.get('batch_size', 10000)
-        }
         
         with TimingAndMemoryContext("Model Training"):
             model.train_model(
                 attr_dict, comid_arr_train, X_ts_train, Y_train, 
                 comid_arr_val, X_ts_val, Y_val, 
-                **train_config
+                **train_params
             )
         
         with TimingAndMemoryContext("Model Saving"):
@@ -923,7 +907,7 @@ def iterative_training_procedure(
     input_features: List[str] = None,
     attr_features: List[str] = None,
     river_info: pd.DataFrame = None,
-    target_cols: List[str] = ["TN", "TP"],
+    all_target_cols: List[str] = ["TN", "TP"],
     target_col: str = "TN",
     max_iterations: int = 10,
     epsilon: float = 0.01,
@@ -971,10 +955,6 @@ def iterative_training_procedure(
     if model_params is None:
         model_params = {}
     
-    # Set default target column if not provided
-    if target_col not in target_cols and len(target_cols) > 0:
-        target_col = target_cols[0]
-    
     # ============================================================
     # Initialize memory monitoring
     # ============================================================
@@ -994,11 +974,10 @@ def iterative_training_procedure(
     # Log training start info
     if start_iteration > 0:
         logging.info(f"Starting from iteration {start_iteration} with model version {model_version}")
-        print(f"Starting from iteration {start_iteration} with model version {model_version}")
+        logging.info(f"Starting from iteration {start_iteration} with model version {model_version}")
     else:
         logging.info(f"Starting from initial training (iteration 0) with model version {model_version}")
-        print(f"Starting from initial training (iteration 0) with model version {model_version}")
-        print('选择头部河段进行初始模型训练。')
+        logging.info('选择头部河段进行初始模型训练。')
     
     # Initialize error history
     if not hasattr(iterative_training_procedure, 'error_history'):
@@ -1014,15 +993,15 @@ def iterative_training_procedure(
 
         # Prepare head segment training data
         X_ts_head, Y_head_orig, COMIDs_head, Dates_head = prepare_training_data_for_head_segments(
-            df, attr_df, comid_wq_list, comid_era5_list, target_cols, output_dir, model_version
+            df, attr_df, comid_wq_list, comid_era5_list, all_target_cols, output_dir, model_version,target_col,
         )
         if X_ts_head is None:
             memory_tracker.stop()
             memory_tracker.report()
             return None
         
-        # 取目标列中的第一列作为目标
-        Y_head = Y_head_orig[:, 0]
+        # # 取目标列中的第一列作为目标
+        # Y_head = Y_head_orig[:, 0]
         
         # 标准化数据
         X_ts_head, attr_dict, ts_scaler, attr_scaler = standardize_data(X_ts_head, attr_dict)
@@ -1031,22 +1010,34 @@ def iterative_training_procedure(
         N, T, input_dim = X_ts_head.shape
         attr_dim = len(next(iter(attr_dict.values())))
         
-        # Update model_params with input and attribute dimensions if not provided
-        if 'input_dim' not in model_params:
-            model_params['input_dim'] = input_dim
-        if 'attr_dim' not in model_params:
-            model_params['attr_dim'] = attr_dim
+        # # Update model_params with input and attribute dimensions if not provided
+        # if 'input_dim' not in model_params:
+        #     model_params['input_dim'] = input_dim
+        # if 'attr_dim' not in model_params:
+        #     model_params['attr_dim'] = attr_dim
         
         # Split train/validation data
         train_val_data = split_train_val_data(X_ts_head, Y_head, COMIDs_head)
         
+        # 获取构建参数
+        build_params = model_params.get('build', {}).copy()
+        
+        # 获取训练参数
+        train_params = model_params.get('train', {}).copy()
+
+        if 'input_dim' not in build_params:
+            model_params['input_dim'] = input_dim
+        if 'attr_dim' not in build_params:
+            model_params['attr_dim'] = attr_dim
+
         # 创建或加载初始模型
         initial_model_path = f"{model_save_dir}/model_initial_A0_{model_version}.pth"
         model = create_or_load_model(
             model_type=model_type,
             device=device,
             model_path=initial_model_path,
-            model_params=model_params,
+            build_params=build_params,
+            train_params=train_params,
             attr_dict=attr_dict,
             train_data=train_val_data,
             context_name="Initial Model Creation"
