@@ -145,11 +145,12 @@ def compute_retainment_factor(v_f: float, Q_up: pd.Series, Q_down: pd.Series,
                              length_up: float, length_down: float,
                              temperature: pd.Series = None,
                              N_concentration: pd.Series = None,
-                             parameter: str = "TN") -> pd.Series:
+                             parameter: str = "TN",
+                             debug_info=None) -> pd.Series:
     """
-    计算保留系数
+    计算保留系数，并存储中间结果用于调试
     R(Ωj, Ωi) = (1-exp(-v_f·S(Ωj)/(2·Q(Ωj)))) · (1-exp(-v_f·S(Ωi)/(2·Q(Ωi))))
-    
+
     参数:
         v_f: 基础吸收速率参数 (m/yr)
         Q_up: 上游流量序列 (m³/s)
@@ -161,12 +162,25 @@ def compute_retainment_factor(v_f: float, Q_up: pd.Series, Q_down: pd.Series,
         temperature: 温度序列 (°C)，若提供则计算温度调整因子
         N_concentration: 氮浓度序列 (mg/L)，若提供且参数为TN，则计算浓度调整因子
         parameter: 水质参数，"TN"或"TP"
+        debug_info: 存储中间结果的字典，若为None则不存储
+
     返回:
         保留系数序列
     """
-    # 避免除以0错误
-    Q_up_adj = Q_up.replace(0, np.nan)
-    Q_down_adj = Q_down.replace(0, np.nan)
+    # 复制原始流量用于调试
+    Q_up_orig = Q_up.copy()
+    Q_down_orig = Q_down.copy()
+    
+    # 避免除以0错误，设置最小流量阈值
+    min_flow = 0.001  # 最小流量阈值，1 L/s
+    Q_up_adj = Q_up.replace(0, min_flow).clip(lower=min_flow)
+    Q_down_adj = Q_down.replace(0, min_flow).clip(lower=min_flow)
+    
+    # 记录有多少值被裁剪
+    up_clipped = (Q_up < min_flow).sum()
+    down_clipped = (Q_down < min_flow).sum()
+    if up_clipped > 0 or down_clipped > 0:
+        logging.info(f"流量裁剪: {up_clipped}个上游和{down_clipped}个下游值 < {min_flow}")
     
     # 单位转换:
     # 1. 长度从km转成m
@@ -174,33 +188,91 @@ def compute_retainment_factor(v_f: float, Q_up: pd.Series, Q_down: pd.Series,
     length_down_m = length_down * 1000.0  # km -> m
     
     # 2. v_f从m/yr转成m/s
-    # 1年 = 365.25天 = 31,557,600秒
     seconds_per_year = 365.25 * 24 * 60 * 60  # 31,557,600秒
     v_f_m_per_second = v_f / seconds_per_year  # m/yr -> m/s
     
+    # 存储基础v_f值用于调试
+    base_v_f = v_f_m_per_second
+    
     # 应用温度调整因子（如果提供温度数据）
     if temperature is not None:
+        # 使用已有函数计算温度因子
         temp_factor = compute_temperature_factor(temperature, parameter)
         v_f_adjusted = v_f_m_per_second * temp_factor
     else:
+        temp_factor = None
         v_f_adjusted = v_f_m_per_second
     
     # 应用浓度调整因子（如果提供浓度数据且参数为TN）
     if parameter == "TN" and N_concentration is not None:
+        # 使用已有函数计算浓度因子
         conc_factor = compute_nitrogen_concentration_factor(N_concentration)
         v_f_adjusted = v_f_adjusted * conc_factor
+    else:
+        conc_factor = None
     
     # 计算河段面积 (宽度*长度)
     S_up = W_up * length_up_m  # 面积单位：m²
     S_down = W_down * length_down_m  # 面积单位：m²
     
+    # 计算指数项（原始值，用于调试）
+    exp_up_raw = -v_f_adjusted * S_up / (2 * Q_up_adj)
+    exp_down_raw = -v_f_adjusted * S_down / (2 * Q_down_adj)
+    
+    # 检查极端值并记录
+    extreme_up = (exp_up_raw < -50).sum() + (exp_up_raw > 50).sum()
+    extreme_down = (exp_down_raw < -50).sum() + (exp_down_raw > 50).sum()
+    if extreme_up > 0 or extreme_down > 0:
+        logging.warning(f"检测到极端指数值: {extreme_up}个上游, {extreme_down}个下游")
+        
+    # 裁剪极端值以防止溢出
+    exp_up = exp_up_raw.clip(-50, 50)
+    exp_down = exp_down_raw.clip(-50, 50)
+    
     # 计算保留系数
-    R_up = 1 - np.exp(-v_f_adjusted * S_up / (2 * Q_up_adj))
-    R_down = 1 - np.exp(-v_f_adjusted * S_down / (2 * Q_down_adj))
+    R_up = 1 - np.exp(exp_up)
+    R_down = 1 - np.exp(exp_down)
     R = R_up * R_down
     
+    # 检查NaN和无穷大值
+    nan_count = R.isna().sum()
+    inf_mask = ~R.isna() & (R.abs() == float('inf'))
+    inf_count = inf_mask.sum()
+    if nan_count > 0 or inf_count > 0:
+        logging.warning(f"保留系数中发现{nan_count}个NaN和{inf_count}个无穷大值")
+        
+        # 替换无穷大值为有限值
+        if inf_count > 0:
+            R.loc[inf_mask] = np.sign(R.loc[inf_mask]) * 0.99  # 替换为接近1的值，保持符号
+    
+    # 如果提供debug_info字典，存储中间结果
+    if debug_info is not None and isinstance(debug_info, dict):
+        debug_info['Q_up_orig'] = Q_up_orig
+        debug_info['Q_down_orig'] = Q_down_orig
+        debug_info['Q_up_adj'] = Q_up_adj
+        debug_info['Q_down_adj'] = Q_down_adj
+        debug_info['W_up'] = W_up
+        debug_info['W_down'] = W_down
+        debug_info['S_up'] = S_up
+        debug_info['S_down'] = S_down
+        debug_info['base_v_f'] = base_v_f
+        debug_info['v_f_adjusted'] = v_f_adjusted
+        debug_info['exp_up_raw'] = exp_up_raw
+        debug_info['exp_down_raw'] = exp_down_raw
+        debug_info['exp_up'] = exp_up
+        debug_info['exp_down'] = exp_down
+        debug_info['R_up'] = R_up
+        debug_info['R_down'] = R_down
+        
+        if temp_factor is not None:
+            debug_info['temp_factor'] = temp_factor
+        if conc_factor is not None:
+            debug_info['conc_factor'] = conc_factor
+    
     # 填充可能的NaN值
-    return R.fillna(0.0)
+    R_filled = R.fillna(0.0)
+    
+    return R_filled
 
 # ============================================================================
 # 河网拓扑模块: 处理河网拓扑结构相关的功能
@@ -568,13 +640,14 @@ def process_headwater_segments(comid_data, queue, target_cols):
     return comid_data
 
 def execute_flow_routing(comid_data, queue, indegree, next_down_ids, load_acc, 
-                        target_cols, attr_dict, river_info, v_f_TN, v_f_TP):
+                        target_cols, attr_dict, river_info, v_f_TN, v_f_TP, 
+                        store_debug_info=True):
     """
-    执行汇流计算的主要逻辑
+    执行汇流计算的主要逻辑，并存储关键中间结果
     
     参数:
         comid_data: 存储河段数据的字典
-        queue: 待处理河段队列（从头部河段开始）
+        queue: 待处理河段队列
         indegree: 每个河段的入度
         next_down_ids: 下游河段映射
         load_acc: 负荷累加器
@@ -583,19 +656,30 @@ def execute_flow_routing(comid_data, queue, indegree, next_down_ids, load_acc,
         river_info: 河网信息DataFrame
         v_f_TN: TN的吸收速率参数
         v_f_TP: TP的吸收速率参数
+        store_debug_info: 是否存储调试信息
     
     返回:
-        更新后的comid_data
+        更新后的comid_data和调试信息
     """
     logging.info("开始汇流计算...")
     processed_count = 0
     has_temperature_data = any('temperature_2m_mean' in data.columns for data in comid_data.values())
     
+    # 存储调试信息的字典
+    debug_segments = {}
+    
+    # 设置调试标志点和周期
+    debug_segment_ids = set()  # 特别需要调试的河段ID集合
+    debug_interval = 1000      # 每处理多少个河段记录一次详细信息
+    problem_segments = []      # 记录出现问题的河段
+    
     while queue:
         # 从队列中取出下一个要处理的河段
         current = queue.pop(0)
         processed_count += 1
-        if processed_count % 1000 == 0:
+        
+        # 周期性地记录处理进度
+        if processed_count % debug_interval == 0:
             logging.info(f"已处理 {processed_count} 个河段")
         
         # 获取当前河段数据和下游河段ID
@@ -611,11 +695,13 @@ def execute_flow_routing(comid_data, queue, indegree, next_down_ids, load_acc,
         # 检查日期对齐问题
         if len(common_dates) == 0:
             logging.warning(f"警告: 日期不对齐，COMID {current} 与 COMID {next_down}")
-            logging.warning(f"  当前日期: {current_data.index}")
-            logging.warning(f"  下游日期: {down_data.index}")
-            
-        # 计算当前河段对下游的贡献并累加到下游负荷累加器
-        if len(common_dates) > 0:
+            continue
+        
+        # 调试标志：是否为需要特别关注的河段
+        is_debug_segment = current in debug_segment_ids or next_down in debug_segment_ids
+        
+        # 计算当前河段对下游的贡献
+        if len(common_dates) > 0: 
             # 提取共同日期的数据
             Q_current = current_data['Qout'].reindex(common_dates)
             Q_down = down_data['Qout'].reindex(common_dates)
@@ -627,6 +713,8 @@ def execute_flow_routing(comid_data, queue, indegree, next_down_ids, load_acc,
                 temperature = current_data['temperature_2m_mean'].reindex(common_dates)
             else:
                 temperature = None
+            # 初始化调试信息字典
+            segment_debug = {} if store_debug_info else None
             
             # 为每个参数分别计算贡献
             for param in target_cols:
@@ -647,28 +735,86 @@ def execute_flow_routing(comid_data, queue, indegree, next_down_ids, load_acc,
                 
                 # 提取当前参数的y_n值
                 y_n_current = current_data[f'y_n_{param}'].reindex(common_dates)
+                
+                # 检查y_n_current是否包含NaN或异常值
+                nan_count = y_n_current.isna().sum()
+                extreme_count = (~y_n_current.isna() & (y_n_current.abs() > 1e6)).sum()
+                if nan_count > 0 or extreme_count > 0:
+                    logging.warning(f"COMID {current} 的 y_n_{param} 包含 {nan_count} 个NaN和 {extreme_count} 个异常值")
+                    if extreme_count > 0:
+                        # 裁剪极端值
+                        y_n_current = y_n_current.clip(-1e6, 1e6)
+                        logging.info(f"已将 COMID {current} 的 y_n_{param} 极端值裁剪到 ±1e6 范围内")
 
                 # 获取河段长度
                 length_current = get_river_length(current, attr_dict, river_info)
                 length_down = get_river_length(next_down, attr_dict, river_info)
 
-                # 计算保留系数
-                R_series = compute_retainment_factor(
-                    v_f=v_f, 
-                    Q_up=Q_current, 
-                    Q_down=Q_down,
-                    W_up=S_current,  # 这是宽度
-                    W_down=S_down,   # 这是宽度
-                    length_up=length_current,  
-                    length_down=length_down,   
-                    temperature=temperature,
-                    N_concentration=N_concentration,
-                    parameter=param
-                )
-                # 计算贡献并累加到下游负荷累加器
-                contribution = y_n_current * R_series * Q_current
-                load_acc[param][next_down] = load_acc[param][next_down].add(contribution, fill_value=0.0)
+                try:
+                    # 计算保留系数，并存储调试信息
+                    R_series = compute_retainment_factor(
+                        v_f=v_f, 
+                        Q_up=Q_current, 
+                        Q_down=Q_down,
+                        W_up=S_current,
+                        W_down=S_down,
+                        length_up=length_current,
+                        length_down=length_down,
+                        temperature=temperature,
+                        N_concentration=N_concentration,
+                        parameter=param,
+                        debug_info=segment_debug
+                    )
+                    
+                    # 计算贡献并累加到下游负荷累加器
+                    contribution = y_n_current * R_series * Q_current
+                    
+                    # 检查贡献是否包含异常值
+                    contribution_nan = contribution.isna().sum()
+                    contribution_extreme = (~contribution.isna() & (contribution.abs() > 1e6)).sum()
+                    
+                    if contribution_nan > 0 or contribution_extreme > 0:
+                        logging.warning(f"COMID {current} -> {next_down} 的贡献包含 {contribution_nan} 个NaN和 {contribution_extreme} 个异常值")
+                        # 裁剪异常贡献值
+                        if contribution_extreme > 0:
+                            contribution = contribution.clip(-1e6, 1e6)
+                            logging.info(f"已将贡献极端值裁剪到 ±1e6 范围内")
+                        
+                        # 记录问题河段
+                        problem_segments.append((current, next_down, param))
+                    
+                    # 累加贡献
+                    load_acc[param][next_down] = load_acc[param][next_down].add(contribution, fill_value=0.0)
+                    
+                    # 存储额外的调试列
+                    if store_debug_info:
+                        segment_debug[f'y_n_current_{param}'] = y_n_current
+                        segment_debug[f'contribution_{param}'] = contribution
+                        segment_debug[f'R_series_{param}'] = R_series
+                except Exception as e:
+                    # 捕获计算过程中的异常
+                    logging.error(f"处理 COMID {current} -> {next_down} 的 {param} 时出错: {str(e)}")
+                    # 将此河段对添加到问题列表
+                    problem_segments.append((current, next_down, param))
+                    
+                    # 使用安全值作为默认贡献
+                    contribution = pd.Series(0.0, index=common_dates)
+                    load_acc[param][next_down] = load_acc[param][next_down].add(contribution, fill_value=0.0)
             
+            # 存储调试信息
+            if store_debug_info and (is_debug_segment or processed_count % debug_interval == 0):
+                segment_debug['common_dates'] = common_dates
+                segment_debug['Q_current'] = Q_current
+                segment_debug['Q_down'] = Q_down
+                segment_debug['S_current'] = S_current
+                segment_debug['S_down'] = S_down
+                if temperature is not None:
+                    segment_debug['temperature'] = temperature
+                    
+                # 保存调试信息
+                debug_key = f"{current}_{next_down}"
+                debug_segments[debug_key] = segment_debug
+        
         # 减少下游河段的入度
         indegree[next_down] -= 1
          
@@ -678,13 +824,48 @@ def execute_flow_routing(comid_data, queue, indegree, next_down_ids, load_acc,
             
             # 为每个参数分别计算y_up和y_n
             for param in target_cols:
-                # 计算上游贡献浓度
-                y_up_down = load_acc[param][next_down] / down_data['Qout'].replace(0, np.nan)
-                y_up_down = y_up_down.fillna(0.0)
-                
-                # 更新下游河段的y_up和y_n
-                down_data[f'y_up_{param}'] = y_up_down
-                down_data[f'y_n_{param}'] = down_data[f'E_{param}'] + down_data[f'y_up_{param}']
+                try:
+                    # 计算上游贡献浓度
+                    y_up_down = load_acc[param][next_down] / down_data['Qout'].replace(0, np.nan)
+                    
+                    # 检查y_up是否包含异常值
+                    y_up_nan = y_up_down.isna().sum()
+                    y_up_extreme = (~y_up_down.isna() & (y_up_down.abs() > 1e6)).sum()
+                    
+                    if y_up_nan > 0 or y_up_extreme > 0:
+                        logging.warning(f"COMID {next_down} 的 y_up_{param} 包含 {y_up_nan} 个NaN和 {y_up_extreme} 个异常值")
+                        # 处理异常值
+                        if y_up_extreme > 0:
+                            y_up_down = y_up_down.clip(-1e6, 1e6)
+                            logging.info(f"已将 COMID {next_down} 的 y_up_{param} 极端值裁剪到 ±1e6 范围内")
+                    
+                    # 填充NaN值
+                    y_up_down = y_up_down.fillna(0.0)
+                    
+                    # 更新下游河段的y_up
+                    down_data[f'y_up_{param}'] = y_up_down
+                    
+                    # 计算y_n并检查异常值
+                    y_n_down = down_data[f'E_{param}'] + down_data[f'y_up_{param}']
+                    y_n_extreme = (y_n_down.abs() > 1e6).sum()
+                    
+                    if y_n_extreme > 0:
+                        logging.warning(f"COMID {next_down} 的 y_n_{param} 包含 {y_n_extreme} 个异常值")
+                        y_n_down = y_n_down.clip(-1e6, 1e6)
+                        logging.info(f"已将 y_n_{param} 极端值裁剪到 ±1e6 范围内")
+                    
+                    down_data[f'y_n_{param}'] = y_n_down
+                    
+                    # 存储调试列
+                    if store_debug_info:
+                        down_data[f'debug_load_acc_{param}'] = load_acc[param][next_down]
+                        down_data[f'debug_E_{param}'] = down_data[f'E_{param}']
+                except Exception as e:
+                    logging.error(f"计算 COMID {next_down} 的 y_up 和 y_n 时出错: {str(e)}")
+                    # 使用安全值
+                    down_data[f'y_up_{param}'] = 0.0
+                    down_data[f'y_n_{param}'] = down_data[f'E_{param}']
+                    problem_segments.append((next_down, 0, param))
             
             # 更新数据字典
             comid_data[next_down] = down_data
@@ -692,7 +873,19 @@ def execute_flow_routing(comid_data, queue, indegree, next_down_ids, load_acc,
             # 将下游河段加入队列
             queue.append(next_down)
     
-    return comid_data
+    # 报告问题河段的统计信息
+    if problem_segments:
+        logging.warning(f"汇流计算中有 {len(problem_segments)} 个问题河段对")
+        
+        # 统计每个参数的问题数量
+        param_problems = {}
+        for _, _, param in problem_segments:
+            param_problems[param] = param_problems.get(param, 0) + 1
+            
+        for param, count in param_problems.items():
+            logging.warning(f"参数 {param} 有 {count} 个问题河段")
+    
+    return comid_data, debug_segments
 
 def format_results(comid_data, iteration, target_cols):
     """

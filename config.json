@@ -1,0 +1,60 @@
+{
+    "basic": {
+      "max_iterations": 5,
+      "epsilon": 0.01,
+      "model_type": "lstm",
+      "target_cols": ["TN"],
+      "log_dir": "logs",
+      "memory_check_interval": 30,
+      "memory_log_verbosity": 1,
+      "disable_monitoring": false,
+      "model_version": "lstm_v1",
+      "flow_results_dir": "flow_results",
+      "model_dir": "models",
+      "reuse_existing_flow_results": true,
+      "start_iteration": 0,
+      "data_dir": "D:\\PGRWQ\\data"
+    },
+    "features": {
+      "input_features": [
+        "surface_net_solar_radiation_mean", 
+        "surface_pressure_mean", 
+        "temperature_2m_mean",
+        "u_component_of_wind_10m_mean", 
+        "v_component_of_wind_10m_mean",
+        "volumetric_soil_water_layer_1_mean",
+        "volumetric_soil_water_layer_2_mean",
+        "temperature_2m_min",
+        "temperature_2m_max",
+        "total_precipitation_sum",
+        "potential_evaporation_sum",
+        "Qout"
+      ],
+      "attr_features": [
+        "pre_mm_syr", "pet_mean", "aridity", "seasonality", "high_prec_freq",
+        "crp_pc_sse", "for_pc_sse", "urb_pc_sse", "wet_pc_s01",
+        "nli_ix_sav", "pop_ct_usu",
+        "dis_m3_pyr", "run_mm_syr",
+        "cly_pc_sav", "soc_th_sav",
+        "ele_mt_sav", "slp_dg_sav", "sgr_dk_sav",
+        "moisture_index", "ero_kh_sav"
+      ]
+    },
+    "data": {
+      "daily_csv": "feature_daily_ts.csv",
+      "river_attributes_csv": "river_attributes_new.csv",
+      "comid_wq_list_csv": "WQ_exist_comid.csv",
+      "comid_era5_list_csv": "ERA5_exist_comid.csv"
+    },
+    "models": {
+      "lstm": {
+        "hidden_size": 64,
+        "num_layers": 1,
+        "fc_dim": 32,
+        "epochs": 100,
+        "lr": 0.001,
+        "patience": 3,
+        "batch_size": 32
+      }
+    }
+  }

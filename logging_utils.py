@@ -52,8 +52,8 @@ def setup_logging(log_dir="logs", log_filename=None):
         Logger object
     """
     # Ensure logs directory exists
-    log_dir = ensure_dir_exists(log_dir)
-    
+    log_dir = ensure_dir_exists(log_dir) 
+
     # Generate log filename if not provided
     if log_filename is None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

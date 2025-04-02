@@ -1,26 +1,37 @@
+"""
+PG-RWQ 水质预测模型训练主程序
+
+本程序是物理约束的递归水质预测模型(PG-RWQ)的主入口。
+程序通过 JSON 配置文件加载各种参数，支持不同类型的模型训练，
+并在训练过程中监控资源使用情况。
+
+作者: Mortenki
+日期: 2025-04-02
+版本: 1.0
+"""
+
 import os
 import time
 import sys
 import logging
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# 将日志级别改为 DEBUG
-logging.getLogger().setLevel(logging.DEBUG) 
-
+import json
 import argparse
 import pandas as pd
 import numpy as np
 import torch
-from sklearn.preprocessing import StandardScaler
-from PGRWQI.data_processing import load_daily_data, load_river_attributes
-from PGRWQI.model_training.train import iterative_training_procedure
-
 import datetime
+import threading
+from typing import Dict, Any, List, Optional, Tuple
+
+# 将父目录添加到路径，以便导入自定义模块
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+logging.getLogger().setLevel(logging.DEBUG)
+
+# 导入自定义模块
+from PGRWQI.data_processing import load_daily_data, load_river_attributes, detect_and_handle_anomalies, check_river_network_consistency
+from PGRWQI.model_training.train import iterative_training_procedure
 from PGRWQI.logging_utils import setup_logging, restore_stdout_stderr, ensure_dir_exists
 from PGRWQI.tqdm_logging import tqdm
-import threading
-import time
-import datetime
-
 from PGRWQI.model_training.gpu_memory_utils import (
     log_memory_usage, 
     TimingAndMemoryContext, 
@@ -31,332 +42,201 @@ from PGRWQI.model_training.gpu_memory_utils import (
     set_monitoring_enabled
 )
 
-# # Import memory monitoring utilities or define fallback functions
-# try:
-#     from model_training.gpu_memory_utils import (
-#         log_memory_usage, 
-#         TimingAndMemoryContext, 
-#         MemoryTracker, 
-#         periodic_memory_check,
-#         get_gpu_memory_info,
-#         set_memory_log_verbosity, 
-#         set_monitoring_enabled
-#     )
-# except ImportError:
-#     # Create a minimal implementation of memory monitoring
-#     def log_memory_usage(prefix=""):
-#         """Log GPU memory usage with a prefix."""
-#         if torch.cuda.is_available():
-#             allocated = torch.cuda.memory_allocated() / (1024 * 1024)
-#             reserved = torch.cuda.memory_reserved() / (1024 * 1024)
-#             print(f"{prefix}GPU Memory: {allocated:.2f}MB allocated, {reserved:.2f}MB reserved")
-    
-#     class TimingAndMemoryContext:
-#         """Context manager for timing and GPU memory tracking."""
-#         def __init__(self, name="Operation", log_memory=True):
-#             self.name = name
-#             self.log_memory = log_memory
-#             self.start_time = None
-        
-#         def __enter__(self):
-#             self.start_time = time.time()
-#             if self.log_memory and torch.cuda.is_available():
-#                 log_memory_usage(f"[{self.name} START] ")
-#             return self
-        
-#         def __exit__(self, exc_type, exc_val, exc_tb):
-#             duration = time.time() - self.start_time
-#             if self.log_memory and torch.cuda.is_available():
-#                 log_memory_usage(f"[{self.name} END] ")
-#             print(f"[TIMING] {self.name} completed in {duration:.2f} seconds")
-    
-#     def periodic_memory_check(interval_seconds=60):
-#         """Start periodic memory check in background thread."""
-#         import threading
-        
-#         def _check_memory():
-#             while True:
-#                 if torch.cuda.is_available():
-#                     log_memory_usage("[Periodic] ")
-#                 time.sleep(interval_seconds)
-        
-#         monitor_thread = threading.Thread(target=_check_memory, daemon=True)
-#         monitor_thread.start()
-#         print(f"Started periodic memory monitoring (interval: {interval_seconds}s)")
-#         return monitor_thread
-    
-#     class MemoryTracker:
-#         """Simple memory tracker class."""
-#         def __init__(self, interval_seconds=10): 
-#             self.interval = interval_seconds
-        
-#         def start(self):
-#             log_memory_usage("[Memory Tracker Started] ")
-        
-#         def stop(self):
-#             log_memory_usage("[Memory Tracker Stopped] ")
-        
-#         def report(self):
-#             log_memory_usage("[Memory Report] ")
-#             return {}
-    
-#     def get_gpu_memory_info():
-#         """Get GPU memory info as a dictionary."""
-#         if not torch.cuda.is_available():
-#             return {"available": False}
-        
-#         # Get memory usage in bytes
-#         allocated = torch.cuda.memory_allocated()
-#         reserved = torch.cuda.memory_reserved()
-#         max_allocated = torch.cuda.max_memory_allocated()
-        
-#         # Convert to MB for readability
-#         allocated_mb = allocated / (1024 * 1024)
-#         reserved_mb = reserved / (1024 * 1024)
-#         max_allocated_mb = max_allocated / (1024 * 1024)
-        
-#         # Get total memory of the GPU for percentage calculation
-#         device_props = torch.cuda.get_device_properties(torch.cuda.current_device())
-#         total_memory = device_props.total_memory
-        
-#         # Calculate percentage of usage
-#         usage_percent = (allocated / total_memory) * 100
-        
-#         return {
-#             "allocated_mb": allocated_mb,
-#             "reserved_mb": reserved_mb,
-#             "max_allocated_mb": max_allocated_mb,
-#             "total_memory_mb": total_memory / (1024 * 1024),
-#             "usage_percent": usage_percent
-#         }
-def create_memory_monitor_file(interval_seconds=300, log_dir="logs"):
+#============================================================================
+# 配置文件处理
+#============================================================================
+
+def load_config(config_path: str) -> Dict[str, Any]:
     """
-    Create a file to monitor GPU memory usage, with a reasonable interval to avoid cluttering logs.
+    从JSON文件加载配置参数
     
-    Args:
-        interval_seconds: Time between recordings (default: 300s = 5 minutes)
-        log_dir: Directory to save the log file
+    参数:
+        config_path: JSON配置文件路径
+    
+    返回:
+        包含配置参数的字典
+        
+    异常:
+        ValueError: 当配置文件格式不正确或缺少必要参数时抛出
     """
-    # Use absolute path for the log directory
+    try:
+        # 读取JSON文件
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        
+        # 验证必要的配置部分是否存在
+        required_sections = ['basic', 'features', 'data', 'models']
+        for section in required_sections:
+            if section not in config:
+                raise ValueError(f"配置文件缺少'{section}'部分")
+        
+        # 验证模型类型是否存在
+        if 'model_type' not in config['basic']:
+            raise ValueError("基本配置中缺少'model_type'参数")
+        
+        # 验证指定的模型类型是否在models配置中
+        model_type = config['basic']['model_type']
+        if model_type not in config['models']:
+            raise ValueError(f"在配置中未找到模型类型'{model_type}'的参数")
+        
+        logging.info(f"成功加载配置文件: {config_path}")
+        return config
+    except Exception as e:
+        error_msg = f"加载配置文件{config_path}时出错: {str(e)}"
+        logging.error(error_msg)
+        raise ValueError(error_msg)
+
+def get_model_params(config: Dict[str, Any], model_type: str) -> Dict[str, Any]:
+    """
+    根据模型类型提取模型特定参数
+    
+    参数:
+        config: 配置字典
+        model_type: 模型类型字符串（如'lstm', 'rf'）
+    
+    返回:
+        包含模型参数的字典
+        
+    异常:
+        ValueError: 当指定的模型类型不在配置中时抛出
+    """
+    # 验证模型类型是否存在
+    if model_type not in config['models']:
+        raise ValueError(f"在配置中未找到模型类型'{model_type}'")
+    
+    # 获取模型特定参数
+    model_params = config['models'][model_type].copy()
+    
+    # 根据特征列表添加input_dim和attr_dim
+    model_params['input_dim'] = len(config['features']['input_features'])
+    model_params['attr_dim'] = len(config['features']['attr_features'])
+    
+    logging.info(f"已提取'{model_type}'模型的参数，特征维度: {model_params['input_dim']}，属性维度: {model_params['attr_dim']}")
+    return model_params
+
+#============================================================================
+# 内存监控
+#============================================================================
+
+def create_memory_monitor_file(interval_seconds: int = 300, log_dir: str = "logs") -> Optional[threading.Thread]:
+    """
+    创建GPU内存使用监控文件并启动监控线程
+    
+    参数:
+        interval_seconds: 记录间隔（默认：300秒 = 5分钟）
+        log_dir: 日志保存目录
+    
+    返回:
+        监控线程对象，如果创建失败则返回None
+    """
+    # 使用绝对路径
     original_dir = os.getcwd()
     log_dir = os.path.abspath(log_dir)
     
-    # Create directory if it doesn't exist
+    # 创建目录（如果不存在）
     try:
         os.makedirs(log_dir, exist_ok=True)
-        logging.info(f"Created/verified directory for GPU memory logs: {log_dir}")
+        logging.info(f"已创建/验证GPU内存日志目录: {log_dir}")
     except Exception as e:
-        logging.error(f"Error creating directory {log_dir}: {str(e)}")
-        # Use absolute path to current directory as fallback
+        logging.error(f"创建目录{log_dir}时出错: {str(e)}")
+        # 使用当前目录作为备选
         log_dir = original_dir
-        logging.info(f"Using current directory for logs instead: {log_dir}")
+        logging.info(f"改用当前目录保存日志: {log_dir}")
     
-    # Create log file with absolute path
+    # 创建日志文件（绝对路径）
     log_file = os.path.join(log_dir, "gpu_memory_log.csv")
     
-    # Create or clear the file with headers
+    # 创建或清空文件并写入表头
     try:
         with open(log_file, 'w', encoding='utf-8') as f:
             f.write("timestamp,allocated_mb,reserved_mb,max_allocated_mb,percent_used\n")
-        logging.info(f"Created GPU memory log file: {log_file}")
+        logging.info(f"已创建GPU内存日志文件: {log_file}")
     except Exception as e:
-        logging.error(f"Error creating GPU memory log file: {str(e)}")
+        logging.error(f"创建GPU内存日志文件时出错: {str(e)}")
         return None
     
+    # 定义监控线程函数
     def _monitor_file():
+        """记录GPU内存使用情况到文件的线程函数"""
         while True:
             try:
+                # 获取当前时间
                 timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                
+                # 如果有GPU可用，记录内存使用情况
                 if torch.cuda.is_available():
                     info = get_gpu_memory_info()
                     try:
-                        # Open with absolute path
+                        # 使用绝对路径打开文件
                         with open(log_file, 'a', encoding='utf-8') as f:
                             f.write(f"{timestamp},{info['allocated_mb']:.2f},{info['reserved_mb']:.2f},"
                                    f"{info['max_allocated_mb']:.2f},{info['usage_percent']:.2f}\n")
                     except Exception as e:
-                        logging.error(f"Error writing to GPU memory log ({log_file}): {str(e)}")
+                        logging.error(f"写入GPU内存日志({log_file})时出错: {str(e)}")
             except Exception as e:
-                logging.error(f"Error in GPU memory monitoring: {str(e)}")
+                logging.error(f"GPU内存监控过程中出错: {str(e)}")
             
+            # 等待指定时间间隔
             time.sleep(interval_seconds)
     
+    # 创建并启动守护线程
     monitor_thread = threading.Thread(target=_monitor_file, daemon=True)
     monitor_thread.start()
-    logging.info(f"Started GPU memory file logging (interval: {interval_seconds}s)")
+    logging.info(f"已启动GPU内存文件记录（间隔: {interval_seconds}秒）")
     return monitor_thread
 
+#============================================================================
+# 数据处理模块
+#============================================================================
 
-def main():
-    # Parse arguments first to get log_dir
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--max_iterations", type=int, default=5)
-    parser.add_argument("--epsilon", type=float, default=0.01)
-    parser.add_argument("--model_type", type=str, default="lstm", help="'rf' 或 'lstm'")
-    parser.add_argument("--input_features", type=str, default="Feature1,Feature2,Feature3,Feature4,Feature5",
-                        help="以逗号分隔的输入特征名称列表")
-    parser.add_argument("--attr_features", type=str, default="Attr1,Attr2,Attr3",
-                        help="以逗号分隔的属性特征名称列表")
-    parser.add_argument("--memory_check_interval", type=int, default=30,
-                        help="GPU 内存使用情况检查间隔（秒）")
-    parser.add_argument("--batch_size", type=int, default=32,
-                        help="训练批次大小")
-    parser.add_argument("--log_dir", type=str, default="logs",
-                        help="日志保存目录")
-    parser.add_argument("--memory_log_verbosity", type=int, default=1, choices=[0, 1, 2],
-                        help="Memory logging verbosity (0: minimal, 1: normal, 2: verbose)")
-    parser.add_argument("--disable_monitoring", action="store_true",
-                        help="Disable all performance monitoring (overrides verbosity settings)")
-    args = parser.parse_args()
-
-    # Ensure log directory exists before any operation
-    log_dir = ensure_dir_exists(args.log_dir)
-
-    # if args.disable_monitoring:
-    #     set_monitoring_enabled(False)
-    #     # Skip starting any monitoring services
-    #     logging.info("All performance monitoring is disabled")
-    # else:
-    #     set_monitoring_enabled(True)
-    #     # Set verbosity level
-    #     set_memory_log_verbosity(args.memory_log_verbosity)
-        
-    #     # Start GPU memory monitoring if enabled
-    #     if torch.cuda.is_available():
-    #         # Start periodic memory check in console
-    #         periodic_monitor = periodic_memory_check(interval_seconds=300)
-    #         # Start file-based memory logging
-    #         file_monitor = create_memory_monitor_file(interval_seconds=300, log_dir=log_dir)
-
-
+def load_data(data_config: Dict[str, str]) -> Tuple[pd.DataFrame, pd.DataFrame, List[int], List[int]]:
+    """
+    加载训练所需的各种数据
     
-    # Initialize logging system
-    logger = setup_logging(log_dir=log_dir)
+    参数:
+        data_config: 包含数据文件路径的配置字典
     
-    # Log system information
-    logging.info(f"PG-RWQ Training Pipeline Starting")
-    logging.info(f"System time: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    logging.info(f"Python version: {sys.version}")
-    logging.info(f"PyTorch version: {torch.__version__}")
-    
-    # Start GPU memory monitoring
-    if torch.cuda.is_available():
-        # Start periodic memory check in console
-        periodic_monitor = periodic_memory_check(interval_seconds=args.memory_check_interval)
-        # Start file-based memory logging
-        file_monitor = create_memory_monitor_file(interval_seconds=args.memory_check_interval, 
-                                                log_dir=log_dir)
-        
-        # Initial memory status
-        log_memory_usage("[Initial GPU Status] ")
-
-
-    # 设置数据根目录
-    with TimingAndMemoryContext("Setting Working Directory"):
-        os.chdir(r"D:\\PGRWQ\\data")
-
-    # 将逗号分隔的字符串转换为列表
-    input_features = [feat.strip() for feat in args.input_features.split(",") if feat.strip()]
-    attr_features = [feat.strip() for feat in args.attr_features.split(",") if feat.strip()]
-
-    # 手动指定输入特征列表和属性特征列表
-    with TimingAndMemoryContext("Feature Definition"):
-        input_features = ['surface_net_solar_radiation_mean', 'surface_pressure_mean', 'temperature_2m_mean', 
-                         'u_component_of_wind_10m_mean', 'v_component_of_wind_10m_mean',
-                         'volumetric_soil_water_layer_1_mean','volumetric_soil_water_layer_2_mean',
-                         'temperature_2m_min','temperature_2m_max','total_precipitation_sum',
-                         'potential_evaporation_sum','Qout']
-
-        attr_features = [
-            # 气候因子
-            'pre_mm_syr',         # 年降水量，反映区域总体降水输入
-            'pet_mean',           # 日均潜在蒸散，代表蒸发能力
-            'aridity',            # 干旱指数，体现水分供需平衡
-            'seasonality',        # 湿润指数的季节性，反映降水分布的不均性
-            'high_prec_freq',     # 极端降水事件的频率，对面源污染具有脉冲效应
-
-            # 土地利用
-            'crp_pc_sse',         # 耕地比例，代表农业活动及化肥使用
-            'for_pc_sse',         # 森林覆盖率，有助于截留和吸收营养盐
-            'urb_pc_sse',         # 城市用地比例，反映城市化与生活污水排放
-            'wet_pc_s01',         # 湿地比例，湿地具有调节营养盐的功能
-
-            # 人类活动
-            'nli_ix_sav',         # 夜间灯光指标，遥感反映人类活动密度
-            'pop_ct_usu',         # 汇流口人口总数，直接关联生活污染
-
-            # 水文因子
-            'dis_m3_pyr',         # 年河流流量，决定稀释与传输过程
-            'run_mm_syr',         # 地表径流深，指示面源污染传递能力
-
-            # 土壤因子
-            'cly_pc_sav',         # 土壤黏土比例，影响养分吸附与保留
-            'soc_th_sav',         # 土壤有机碳含量，反映土壤微生物作用及营养盐固定
-
-            # 地形因子
-            'ele_mt_sav',         # 平均高程，表征区域地势特征
-            'slp_dg_sav',         # 坡度，影响侵蚀和径流强度
-            'sgr_dk_sav',         # 河道坡降，直接关联水流动力及输运效率
-
-            # 补充因子
-            'moisture_index',     # 湿润指数，综合反映区域水分状况
-            'ero_kh_sav'          # 土壤侵蚀速率，影响沉积物及磷的输送
-        ]
-
-    # 根据指定列表自动调整 input_dim 和 attr_dim
-    input_dim = len(input_features)
-    attr_dim = len(attr_features)
-    print(f"输入特征列表: {input_features} (维度: {input_dim})")
-    print(f"属性特征列表: {attr_features} (维度: {attr_dim})")
-
-    # 检查 GPU 是否可用
-    with TimingAndMemoryContext("Device Setup"):
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"使用设备：{device}")
-        
-        if device == "cuda":
-            # Log CUDA device information
-            for i in range(torch.cuda.device_count()):
-                device_properties = torch.cuda.get_device_properties(i)
-                print(f"CUDA Device {i}: {device_properties.name}")
-                print(f"  Total Memory: {device_properties.total_memory / (1024**3):.2f} GB")
-                print(f"  CUDA Capability: {device_properties.major}.{device_properties.minor}")
+    返回:
+        df: 日尺度数据DataFrame
+        attr_df: 河段属性DataFrame
+        comid_wq_list: 水质站点COMID列表
+        comid_era5_list: ERA5覆盖的COMID列表
+    """
     # 加载河段属性数据
-    with TimingAndMemoryContext("Loading River Attributes"):
-        attr_df = load_river_attributes("river_attributes_new.csv")
-        print("\n河段属性数据基本信息：")
-        print(f"  数据形状: {attr_df.shape}")
-        print(f"  列名: {attr_df.columns.tolist()}")
-
-    # 提取河段信息
-    with TimingAndMemoryContext("Extracting River Network Info"):
-        river_info = attr_df[['COMID', 'NextDownID','lengthkm','order_']].copy()
-        # 确保 NextDownID 为数字；若存在缺失值则填为 0
-        river_info['NextDownID'] = pd.to_numeric(river_info['NextDownID'], errors='coerce').fillna(0).astype(int)
+    with TimingAndMemoryContext("加载河段属性数据"):
+        attr_df = load_river_attributes(data_config['river_attributes_csv'])
+        logging.info(f"河段属性数据形状: {attr_df.shape}")
+    
+    # 提取河网信息
+    with TimingAndMemoryContext("提取河网信息"):
+        river_info = attr_df[['COMID', 'NextDownID', 'lengthkm', 'order_']].copy()
+        # 确保NextDownID为数值型；若存在缺失值则填充为0
+        river_info['NextDownID'] = pd.to_numeric(
+            river_info['NextDownID'], errors='coerce'
+        ).fillna(0).astype(int)
         
         # 加载COMID列表
-        comid_wq_list = pd.read_csv("WQ_exist_comid.csv", header=None)[0].tolist()
-        comid_era5_list = pd.read_csv("ERA5_exist_comid.csv", header=None)[0].tolist()
-
-
-    # 加载日尺度数据
-    with TimingAndMemoryContext("Loading Daily Data"):
-        daily_csv = "feature_daily_ts.csv"
-        df = load_daily_data(daily_csv)
-        print("日尺度数据基本信息：")
-        print(f"  数据形状: {df.shape}")
-        print(f"  列名: {df.columns.tolist()}")
+        comid_wq_list = pd.read_csv(
+            data_config['comid_wq_list_csv'], header=None
+        )[0].tolist()
+        logging.info(f"加载了{len(comid_wq_list)}个水质站点COMID")
         
-        # 检查异常值 - 特别是负的Qout值
-        from data_processing import detect_and_handle_anomalies
+        comid_era5_list = pd.read_csv(
+            data_config['comid_era5_list_csv'], header=None
+        )[0].tolist()
+        logging.info(f"加载了{len(comid_era5_list)}个ERA5覆盖COMID")
+    
+    # 加载日尺度数据
+    with TimingAndMemoryContext("加载日尺度数据"):
+        df = load_daily_data(data_config['daily_csv'])
+        logging.info(f"日尺度数据形状: {df.shape}")
+        
+        # 检查异常值
         logging.info("检查数据中的异常值...")
         df, anomaly_results = detect_and_handle_anomalies(
             df, 
             columns_to_check=['Qout'], 
-            # check_negative=True,
-            # check_outliers=True,
             fix_negative=True,
-            # fix_outliers=False,
             negative_replacement=0.001,
             outlier_method='iqr',
             outlier_threshold=3.0,
@@ -364,117 +244,257 @@ def main():
             logger=logging
         )
         
-        # if anomaly_results['has_anomalies']:
-        #     if 'Qout' in anomaly_results['fixed_negative_counts']:
-        #         fixed_count = anomaly_results['fixed_negative_counts']['Qout']
-        #         logging.warning(f"已修复 {fixed_count} 个负Qout值 (替换为 {0.001})")
-        #         print(f"警告: 检测到数据异常，已修复 {fixed_count} 个负Qout值")
+        # 汇报修复结果
+        if 'fixed_negative_counts' in anomaly_results:
+            if 'Qout' in anomaly_results['fixed_negative_counts']:
+                fixed_count = anomaly_results['fixed_negative_counts']['Qout']
+                logging.info(f"已修复{fixed_count}个负Qout值（替换为0.001）")
         
-        # 检查河网拓扑结构的一致性
-        with TimingAndMemoryContext("Checking River Network Consistency"):
-            from data_processing import check_river_network_consistency
+        # 检查河网拓扑结构一致性
+        with TimingAndMemoryContext("检查河网拓扑结构一致性"):
             network_results = check_river_network_consistency(
                 river_info,
                 verbose=True,
                 logger=logging
             )
             
+            # 汇报检查结果
             if network_results['has_issues']:
-                logging.warning("河网拓扑结构检查发现问题，请查看日志了解详情")
-                print("警告: 河网拓扑结构检查发现问题，请查看日志了解详情")
-
-
-    # 调用迭代训练过程
-    with TimingAndMemoryContext("Iterative Training Process"):
-        final_model = iterative_training_procedure(
-            df=df,
-            attr_df=attr_df,
-            input_features=input_features,
-            attr_features=attr_features,
-            river_info=river_info,
-            target_cols=['TN'],
-            max_iterations=args.max_iterations,
-            epsilon=args.epsilon,
-            model_type=args.model_type,
-            input_dim=input_dim,
-            hidden_size=64,
-            num_layers=1,
-            attr_dim=attr_dim,
-            fc_dim=32,
-            device=device,
-            model_version = "v0331_01",
-            comid_wq_list=comid_wq_list,
-            comid_era5_list=comid_era5_list,
-            input_cols=input_features
-        )
+                logging.warning("河网拓扑结构检查发现问题，请查看详细日志")
     
-    # Final memory report
-    if torch.cuda.is_available():
-        log_memory_usage("[Training Completed] ")
-        
-        # Report GPU memory statistics
-        print("\n===== Final GPU Memory Statistics =====")
-        print(f"Peak memory usage: {torch.cuda.max_memory_allocated() / (1024**3):.2f} GB")
-        print(f"Current memory allocated: {torch.cuda.memory_allocated() / (1024**3):.2f} GB")
-        print(f"Current memory reserved: {torch.cuda.memory_reserved() / (1024**3):.2f} GB")
-        
-        # Clear cache
-        torch.cuda.empty_cache()
-        print("GPU cache cleared")
-        print(f"After clearing cache - Memory allocated: {torch.cuda.memory_allocated() / (1024**3):.2f} GB")
+    return df, attr_df, comid_wq_list, comid_era5_list, river_info
+
+#============================================================================
+# 设备检测与初始化
+#============================================================================
+
+def initialize_device() -> str:
+    """
+    检查GPU可用性并初始化计算设备
     
-    print("迭代训练完成，最终模型已训练完毕。")
-
-# Add a GPU memory logger context manager that can be used around key operations
-class GPUMemoryLogger:
-    """Context manager to log GPU memory usage before and after an operation."""
-    def __init__(self, name):
-        self.name = name
-        self.start_memory = 0
+    返回:
+        device: 计算设备类型字符串，'cuda'或'cpu'
+    """
+    with TimingAndMemoryContext("设备初始化"):
+        # 检查CUDA是否可用
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        logging.info(f"使用设备: {device}")
         
-    def __enter__(self):
-        if torch.cuda.is_available():
-            # Record starting memory
-            self.start_memory = torch.cuda.memory_allocated()
-            print(f"[{self.name}] Starting GPU memory: {self.start_memory / (1024**3):.4f} GB")
-        return self
-        
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if torch.cuda.is_available():
-            # Calculate memory increase
-            end_memory = torch.cuda.memory_allocated()
-            diff = end_memory - self.start_memory
-            print(f"[{self.name}] Ending GPU memory: {end_memory / (1024**3):.4f} GB")
-            print(f"[{self.name}] Memory change: {diff / (1024**3):.4f} GB")
-            
-            # If there was a significant increase, additional details
-            if diff > 1024**2:  # More than 1MB increase
-                print(f"[{self.name}] Warning: Significant memory usage detected")
+        # 如果使用GPU，记录详细信息
+        if device == "cuda":
+            # 记录CUDA设备信息
+            for i in range(torch.cuda.device_count()):
+                device_properties = torch.cuda.get_device_properties(i)
+                cuda_info = (
+                    f"CUDA设备 {i}: {device_properties.name}\n"
+                    f"  总内存: {device_properties.total_memory / (1024**3):.2f} GB\n"
+                    f"  CUDA版本: {device_properties.major}.{device_properties.minor}"
+                )
+                logging.info(cuda_info)
+    return device
 
-if __name__ == "__main__":
+#============================================================================
+# 主程序
+#============================================================================
+
+def main():
+    """
+    PG-RWQ训练流程主函数
+    
+    处理命令行参数，加载配置，初始化日志和内存监控，
+    加载数据，并执行迭代训练过程。
+    """
+
+    ## 输出当前路径
+    current_path = os.getcwd()
+    print(f"当前工作目录: {current_path}")
+    #------------------------------------------------------------------------
+    # 1. 解析命令行参数
+    #------------------------------------------------------------------------
+    parser = argparse.ArgumentParser(description="PG-RWQ 水质预测模型训练程序")
+    parser.add_argument("--config", type=str, default="PGRWQI\\config.json",
+                        help="JSON配置文件路径")
+    parser.add_argument("--data_dir", type=str, default=None, 
+                        help="数据目录路径（覆盖配置中的路径）")
+    parser.add_argument("--override_model_type", type=str, ##default='lstm',
+                        help="覆盖配置中指定的模型类型")
+    args = parser.parse_args()
+    
+    #------------------------------------------------------------------------
+    # 2. 加载配置
+    #------------------------------------------------------------------------
+    config = load_config(args.config)
+    
+    # 应用命令行覆盖
+    if args.override_model_type:
+        config['basic']['model_type'] = args.override_model_type
+        logging.info(f"模型类型已被命令行参数覆盖为: {args.override_model_type}")
+    
+    # 分别获取不同部分的配置
+    basic_config = config['basic']
+    feature_config = config['features']
+    data_config = config['data']
+    
+    # 获取基于选定模型类型的特定配置
+    model_type = basic_config['model_type']
+    model_params = get_model_params(config, model_type)
+    
+    #------------------------------------------------------------------------
+    # 3. 设置日志和内存监控
+    #------------------------------------------------------------------------
+    # 设置日志
+    log_dir = ensure_dir_exists(basic_config.get('log_dir', 'logs'))
+    logger = setup_logging(log_dir=log_dir)
+    
+    # 初始化总体内存跟踪
+    overall_memory_tracker = MemoryTracker(interval_seconds=30)
+    overall_memory_tracker.start()
+    
     try:
-        # Initialize overall memory tracking
-        overall_memory_tracker = MemoryTracker(interval_seconds=30)
-        overall_memory_tracker.start()
+        #--------------------------------------------------------------------
+        # 4. 记录系统信息
+        #--------------------------------------------------------------------
+        logging.info("=" * 80)
+        logging.info("PG-RWQ 水质预测模型训练开始")
+        logging.info(f"系统时间: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        logging.info(f"Python版本: {sys.version}")
+        logging.info(f"PyTorch版本: {torch.__version__}")
+        logging.info(f"使用模型类型: {model_type}")
+        logging.info("=" * 80)
         
-        # Execute main function with memory monitoring
-        with TimingAndMemoryContext("PGRWQ Training Pipeline"):
-            main()
+        #--------------------------------------------------------------------
+        # 5. 启动GPU内存监控（如果启用）
+        #--------------------------------------------------------------------
+        if not basic_config.get('disable_monitoring', False) and torch.cuda.is_available():
+            # 设置内存日志详细程度
+            set_memory_log_verbosity(basic_config.get('memory_log_verbosity', 1))
+            
+            # 启动周期性内存检查（控制台）
+            periodic_monitor = periodic_memory_check(
+                interval_seconds=basic_config.get('memory_check_interval', 30)
+            )
+            
+            # 启动基于文件的内存日志记录
+            file_monitor = create_memory_monitor_file(
+                interval_seconds=basic_config.get('memory_check_interval', 30), 
+                log_dir=log_dir
+            )
+            
+            # 初始内存状态
+            log_memory_usage("[初始GPU状态] ")
         
-        # Get final memory report
+        #--------------------------------------------------------------------
+        # 6. 设置工作目录
+        #--------------------------------------------------------------------
+        if args.data_dir:
+            with TimingAndMemoryContext("设置工作目录"):
+                os.chdir(args.data_dir)
+                logging.info(f"工作目录已更改为: {args.data_dir}")
+        elif 'data_dir' in basic_config:
+            with TimingAndMemoryContext("设置工作目录"):
+                os.chdir(basic_config['data_dir'])
+                logging.info(f"工作目录已更改为: {basic_config['data_dir']}")
+        
+        #--------------------------------------------------------------------
+        # 7. 提取特征列表
+        #--------------------------------------------------------------------
+        input_features = feature_config['input_features']
+        attr_features = feature_config['attr_features']
+        
+        # 报告特征维度
+        input_dim = len(input_features)
+        attr_dim = len(attr_features)
+        logging.info(f"输入特征: {len(input_features)}个 (维度: {input_dim})")
+        print(f"属性特征: {len(attr_features)}个 (维度: {attr_dim})")
+        
+        #--------------------------------------------------------------------
+        # 8. 检查GPU可用性和初始化设备
+        #--------------------------------------------------------------------
+        device = initialize_device()
+        
+        #--------------------------------------------------------------------
+        # 9. 加载数据
+        #--------------------------------------------------------------------
+        df, attr_df, comid_wq_list, comid_era5_list, river_info = load_data(data_config)
+        
+        #--------------------------------------------------------------------
+        # 10. 执行迭代训练流程
+        #--------------------------------------------------------------------
+        print("=" * 80)
+        print(f"开始执行{model_type}模型的迭代训练流程")
+        print("=" * 80)
+        
+        with TimingAndMemoryContext("迭代训练流程"):
+            final_model = iterative_training_procedure(
+                df=df,
+                attr_df=attr_df,
+                input_features=input_features,
+                attr_features=attr_features,
+                river_info=river_info,
+                target_cols=basic_config.get('target_cols', ['TN']),
+                target_col=basic_config.get('target_col', 'TN'),
+                max_iterations=basic_config.get('max_iterations', 5),
+                epsilon=basic_config.get('epsilon', 0.01),
+                model_type=model_type,
+                model_params=model_params,  # 传递模型参数字典
+                device=device,
+                model_version=basic_config.get('model_version', 'default'),
+                comid_wq_list=comid_wq_list,
+                comid_era5_list=comid_era5_list,
+                input_cols=input_features,
+                start_iteration=basic_config.get('start_iteration', 0),
+                flow_results_dir=basic_config.get('flow_results_dir', 'flow_results'),
+                model_dir=basic_config.get('model_dir', 'models'),
+                reuse_existing_flow_results=basic_config.get('reuse_existing_flow_results', True)
+            )
+        
+        #--------------------------------------------------------------------
+        # 11. 最终内存报告
+        #--------------------------------------------------------------------
+        if torch.cuda.is_available():
+            log_memory_usage("[训练完成] ")
+            
+            # 报告GPU内存统计信息
+            print("\n===== 最终GPU内存统计 =====")
+            print(f"峰值内存使用: {torch.cuda.max_memory_allocated() / (1024**3):.2f} GB")
+            print(f"当前已分配内存: {torch.cuda.memory_allocated() / (1024**3):.2f} GB")
+            print(f"当前保留内存: {torch.cuda.memory_reserved() / (1024**3):.2f} GB")
+            
+            # 清理缓存
+            torch.cuda.empty_cache()
+            print("GPU缓存已清理")
+            print(f"清理缓存后 - 已分配内存: {torch.cuda.memory_allocated() / (1024**3):.2f} GB")
+        
+        print("=" * 80)
+        print("迭代训练完成，最终模型已训练完毕。")
+        print("=" * 80)
+    
+    except Exception as e:
+        logging.exception(f"主程序执行过程中出错: {str(e)}")
+        print(f"错误: {str(e)}")
+        print("请查看日志了解详细信息")
+    
+    finally:
+        #--------------------------------------------------------------------
+        # 12. 获取最终内存报告并清理
+        #--------------------------------------------------------------------
+        # 获取总体内存报告
         overall_memory_tracker.stop()
         stats = overall_memory_tracker.report()
         
-        # Final cleanup
+        # 最终清理
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-            logging.info("Final GPU memory cleanup completed")
-    
-    except Exception as e:
-        logging.exception(f"Error in main execution: {e}")
-    
-    finally:
-        # Ensure logs are properly flushed and stdout/stderr are restored
-        logging.info("Training process completed")
+            logging.info("最终GPU内存清理完成")
+        
+        # 确保日志正确刷新，恢复标准输出/错误
+        logging.info("训练流程已完成")
         logging.shutdown()
         restore_stdout_stderr()
+
+#============================================================================
+# 程序入口
+#============================================================================
+
+if __name__ == "__main__":
+    main()

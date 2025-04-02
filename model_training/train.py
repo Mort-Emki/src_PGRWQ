@@ -199,68 +199,70 @@ def split_train_val_data(
 # ===============================================================================
 # 模型创建和批量预测函数
 # ===============================================================================
-
 def create_or_load_model(
     model_type: str,
-    input_dim: int,
-    hidden_size: int,
-    num_layers: int,
-    attr_dim: int,
-    fc_dim: int,
     device: str,
     model_path: str,
+    model_params: dict,
     attr_dict: Dict[str, np.ndarray] = None,
     train_data: Optional[Tuple] = None,
     context_name: str = "Model Operation"
 ) -> CatchmentModel:
     """
-    创建新模型或加载已有模型
+    Create a new model or load an existing one
     
-    参数:
-        model_type: 模型类型
-        input_dim: 输入维度
-        hidden_size: 隐藏层大小
-        num_layers: 层数
-        attr_dim: 属性维度
-        fc_dim: 全连接层维度
-        device: 设备
-        model_path: 模型路径
-        attr_dict: 属性字典(仅训练时需要)
-        train_data: 训练数据元组(仅训练时需要)
-        context_name: 操作上下文名称
+    Args:
+        model_type: Type of model ('lstm', 'rf', 'informer', etc.)
+        device: Device to use ('cpu' or 'cuda')
+        model_path: Path to save/load model
+        model_params: Dictionary of model-specific parameters
+        attr_dict: Attribute dictionary (only needed for training)
+        train_data: Training data tuple (only needed for training)
+        context_name: Operation context name for logging
         
-    返回:
-        创建或加载的模型
+    Returns:
+        Created or loaded model
     """
     with TimingAndMemoryContext(context_name):
+        # Pass model_type and device separately, and model_params as kwargs
+        model_params_copy = model_params.copy()
+        model_params_copy['device'] = device
+        
         model = create_model(
             model_type=model_type,
-            input_dim=input_dim,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            attr_dim=attr_dim,
-            fc_dim=fc_dim,
-            device=device
+            **model_params_copy
         )
     
-    # 检查是否存在预训练模型
+    # Check if a pre-trained model exists
     if os.path.exists(model_path):
         with TimingAndMemoryContext("Model Loading"):
             model.load_model(model_path)
-            print(f"模型加载成功：{model_path}")
+            print(f"Successfully loaded model: {model_path}")
     elif train_data is not None:
-        # 如果没有预训练模型，且提供了训练数据，则训练新模型
+        # If no pre-trained model and training data provided, train a new model
         X_ts_train, comid_arr_train, Y_train, X_ts_val, comid_arr_val, Y_val = train_data
+        
+        # Training parameters from model_params or defaults
+        train_config = {
+            'epochs': model_params.get('epochs', 100),
+            'lr': model_params.get('lr', 1e-3),
+            'patience': model_params.get('patience', 2),
+            'batch_size': model_params.get('batch_size', 10000)
+        }
+        
         with TimingAndMemoryContext("Model Training"):
             model.train_model(
                 attr_dict, comid_arr_train, X_ts_train, Y_train, 
                 comid_arr_val, X_ts_val, Y_val, 
-                epochs=100, lr=1e-3, patience=2, batch_size=10000
+                **train_config
             )
         
         with TimingAndMemoryContext("Model Saving"):
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(model_path), exist_ok=True)
+            
             model.save_model(model_path)
-            print(f"模型训练成功！保存至 {model_path}")
+            print(f"Model training successful! Saved to {model_path}")
     
     return model
 
@@ -708,6 +710,176 @@ def check_error_trend_convergence(error_history: List[Dict[str, float]]) -> bool
     
     return False
 
+
+def check_dataframe_abnormalities(df, iteration, target_cols, max_value=1e6, 
+                                  max_allowed_percent=1.0):
+    """
+    检查每轮迭代后数据框中的异常值
+    
+    参数:
+        df: 要检查的DataFrame
+        iteration: 当前迭代次数
+        target_cols: 目标列列表
+        max_value: 允许的最大值绝对值
+        max_allowed_percent: 允许的最大异常百分比
+        
+    返回:
+        is_valid: 表示DataFrame是否有效的布尔值
+        report: 包含异常指标的字典
+    """
+    logging.info(f"检查迭代 {iteration} 的结果是否有异常值...")
+    
+    # 初始化报告字典
+    report = {
+        "迭代": iteration,
+        "总行数": len(df),
+        "检查列": [],
+        "异常计数": {},
+        "NaN计数": {},
+        "无穷值计数": {},
+        "极端值计数": {},
+        "最大值": {},
+        "最小值": {},
+        "是否有效": True
+    }
+    
+    # 要检查的列
+    cols_to_check = []
+    for param in target_cols:
+        cols_to_check.extend([
+            f'E_{iteration}_{param}',
+            f'y_up_{iteration}_{param}',
+            f'y_n_{iteration}_{param}'
+        ])
+        
+        # 如果存在调试列，也包括它们
+        debug_cols = [col for col in df.columns if col.startswith(f'debug_') and col.endswith(f'_{param}')]
+        cols_to_check.extend(debug_cols)
+    
+    # 检查Qout（常见问题来源）
+    if 'Qout' in df.columns:
+        cols_to_check.append('Qout')
+    
+    report["检查列"] = cols_to_check
+    
+    # 检查每列
+    for col in cols_to_check:
+        if col not in df.columns:
+            logging.warning(f"列 {col} 在数据中不存在，跳过检查")
+            continue
+            
+        # 获取列值
+        values = df[col]
+        
+        # 计数NaN值
+        nan_count = values.isna().sum()
+        report["NaN计数"][col] = nan_count
+        
+        # 计数无穷值
+        inf_mask = ~values.isna() & (values.abs() == float('inf'))
+        inf_count = inf_mask.sum()
+        report["无穷值计数"][col] = inf_count
+        
+        # 计数极端值（排除NaN和无穷）
+        valid_values = values.dropna()
+        valid_values = valid_values[valid_values.abs() != float('inf')]
+        
+        extreme_count = (valid_values.abs() > max_value).sum()
+        report["极端值计数"][col] = extreme_count
+        
+        # 计算异常百分比
+        total_abnormal = nan_count + inf_count + extreme_count
+        abnormal_percent = (total_abnormal / len(df)) * 100 if len(df) > 0 else 0
+        report["异常计数"][col] = total_abnormal
+        
+        # 获取最大和最小值
+        if not valid_values.empty:
+            report["最大值"][col] = valid_values.max()
+            report["最小值"][col] = valid_values.min()
+        
+        # 记录异常
+        if abnormal_percent > 0.01:  # 大于0.01%异常
+            logging.warning(f"列 {col} 包含 {total_abnormal} 个异常值 ({abnormal_percent:.2f}%): "
+                          f"{nan_count} 个NaN, {inf_count} 个无穷值, {extreme_count} 个极端值")
+            
+            # 检查异常百分比是否太高
+            if abnormal_percent > max_allowed_percent:
+                report["是否有效"] = False
+                logging.error(f"列 {col} 异常值过多! {abnormal_percent:.2f}% 超出阈值 {max_allowed_percent}%")
+    
+    # 记录结果
+    if report["是否有效"]:
+        logging.info(f"迭代 {iteration} 数据检查通过，异常值在可接受范围内")
+    else:
+        logging.error(f"迭代 {iteration} 数据检查失败，包含过多异常值")
+    
+    return report["是否有效"], report
+
+def validate_data_coherence(df, df_flow, input_cols, target_cols, iteration):
+    """
+    验证原始数据和流结果之间的数据一致性
+    
+    参数:
+        df: 原始数据DataFrame
+        df_flow: 流路由结果DataFrame
+        input_cols: 输入特征列
+        target_cols: 目标列
+        iteration: 当前迭代
+        
+    返回:
+        is_coherent: 表示数据是否一致的布尔值
+    """
+    print("\n===== 数据一致性验证 =====")
+    is_coherent = True
+    
+    # 检查公共COMID
+    df_comids = set(df['COMID'].unique())
+    flow_comids = set(df_flow['COMID'].unique())
+    
+    # 检查流结果中不在原始数据中的COMID
+    missing_comids = flow_comids - df_comids
+    if missing_comids:
+        print(f"警告: 流结果中有 {len(missing_comids)} 个COMID不在原始数据中")
+        is_coherent = False
+    
+    # 检查日期格式
+    date_col_df = None
+    for col in ['date', 'Date']:
+        if col in df.columns:
+            date_col_df = col
+            break
+            
+    date_col_flow = None
+    for col in ['date', 'Date']:
+        if col in df_flow.columns:
+            date_col_flow = col
+            break
+    
+    if date_col_df != date_col_flow:
+        print(f"警告: 日期列名不匹配 - '{date_col_df}' vs '{date_col_flow}'")
+        is_coherent = False
+    
+    # 检查列名问题
+    for param in target_cols:
+        expected_cols = [f'E_{iteration}_{param}', f'y_up_{iteration}_{param}', f'y_n_{iteration}_{param}']
+        missing_cols = [col for col in expected_cols if col not in df_flow.columns]
+        if missing_cols:
+            print(f"警告: 流结果中缺少预期列: {missing_cols}")
+            is_coherent = False
+    
+    # 检查输入列不一致
+    if input_cols:
+        missing_inputs = [col for col in input_cols if col not in df.columns]
+        if missing_inputs:
+            print(f"警告: 原始数据中缺少输入列: {missing_inputs}")
+            is_coherent = False
+    
+    # 打印总体评估
+    print(f"数据一致性检查: {'通过' if is_coherent else '失败'}")
+    print("============================\n")
+    
+    return is_coherent
+
 # ===============================================================================
 # 主训练程序
 # ===============================================================================
@@ -718,16 +890,12 @@ def iterative_training_procedure(
     input_features: List[str] = None,
     attr_features: List[str] = None,
     river_info: pd.DataFrame = None,
-    target_cols: List[str] = ["TN","TP"],
+    target_cols: List[str] = ["TN", "TP"],
     target_col: str = "TN",
     max_iterations: int = 10,
     epsilon: float = 0.01,
     model_type: str = 'rf',
-    input_dim: int = None,
-    hidden_size: int = 64,
-    num_layers: int = 1,
-    attr_dim: int = None,
-    fc_dim: int = 32,
+    model_params: Dict[str, Any] = None,  # New parameter for model-specific hyperparameters
     device: str = 'cuda',
     comid_wq_list: list = None,
     comid_era5_list: list = None,
@@ -751,9 +919,8 @@ def iterative_training_procedure(
         target_col: 主目标变量名称，如 "TN"
         max_iterations: 最大迭代次数
         epsilon: 收敛阈值（残差最大值）
-        model_type: 'rf' 或 'lstm'
-        input_dim: 模型输入维度（须与 input_cols 长度一致）
-        hidden_size, num_layers, attr_dim, fc_dim: 模型参数
+        model_type: 模型类型，如 'lstm', 'rf', 'informer' 等
+        model_params: 模型超参数字典，包含特定模型类型所需的所有参数
         device: 训练设备
         comid_wq_list: 水质站点COMID列表
         comid_era5_list: ERA5覆盖的COMID列表
@@ -767,24 +934,31 @@ def iterative_training_procedure(
     返回:
         训练好的模型对象
     """
+    # Ensure model_params is not None
+    if model_params is None:
+        model_params = {}
+    
+    # Set default target column if not provided
+    if target_col not in target_cols and len(target_cols) > 0:
+        target_col = target_cols[0]
+    
     # ============================================================
-    # 初始化与内存监控
+    # Initialize memory monitoring
     # ============================================================
-    # 启动内存跟踪
     memory_tracker = MemoryTracker(interval_seconds=120)
     memory_tracker.start()
 
-    # 初始内存状态记录
+    # Record initial memory state
     if device == 'cuda' and torch.cuda.is_available():
         log_memory_usage("[Training Start] ", level=0)
     
-    # 创建结果保存目录
+    # Create results directories
     output_dir = ensure_dir_exists(flow_results_dir)
     model_save_dir = ensure_dir_exists(model_dir)
     logging.info(f"Flow routing results will be saved to {output_dir}")
     logging.info(f"Models will be saved to {model_save_dir}")
     
-    # 记录训练起始信息
+    # Log training start info
     if start_iteration > 0:
         logging.info(f"Starting from iteration {start_iteration} with model version {model_version}")
         print(f"Starting from iteration {start_iteration} with model version {model_version}")
@@ -793,19 +967,19 @@ def iterative_training_procedure(
         print(f"Starting from initial training (iteration 0) with model version {model_version}")
         print('选择头部河段进行初始模型训练。')
     
-    # 初始化误差历史记录
+    # Initialize error history
     if not hasattr(iterative_training_procedure, 'error_history'):
         iterative_training_procedure.error_history = []
     
     # ============================================================
-    # 只有当 start_iteration 为 0 时才执行初始模型训练和汇流计算
+    # Initial model training and flow routing calculation
     # ============================================================
     if start_iteration == 0:
-        # 构建河段属性字典
+        # Build attribute dictionary
         with TimingAndMemoryContext("Building Attribute Dictionary", memory_log_level=1):
             attr_dict = build_attribute_dictionary(attr_df, attr_features)
 
-        # 准备头部河段训练数据
+        # Prepare head segment training data
         X_ts_head, Y_head_orig, COMIDs_head, Dates_head = prepare_training_data_for_head_segments(
             df, attr_df, comid_wq_list, comid_era5_list, target_cols, output_dir, model_version
         )
@@ -824,14 +998,25 @@ def iterative_training_procedure(
         N, T, input_dim = X_ts_head.shape
         attr_dim = len(next(iter(attr_dict.values())))
         
-        # 划分训练集和验证集
+        # Update model_params with input and attribute dimensions if not provided
+        if 'input_dim' not in model_params:
+            model_params['input_dim'] = input_dim
+        if 'attr_dim' not in model_params:
+            model_params['attr_dim'] = attr_dim
+        
+        # Split train/validation data
         train_val_data = split_train_val_data(X_ts_head, Y_head, COMIDs_head)
         
         # 创建或加载初始模型
         initial_model_path = f"{model_save_dir}/model_initial_A0_{model_version}.pth"
         model = create_or_load_model(
-            model_type, input_dim, hidden_size, num_layers, attr_dim, fc_dim, 
-            device, initial_model_path, attr_dict, train_val_data, "Initial Model Creation"
+            model_type=model_type,
+            device=device,
+            model_path=initial_model_path,
+            model_params=model_params,
+            attr_dict=attr_dict,
+            train_data=train_val_data,
+            context_name="Initial Model Creation"
         )
         
         # 创建批量预测函数
@@ -853,12 +1038,21 @@ def iterative_training_procedure(
             # 标准化属性
             attr_dict, attr_scaler = standardize_attributes(attr_dict)
         
-        # 加载上一轮迭代的模型
+        # Ensure input_dim and attr_dim are provided in model_params
+        if 'input_dim' not in model_params:
+            model_params['input_dim'] = len(input_features)
+        if 'attr_dim' not in model_params:
+            model_params['attr_dim'] = len(attr_features)
+        
+        # Load previous iteration's model
         last_iteration = start_iteration - 1
         model_path = f"{model_save_dir}/model_A{last_iteration}_{model_version}.pth"
         model = create_or_load_model(
-            model_type, input_dim, hidden_size, num_layers, attr_dim, fc_dim, 
-            device, model_path, context_name="Loading Previous Iteration Model"
+            model_type=model_type,
+            device=device,
+            model_path=model_path,
+            model_params=model_params,
+            context_name="Loading Previous Iteration Model"
         )
         
         # 加载上一轮的汇流计算结果
@@ -975,6 +1169,48 @@ def iterative_training_procedure(
                 attr_df, output_dir, model_version, exists, flow_result_path, reuse_existing_flow_results
             )
     
+            # 检查此轮迭代的汇流计算结果的异常值
+            logging.info(f"检查迭代 {it} 的汇流计算结果...")
+            is_valid_data, abnormal_report = check_dataframe_abnormalities(
+                df_flow, it, target_cols, max_value=1e6, max_allowed_percent=5.0
+            )
+
+            # 如果数据无效，尝试修复
+            if not is_valid_data:
+                logging.error(f"迭代 {it} 的汇流计算结果包含过多异常值，尝试修复...")
+                
+                # 为每个目标列修复极端值
+                for param in target_cols:
+                    # 修复E值
+                    e_col = f'E_{it}_{param}'
+                    if e_col in df_flow.columns:
+                        # 剪切到合理范围（基于领域知识）
+                        reasonable_max = 100.0  # 根据您的领域知识调整
+                        df_flow[e_col] = df_flow[e_col].clip(-reasonable_max, reasonable_max)
+                        logging.info(f"已将 {e_col} 列限制在 ±{reasonable_max} 范围内")
+                        
+                    # 修复y_up值
+                    y_up_col = f'y_up_{it}_{param}'
+                    if y_up_col in df_flow.columns:
+                        df_flow[y_up_col] = df_flow[y_up_col].clip(-reasonable_max, reasonable_max)
+                        logging.info(f"已将 {y_up_col} 列限制在 ±{reasonable_max} 范围内")
+                        
+                    # 重新计算y_n值
+                    y_n_col = f'y_n_{it}_{param}'
+                    if y_n_col in df_flow.columns and e_col in df_flow.columns and y_up_col in df_flow.columns:
+                        df_flow[y_n_col] = df_flow[e_col] + df_flow[y_up_col]
+                        logging.info(f"已重新计算 {y_n_col} 列")
+                
+                # 保存修复后的结果
+                fixed_path = os.path.join(output_dir, f"flow_routing_iteration_{it}_{model_version}_fixed.csv")
+                df_flow.to_csv(fixed_path, index=False)
+                logging.info(f"修复后的结果已保存至 {fixed_path}")
+                
+            # 验证数据一致性
+            is_coherent = validate_data_coherence(df, df_flow, input_cols, target_cols, it)
+            if not is_coherent:
+                logging.warning(f"数据一致性检查失败，可能会影响迭代 {it+1} 的训练")
+
     # ============================================================
     # 完成与清理
     # ============================================================

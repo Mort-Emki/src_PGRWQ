@@ -3,17 +3,18 @@ model_factory.py - 模型工厂模块
 
 提供统一的模型创建接口，根据类型动态加载不同的模型实现
 """
+from typing import Dict, Any
 
-def create_model(model_type, **kwargs):
+def create_model(model_type: str, **kwargs):
     """
-    根据模型类型创建相应的模型实例
+    Create a model instance based on model type
     
-    参数:
-        model_type: 模型类型 ('lstm', 'rf'等)
-        **kwargs: 传递给模型构造函数的参数
+    Args:
+        model_type: Model type ('lstm', 'rf', 'informer', etc.)
+        **kwargs: Parameters to pass to model constructor
         
-    返回:
-        模型实例
+    Returns:
+        Model instance
     """
     if model_type == 'lstm':
         from PGRWQI.model_training.models.BranchLstm import create_branch_lstm_model
@@ -21,5 +22,9 @@ def create_model(model_type, **kwargs):
     elif model_type == 'rf':
         from PGRWQI.model_training.models.RandomForest import create_random_forest_model
         return create_random_forest_model(**kwargs)
+    elif model_type == 'informer':
+        # Example of a new model type
+        from PGRWQI.model_training.models.Informer import create_informer_model
+        return create_informer_model(**kwargs)
     else:
-        raise ValueError(f"不支持的模型类型: {model_type}")
+        raise ValueError(f"Unsupported model type: {model_type}")
