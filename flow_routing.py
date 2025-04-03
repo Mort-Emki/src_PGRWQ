@@ -360,57 +360,52 @@ def calculate_indegrees(comids, next_down_ids):
 # ============================================================================
 # E值处理模块: 处理局部汇水区贡献的E值
 # ============================================================================
-def load_e_values(e_exist_path, iteration, target_cols):
+def load_e_values(e_exist_path, iteration, target_col):
     """
     从文件加载E值
     
     参数:
         e_exist_path: E值读取路径
         iteration: 当前迭代次数
-        target_cols: 目标列列表
+        target_col: 目标列
     
     返回:
-        e_values_dict: 加载的E值字典
+        e_df: 加载的E值DataFrame，如果未找到则返回None
     """
-    e_values_dict = {}
-    
     # 检查指定路径是否为目录
     if not os.path.isdir(e_exist_path):
         logging.error(f"E值路径 {e_exist_path} 不是一个目录")
-        return e_values_dict
+        return None
     
-    # 对每个参数，查找对应的E值文件
-    for param in target_cols:
-        e_file_path = os.path.join(e_exist_path, f"E_{iteration}_{param}.csv")
-        if os.path.exists(e_file_path):
-            try:
-                e_df = pd.read_csv(e_file_path)
-                if 'COMID' in e_df.columns and 'Date' in e_df.columns and 'E_value' in e_df.columns:
-                    e_df['Date'] = pd.to_datetime(e_df['Date'])
-                    e_values_dict[param] = e_df
-                    logging.info(f"成功加载参数 {param} 的E值，共 {len(e_df)} 条记录")
-                else:
-                    logging.error(f"E值文件 {e_file_path} 格式不正确，应包含COMID、Date和E_value列")
-            except Exception as e:
-                logging.error(f"读取E值文件 {e_file_path} 失败: {str(e)}")
-        else:
-            logging.warning(f"找不到参数 {param} 的E值文件: {e_file_path}")
+    # 查找对应的E值文件
+    e_file_path = os.path.join(e_exist_path, f"E_{iteration}_{target_col}.csv")
     
-    # 检查是否成功加载了所有参数的E值
-    if len(e_values_dict) < len(target_cols):
-        logging.warning(f"只加载了 {len(e_values_dict)}/{len(target_cols)} 个参数的E值，对缺失参数将使用模型计算")
+    if os.path.exists(e_file_path):
+        try:
+            e_df = pd.read_csv(e_file_path)
+            if 'COMID' in e_df.columns and 'Date' in e_df.columns and 'E_value' in e_df.columns:
+                e_df['Date'] = pd.to_datetime(e_df['Date'])
+                logging.info(f"成功加载参数 {target_col} 的E值，共 {len(e_df)} 条记录")
+                return e_df
+            else:
+                logging.error(f"E值文件 {e_file_path} 格式不正确，应包含COMID、Date和E_value列")
+                return None
+        except Exception as e:
+            logging.error(f"读取E值文件 {e_file_path} 失败: {str(e)}")
+            return None
+    else:
+        logging.warning(f"找不到参数 {target_col} 的E值文件: {e_file_path}")
+        return None
     
-    return e_values_dict
-
-def apply_e_values(groups, comid_data, e_values_dict, target_cols, missing_data_comids):
+def apply_e_values(groups, comid_data, e_df, target_col, missing_data_comids):
     """
     为河段应用已加载的E值
     
     参数:
         groups: 按COMID分组的数据字典
         comid_data: 存储处理结果的字典
-        e_values_dict: 加载的E值字典
-        target_cols: 目标列列表
+        e_df: 加载的E值DataFrame
+        target_col: 目标列
         missing_data_comids: 缺失数据的河段ID集合
     
     返回:
@@ -424,36 +419,34 @@ def apply_e_values(groups, comid_data, e_values_dict, target_cols, missing_data_
         # 计算河道宽度
         group['width'] = calculate_river_width(group['Qout'])
         
-        # 对每个参数，设置E值
-        for param in target_cols:
-            if param in e_values_dict:
-                # 从加载的E值中查找对应的记录
-                e_df = e_values_dict[param]
-                comid_e_df = e_df[e_df['COMID'] == comid]
-                
-                if not comid_e_df.empty:
-                    # 将E值设置到对应的日期
-                    e_series = pd.Series(index=group['date'])
-                    for _, row in comid_e_df.iterrows():
-                        date_val = row['Date']
-                        if date_val in e_series.index:
-                            e_series[date_val] = row['E_value']
-                    
-                    # 填充缺失的E值为0
-                    e_series = e_series.fillna(0.0)
-                    
-                    # 设置E值
-                    group[f'E_{param}'] = e_series.values
-                else:
-                    # 如果没有找到对应的E值记录，设置为0
-                    group[f'E_{param}'] = 0.0
-            else:
-                # 如果没有加载该参数的E值，设置为0
-                group[f'E_{param}'] = 0.0
+        # 设置E值
+        if e_df is not None:
+            # 从加载的E值中查找对应的记录
+            comid_e_df = e_df[e_df['COMID'] == comid]
             
-            # 初始化y_up和y_n
-            group[f'y_up_{param}'] = 0.0
-            group[f'y_n_{param}'] = 0.0
+            if not comid_e_df.empty:
+                # 将E值设置到对应的日期
+                e_series = pd.Series(index=group['date'])
+                for _, row in comid_e_df.iterrows():
+                    date_val = row['Date']
+                    if date_val in e_series.index:
+                        e_series[date_val] = row['E_value']
+                
+                # 填充缺失的E值为0
+                e_series = e_series.fillna(0.0)
+                
+                # 设置E值
+                group[f'E_{target_col}'] = e_series.values
+            else:
+                # 如果没有找到对应的E值记录，设置为0
+                group[f'E_{target_col}'] = 0.0
+        else:
+            # 如果没有加载E值，设置为0
+            group[f'E_{target_col}'] = 0.0
+        
+        # 初始化y_up和y_n
+        group[f'y_up_{target_col}'] = 0.0
+        group[f'y_n_{target_col}'] = 0.0
         
         # 设置索引并保存到数据字典
         group = group.set_index("date")
@@ -461,8 +454,8 @@ def apply_e_values(groups, comid_data, e_values_dict, target_cols, missing_data_
     
     return comid_data
 
-def calculate_e_values(groups, comid_data, model_func, attr_dict, model, target_cols, missing_data_comids, 
-                      iteration, e_save, e_save_path):
+def calculate_e_values(groups, comid_data, model_func, attr_dict, model, target_col, missing_data_comids, 
+                     iteration, e_save, e_save_path):
     """
     使用模型计算E值
     
@@ -472,7 +465,7 @@ def calculate_e_values(groups, comid_data, model_func, attr_dict, model, target_
         model_func: 预测模型函数
         attr_dict: 河段属性字典
         model: 预测模型
-        target_cols: 目标列列表
+        target_col: 目标列
         missing_data_comids: 缺失数据的河段ID集合
         iteration: 当前迭代次数
         e_save: 是否保存E值
@@ -482,7 +475,7 @@ def calculate_e_values(groups, comid_data, model_func, attr_dict, model, target_
         更新后的comid_data字典
     """
     # 需要保存的E值
-    e_values_to_save = {param: [] for param in target_cols} if e_save == 1 else None
+    e_values_to_save = [] if e_save == 1 else None
     
     logging.info(f"处理 {len(groups)} 个河段，批量计算...")
     
@@ -507,7 +500,7 @@ def calculate_e_values(groups, comid_data, model_func, attr_dict, model, target_
                 logging.debug(f"批次 {batch_idx+1}: 过滤掉 {len(batch_comids) - len(valid_batch_comids)} 个缺失数据的河段")
             
             # 批量计算当前批次所有有效河段的E值
-            batch_results = model_func(valid_batch_comids, groups, attr_dict, model, target_cols)
+            batch_results = model_func(valid_batch_comids, groups, attr_dict, model, [target_col])
             
             # 处理结果并存入数据字典
             for comid in batch_comids:
@@ -521,10 +514,9 @@ def calculate_e_values(groups, comid_data, model_func, attr_dict, model, target_
                 if E_series is None:
                     logging.warning(f"河段 {comid} 的模型结果为 None，设置为 0")
                     # 为此河段的所有时间设置 E 为 0
-                    for param in target_cols:
-                        group[f'E_{param}'] = 0.0
-                        group[f'y_up_{param}'] = 0.0
-                        group[f'y_n_{param}'] = 0.0
+                    group[f'E_{target_col}'] = 0.0
+                    group[f'y_up_{target_col}'] = 0.0
+                    group[f'y_n_{target_col}'] = 0.0
                 else:
                     # 检查Qout是否存在异常值
                     if group['Qout'].isnull().values.any():
@@ -539,39 +531,20 @@ def calculate_e_values(groups, comid_data, model_func, attr_dict, model, target_
                     # 计算河道宽度
                     group['width'] = calculate_river_width(group['Qout'])
                     
-                    # 初始化所有参数的E、y_up和y_n值
-                    # 如果结果包含多个目标参数（如TN和TP），分别处理
-                    if isinstance(E_series, pd.DataFrame) and len(target_cols) > 1:
-                        for param_idx, param in enumerate(target_cols):
-                            if param in E_series.columns:
-                                group[f'E_{param}'] = E_series[param].values
-                                group[f'y_up_{param}'] = 0.0
-                                group[f'y_n_{param}'] = 0.0
-                                
-                                # 如果需要保存E值
-                                if e_save == 1:
-                                    for date_idx, date_val in enumerate(group['date']):
-                                        e_values_to_save[param].append({
-                                            'COMID': comid,
-                                            'Date': date_val,
-                                            'E_value': E_series[param].values[date_idx] if date_idx < len(E_series[param]) else 0.0
-                                        })
-                    else:
-                        # 单一参数情况
-                        param = target_cols[0]
-                        group[f'E_{param}'] = E_series.values
-                        group[f'y_up_{param}'] = 0.0
-                        group[f'y_n_{param}'] = 0.0
-                        
-                        # 如果需要保存E值
-                        if e_save == 1:
-                            for date_idx, date_val in enumerate(group['date']):
-                                if date_idx < len(E_series):
-                                    e_values_to_save[param].append({
-                                        'COMID': comid,
-                                        'Date': date_val,
-                                        'E_value': E_series.values[date_idx]
-                                    })
+                    # 设置E值、y_up和y_n值
+                    group[f'E_{target_col}'] = E_series.values
+                    group[f'y_up_{target_col}'] = 0.0
+                    group[f'y_n_{target_col}'] = 0.0
+                    
+                    # 如果需要保存E值
+                    if e_save == 1:
+                        for date_idx, date_val in enumerate(group['date']):
+                            if date_idx < len(E_series):
+                                e_values_to_save.append({
+                                    'COMID': comid,
+                                    'Date': date_val,
+                                    'E_value': E_series.values[date_idx]
+                                })
                 
                 group = group.set_index("date")
                 comid_data[comid] = group
@@ -598,19 +571,17 @@ def calculate_e_values(groups, comid_data, model_func, attr_dict, model, target_
             pbar.update(len(batch_comids))
     
     # 如果需要保存E值
-    if e_save == 1 and e_save_path:
+    if e_save == 1 and e_save_path and e_values_to_save:
         logging.info(f"保存E值到 {e_save_path}")
         # 确保目录存在
         os.makedirs(e_save_path, exist_ok=True)
         
-        # 为每个参数保存E值
-        for param in target_cols:
-            if param in e_values_to_save:
-                e_df = pd.DataFrame(e_values_to_save[param])
-                if not e_df.empty:
-                    e_file_path = os.path.join(e_save_path, f"E_{iteration}_{param}.csv")
-                    e_df.to_csv(e_file_path, index=False)
-                    logging.info(f"已保存参数 {param} 的E值，共 {len(e_df)} 条记录，保存至 {e_file_path}")
+        # 保存E值
+        e_df = pd.DataFrame(e_values_to_save)
+        if not e_df.empty:
+            e_file_path = os.path.join(e_save_path, f"E_{iteration}_{target_col}.csv")
+            e_df.to_csv(e_file_path, index=False)
+            logging.info(f"已保存参数 {target_col} 的E值，共 {len(e_df)} 条记录，保存至 {e_file_path}")
     
     return comid_data
 
@@ -942,7 +913,8 @@ def flow_routing_calculation(df: pd.DataFrame,
                             v_f_TP: float = 44.5,
                             attr_dict: dict = None, 
                             model: CatchmentModel = None,
-                            target_cols=["TN", "TP"],
+                            all_target_cols=["TN", "TP"],
+                            target_col = "TN",
                             attr_df: pd.DataFrame = None,
                             E_exist: int = 0,
                             E_exist_path: str = None,

@@ -283,137 +283,118 @@ def create_or_load_model(
     
     return model
 
-def create_batch_model_func(
-    df: pd.DataFrame,
-    attr_dict: Dict[str, np.ndarray],
-    model: CatchmentModel,
-    target_cols: List[str]
-) -> Callable:
+def batch_model_func(comid_batch, groups, attr_dict_local, model, all_target_cols,target_col):
     """
-    创建批量模型预测函数
+    批量处理河段预测函数（带自适应内存管理）
+    """
+    results = {}
     
-    参数:
-        df: 包含数据的DataFrame
-        attr_dict: 属性字典
-        model: 预测模型
-        target_cols: 目标列列表
+    # 首先收集所有必要数据
+    all_X_ts = []
+    all_comids = []
+    all_dates = []
+    comid_indices = {}
+    
+    current_idx = 0
+    valid_comids = []
+    
+    for comid in comid_batch:
+        group = groups[comid]
+        group_sorted = group.sort_values("date")
         
-    返回:
-        批量预测函数
-    """
-    def batch_model_func(comid_batch, groups, attr_dict_local, model_local, target_cols_local):
-        """
-        批量处理河段预测函数（带自适应内存管理）
-        """
-        results = {}
+        X_ts_local, _, _, Dates_local = build_sliding_windows_for_subset(
+            df=group, 
+            comid_list=[comid], 
+            input_cols=None, 
+            all_target_cols=all_target_cols, 
+            target_col=target_col,
+            time_window=10,
+            skip_missing_targets=False
+        )
         
-        # 首先收集所有必要数据
-        all_X_ts = []
-        all_comids = []
-        all_dates = []
-        comid_indices = {}
+        if X_ts_local is None or X_ts_local.shape[0] == 0:
+            results[comid] = pd.Series(0.0, index=group_sorted["date"])
+            continue
         
-        current_idx = 0
-        valid_comids = []
+        end_idx = current_idx + X_ts_local.shape[0]
+        comid_indices[comid] = (current_idx, end_idx, Dates_local, group_sorted["date"])
+        current_idx = end_idx
+        valid_comids.append(comid)
         
-        for comid in comid_batch:
-            group = groups[comid]
-            group_sorted = group.sort_values("date")
-            
-            X_ts_local, _, _, Dates_local = build_sliding_windows_for_subset(
-                df=group, 
-                comid_list=[comid], 
-                input_cols=None, 
-                target_cols=target_cols_local, 
-                time_window=10,
-                skip_missing_targets=False
-            )
-            
-            if X_ts_local is None or X_ts_local.shape[0] == 0:
-                results[comid] = pd.Series(0.0, index=group_sorted["date"])
-                continue
-            
-            end_idx = current_idx + X_ts_local.shape[0]
-            comid_indices[comid] = (current_idx, end_idx, Dates_local, group_sorted["date"])
-            current_idx = end_idx
-            valid_comids.append(comid)
-            
-            all_X_ts.append(X_ts_local)
-            all_comids.extend([comid] * X_ts_local.shape[0])     
-            all_dates.extend(Dates_local)
+        all_X_ts.append(X_ts_local)
+        all_comids.extend([comid] * X_ts_local.shape[0])     
+        all_dates.extend(Dates_local)
+    
+    if not all_X_ts:
+        return {comid: pd.Series(0.0, index=groups[comid].sort_values("date")["date"]) 
+                for comid in comid_batch}
+    
+    with TimingAndMemoryContext("GPU Batch Processing"):
+        # 堆叠所有数据
+        X_ts_batch = np.vstack(all_X_ts)
         
-        if not all_X_ts:
-            return {comid: pd.Series(0.0, index=groups[comid].sort_values("date")["date"]) 
-                    for comid in comid_batch}
+        # 构建属性矩阵
+        attr_dim = next(iter(attr_dict_local.values())).shape[0]
+        X_attr_batch = np.zeros((X_ts_batch.shape[0], attr_dim), dtype=np.float32)
         
-        with TimingAndMemoryContext("GPU Batch Processing"):
-            # 堆叠所有数据
-            X_ts_batch = np.vstack(all_X_ts)
+        for i, comid in enumerate(all_comids):
+            comid_str = str(comid)
+            attr_vec = attr_dict_local.get(comid_str, np.zeros(attr_dim, dtype=np.float32))
+            X_attr_batch[i] = attr_vec
+        
+        batch_size = X_ts_batch.shape[0]
+        print(f"处理 {len(valid_comids)} 个河段，共 {batch_size} 个预测点")
+        
+        try:
+            # 该预测函数内置内存安全机制
+            all_preds = model.predict(X_ts_batch, X_attr_batch)
             
-            # 构建属性矩阵
-            attr_dim = next(iter(attr_dict_local.values())).shape[0]
-            X_attr_batch = np.zeros((X_ts_batch.shape[0], attr_dim), dtype=np.float32)
-            
-            for i, comid in enumerate(all_comids):
-                comid_str = str(comid)
-                attr_vec = attr_dict_local.get(comid_str, np.zeros(attr_dim, dtype=np.float32))
-                X_attr_batch[i] = attr_vec
-            
-            batch_size = X_ts_batch.shape[0]
-            print(f"处理 {len(valid_comids)} 个河段，共 {batch_size} 个预测点")
-            
-            try:
-                # 该预测函数内置内存安全机制
-                all_preds = model_local.predict(X_ts_batch, X_attr_batch)
+            # 清理资源
+            del X_ts_batch
+            del X_attr_batch
+            if torch.cuda.is_available():
+                force_cuda_memory_cleanup()
                 
-                # 清理资源
-                del X_ts_batch
-                del X_attr_batch
+        except Exception as e:
+            print(f"预测过程中出错: {e}")
+            print("尝试逐个处理河段...")
+            
+            # 降级策略：逐个处理河段
+            all_preds = np.zeros(batch_size)
+            for comid in valid_comids:
+                start_idx, end_idx, _, _ = comid_indices[comid]
+                comid_str = str(comid)
+                X_ts_subset = X_ts_batch[start_idx:end_idx]
+                X_attr_subset = np.tile(attr_dict_local.get(comid_str, np.zeros(attr_dim)), 
+                                    (X_ts_subset.shape[0], 1))
+                
+                try:
+                    preds_subset = model.predict(X_ts_subset, X_attr_subset)
+                    all_preds[start_idx:end_idx] = preds_subset
+                except Exception as e2:
+                    print(f"处理河段 {comid} 失败: {e2}")
+                    all_preds[start_idx:end_idx] = 0.0
+                
+                # 每处理完一个河段都清理资源
                 if torch.cuda.is_available():
                     force_cuda_memory_cleanup()
-                    
-            except Exception as e:
-                print(f"预测过程中出错: {e}")
-                print("尝试逐个处理河段...")
-                
-                # 降级策略：逐个处理河段
-                all_preds = np.zeros(batch_size)
-                for comid in valid_comids:
-                    start_idx, end_idx, _, _ = comid_indices[comid]
-                    comid_str = str(comid)
-                    X_ts_subset = X_ts_batch[start_idx:end_idx]
-                    X_attr_subset = np.tile(attr_dict_local.get(comid_str, np.zeros(attr_dim)), 
-                                        (X_ts_subset.shape[0], 1))
-                    
-                    try:
-                        preds_subset = model_local.predict(X_ts_subset, X_attr_subset)
-                        all_preds[start_idx:end_idx] = preds_subset
-                    except Exception as e2:
-                        print(f"处理河段 {comid} 失败: {e2}")
-                        all_preds[start_idx:end_idx] = 0.0
-                    
-                    # 每处理完一个河段都清理资源
-                    if torch.cuda.is_available():
-                        force_cuda_memory_cleanup()
-        
-        # 将预测结果映射回河段
-        for comid in valid_comids:
-            start_idx, end_idx, dates, all_dates = comid_indices[comid]
-            preds = all_preds[start_idx:end_idx]
-            
-            pred_series = pd.Series(preds, index=pd.to_datetime(dates))
-            full_series = pd.Series(0.0, index=all_dates)
-            full_series.update(pred_series)
-            
-            results[comid] = full_series
-        
-        for comid in comid_batch:
-            if comid not in valid_comids and comid not in results:
-                results[comid] = pd.Series(0.0, index=groups[comid].sort_values("date")["date"])
-        
-        return results
     
-    return batch_model_func
+    # 将预测结果映射回河段
+    for comid in valid_comids:
+        start_idx, end_idx, dates, all_dates = comid_indices[comid]
+        preds = all_preds[start_idx:end_idx]
+        
+        pred_series = pd.Series(preds, index=pd.to_datetime(dates))
+        full_series = pd.Series(0.0, index=all_dates)
+        full_series.update(pred_series)
+        
+        results[comid] = full_series
+    
+    for comid in comid_batch:
+        if comid not in valid_comids and comid not in results:
+            results[comid] = pd.Series(0.0, index=groups[comid].sort_values("date")["date"])
+    
+    return results
 
 def create_updated_model_func(
     df: pd.DataFrame,
@@ -470,7 +451,8 @@ def perform_flow_routing_calculation(
     river_info: pd.DataFrame,
     attr_dict: Dict[str, np.ndarray],
     model: CatchmentModel,
-    target_cols: List[str],
+    all_target_cols: List[str],
+    target_col: str,
     attr_df: pd.DataFrame,
     output_dir: str,
     model_version: str,
@@ -488,7 +470,8 @@ def perform_flow_routing_calculation(
         river_info: 河网信息
         attr_dict: 属性字典
         model: 预测模型
-        target_cols: 目标列列表
+        all_target_cols: 所有目标列列表
+        target_col: 目标列
         attr_df: 属性DataFrame
         output_dir: 输出目录
         model_version: 模型版本号
@@ -519,7 +502,8 @@ def perform_flow_routing_calculation(
                 v_f_TP=44.5,
                 attr_dict=attr_dict,
                 model=model,
-                target_cols=target_cols,
+                all_target_cols=all_target_cols,
+                target_col=target_col,
                 attr_df=attr_df,
                 E_save=1,  # 保存E值
                 E_save_path=f"{output_dir}/E_values_{model_version}"
@@ -1043,13 +1027,10 @@ def iterative_training_procedure(
             context_name="Initial Model Creation"
         )
         
-        # 创建批量预测函数
-        batch_model_func = create_batch_model_func(df, attr_dict, model, target_cols)
-        
         # 执行初始汇流计算（或加载已有结果）
         exists, flow_result_path = check_existing_flow_routing_results(0, model_version, output_dir)
         df_flow = perform_flow_routing_calculation(
-            df, 0, batch_model_func, river_info, attr_dict, model, target_cols, 
+            df, 0, batch_model_func, river_info, attr_dict, model, all_target_cols, target_col,
             attr_df, output_dir, model_version, exists, flow_result_path, reuse_existing_flow_results
         )
     else:
