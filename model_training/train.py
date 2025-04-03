@@ -992,7 +992,7 @@ def iterative_training_procedure(
             attr_dict = build_attribute_dictionary(attr_df, attr_features)
 
         # Prepare head segment training data
-        X_ts_head, Y_head_orig, COMIDs_head, Dates_head = prepare_training_data_for_head_segments(
+        X_ts_head, Y_head, COMIDs_head, Dates_head = prepare_training_data_for_head_segments(
             df, attr_df, comid_wq_list, comid_era5_list, all_target_cols, output_dir, model_version,target_col,
         )
         if X_ts_head is None:
@@ -1026,9 +1026,9 @@ def iterative_training_procedure(
         train_params = model_params.get('train', {}).copy()
 
         if 'input_dim' not in build_params:
-            model_params['input_dim'] = input_dim
+            build_params['input_dim'] = input_dim
         if 'attr_dim' not in build_params:
-            model_params['attr_dim'] = attr_dim
+            build_params['attr_dim'] = attr_dim
 
         # 创建或加载初始模型
         initial_model_path = f"{model_save_dir}/model_initial_A0_{model_version}.pth"
