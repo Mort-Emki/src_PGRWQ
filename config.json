@@ -9,7 +9,7 @@
       "memory_check_interval": 30,
       "memory_log_verbosity": 1,
       "disable_monitoring": false,
-      "model_version": "lstm_v1",
+      "model_version": "lstm_v2_0408",
       "flow_results_dir": "flow_results",
       "model_dir": "models",
       "reuse_existing_flow_results": true,
@@ -63,3 +63,5 @@
       }
     }
   }
+
+

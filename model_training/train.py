@@ -80,10 +80,11 @@ def prepare_training_data_for_head_segments(
     attr_df: pd.DataFrame,
     comid_wq_list: List,
     comid_era5_list: List,
-    all_target_cols: List[str],
-    target_col: str,
-    output_dir: str,
-    model_version: str
+    input_cols: List[str] = None,
+    all_target_cols: List[str] = ["TN", "TP"],
+    target_col: str = "TN",
+    output_dir: str = "data",
+    model_version: str = "v1.0"
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     为头部河段准备训练数据
@@ -108,7 +109,10 @@ def prepare_training_data_for_head_segments(
         comid_list_head = list(set(df_head_upstream['COMID'].unique().tolist()) 
                              & set(comid_wq_list) 
                              & set(comid_era5_list))
+        ##保存comid_list_head
+        np.save(f"{output_dir}/comid_list_head_{model_version}.npy", comid_list_head)
         
+
         if len(comid_list_head) == 0:
             print("警告：comid_wq_list、comid_era5_list 为空，请检查输入。")
             return None, None, None, None
@@ -977,7 +981,14 @@ def iterative_training_procedure(
 
         # Prepare head segment training data
         X_ts_head, Y_head, COMIDs_head, Dates_head = prepare_training_data_for_head_segments(
-            df, attr_df, comid_wq_list, comid_era5_list, all_target_cols, output_dir, model_version,target_col,
+            df=df, 
+            attr_df = attr_df, 
+            comid_wq_list = comid_wq_list, 
+            comid_era5_list = comid_era5_list, 
+            all_target_cols = all_target_cols, 
+            target_col = target_col,
+            output_dir = output_dir, 
+            model_version = model_version
         )
         if X_ts_head is None:
             memory_tracker.stop()
@@ -1045,7 +1056,7 @@ def iterative_training_procedure(
         
         # Ensure input_dim and attr_dim are provided in model_params
         if 'input_dim' not in model_params:
-            model_params['input_dim'] = len(input_features)
+            model_params['input_dim'] = len(input_features)   ##更改占位################################################
         if 'attr_dim' not in model_params:
             model_params['attr_dim'] = len(attr_features)
         
