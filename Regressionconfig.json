@@ -2,14 +2,15 @@
     "basic": {
       "max_iterations": 5,
       "epsilon": 0.01,
-      "model_type": "lstm",
+      "model_type": "regression",
+      "device": "cpu",  
       "target_col": "TN",
       "all_target_cols": ["TN","TP"],
       "log_dir": "logs",
       "memory_check_interval": 30,
       "memory_log_verbosity": 1,
-      "disable_monitoring": true,
-      "model_version": "lstm_v2_0423",
+      "disable_monitoring": false,
+      "model_version": "regression_v1_04",
       "flow_results_dir": "flow_results",
       "model_dir": "models",
       "reuse_existing_flow_results": true,
@@ -60,8 +61,42 @@
           "patience": 3,
           "batch_size": 32
         }
+      },
+      "regression": {
+        "build": {
+          "reg_type": "linear"
+        },
+        "train": {
+          "standardize": true
+        }
+      },
+      "regression_ridge": {
+        "build": {
+          "reg_type": "ridge",
+          "alpha": 1.0
+        },
+        "train": {
+          "standardize": true
+        }
+      },
+      "regression_lasso": {
+        "build": {
+          "reg_type": "lasso",
+          "alpha": 0.01
+        },
+        "train": {
+          "standardize": true
+        }
+      },
+      "regression_elasticnet": {
+        "build": {
+          "reg_type": "elasticnet",
+          "alpha": 0.01,
+          "l1_ratio": 0.5
+        },
+        "train": {
+          "standardize": true
+        }
       }
     }
   }
-
-

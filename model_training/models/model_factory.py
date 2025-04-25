@@ -10,7 +10,7 @@ def create_model(model_type: str, **kwargs):
     Create a model instance based on model type
     
     Args:
-        model_type: Model type ('lstm', 'rf', 'informer', etc.)
+        model_type: Model type ('lstm', 'rf', 'regression', etc.)
         **kwargs: Parameters to pass to model constructor
         
     Returns:
@@ -22,6 +22,15 @@ def create_model(model_type: str, **kwargs):
     elif model_type == 'rf':
         from PGRWQI.model_training.models.RandomForest import create_random_forest_model
         return create_random_forest_model(**kwargs)
+    elif model_type.startswith('regression'):
+        from PGRWQI.model_training.models.RegressionModel import create_regression_model
+        # Extract regression subtype if specified (e.g., 'regression_ridge')
+        if '_' in model_type:
+            reg_type = model_type.split('_')[1]
+            return create_regression_model(reg_type=reg_type, **kwargs)
+        else:
+            # Default to linear regression
+            return create_regression_model(**kwargs)
     elif model_type == 'informer':
         # Example of a new model type
         from PGRWQI.model_training.models.Informer import create_informer_model

@@ -6,6 +6,8 @@ import os
 import torch
 import logging
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+from datetime import datetime
 
 # 引入相关模块
 from PGRWQI.flow_routing import flow_routing_calculation 
@@ -23,6 +25,215 @@ from PGRWQI.model_training.models.model_factory import create_model
 # ===============================================================================
 # 辅助函数
 # ===============================================================================
+
+def plot_a0_model_verification(
+    model, 
+    test_data, 
+    attr_dict, 
+    comids_to_plot, 
+    output_dir='a0_verification_plots',
+    target_col='TN',
+    date_range=None  # New parameter for date filtering
+):
+    """
+    Creates simple verification plots for the initial A0 model.
+    
+    Parameters:
+    -----------
+    model : CatchmentModel
+        The trained A0 model to verify
+    test_data : tuple
+        Tuple containing (X_ts_test, Y_test, COMIDs_test, Dates_test)
+    attr_dict : dict
+        Dictionary of catchment attributes
+    comids_to_plot : list
+        List of COMIDs to create plots for
+    output_dir : str
+        Directory to save the plots
+    target_col : str
+        Target parameter name (TN or TP)
+    date_range : tuple, optional
+        (start_date, end_date) to filter data by date range
+    """
+    # Unpack test data
+    X_ts_test, Y_test, COMIDs_test, Dates_test = test_data
+    
+    # Create output directory
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Parse date range if provided
+    start_date = None
+    end_date = None
+    if date_range:
+        start_date = pd.to_datetime(date_range[0])
+        end_date = pd.to_datetime(date_range[1])
+        print(f"Filtering data between {start_date.strftime('%Y-%m-%d')} and {end_date.strftime('%Y-%m-%d')}")
+    
+    # Group data by COMID for easier plotting
+    comid_data = {}
+    for i, comid in enumerate(COMIDs_test):
+        # Skip if not in requested COMIDs
+        if comid not in comids_to_plot:
+            continue
+            
+        # Convert date to datetime if it's not already
+        date = pd.to_datetime(Dates_test[i])
+        
+        # Filter by date range if specified
+        if date_range:
+            if date < start_date or date > end_date:
+                continue
+        
+        if comid not in comid_data:
+            comid_data[comid] = {'dates': [], 'actual': [], 'idx': []}
+        
+        comid_data[comid]['dates'].append(date)
+        comid_data[comid]['actual'].append(Y_test[i])
+        comid_data[comid]['idx'].append(i)
+    
+    # Process only the requested COMIDs
+    for comid in comids_to_plot:
+        if comid not in comid_data or not comid_data[comid]['dates']:
+            print(f"COMID {comid} not found in test data or has no data in specified date range")
+            continue
+            
+        # Get indices for this COMID
+        indices = comid_data[comid]['idx']
+        
+        # Get input features for this COMID
+        X_ts_comid = X_ts_test[indices]
+        
+        # Create attribute input for model
+        attr_vec = attr_dict.get(str(comid), np.zeros_like(next(iter(attr_dict.values()))))
+        X_attr_comid = np.tile(attr_vec, (len(indices), 1))
+        
+        # Get model predictions
+        predictions = model.predict(X_ts_comid, X_attr_comid)
+        
+        # Get actual values and dates
+        actuals = comid_data[comid]['actual']
+        dates = comid_data[comid]['dates']
+        
+        # Create a DataFrame for easier handling
+        df_plot = pd.DataFrame({
+            'date': dates,
+            'actual': actuals,
+            'predicted': predictions
+        })
+        
+        # Sort by date
+        df_plot = df_plot.sort_values('date')
+        
+        # Create the plot
+        plt.figure(figsize=(12, 6))
+        
+        # Plot actual values
+        plt.plot(df_plot['date'], df_plot['actual'], 'o-', color='blue', label='Actual')
+        
+        # Plot predicted values
+        plt.plot(df_plot['date'], df_plot['predicted'], 'x-', color='orange', label='Predicted (A0)')
+        
+        # Set labels and title
+        plt.xlabel('Date')
+        plt.ylabel(f'{target_col} Value')
+        
+        # Include date range in title if specified
+        if date_range:
+            date_info = f" ({start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')})"
+        else:
+            date_info = ""
+            
+        plt.title(f'Station {comid} - A0 Model Verification{date_info}')
+        
+        # Add legend
+        plt.legend()
+        
+        # Add grid
+        plt.grid(True, linestyle='--', alpha=0.7)
+        
+        # Format x-axis to show dates nicely
+        plt.gcf().autofmt_xdate()
+        plt.tight_layout()
+        
+        # Save the plot
+        filename = f'a0_verification_{comid}'
+        if date_range:
+            # Add date range to filename
+            filename += f"_{start_date.strftime('%Y%m%d')}_to_{end_date.strftime('%Y%m%d')}"
+        
+        plt.savefig(os.path.join(output_dir, f'{filename}.png'), dpi=300)
+        plt.close()
+        
+        print(f"Created verification plot for COMID {comid}")
+    
+    # Create a scatter plot with all data points
+    plt.figure(figsize=(8, 8))
+    
+    # Collect all predictions and actuals
+    all_preds = []
+    all_actuals = []
+    
+    for comid in comid_data:
+        indices = comid_data[comid]['idx']
+        
+        # Get input features
+        X_ts_comid = X_ts_test[indices]
+        
+        # Create attribute input
+        attr_vec = attr_dict.get(str(comid), np.zeros_like(next(iter(attr_dict.values()))))
+        X_attr_comid = np.tile(attr_vec, (len(indices), 1))
+        
+        # Get predictions
+        preds = model.predict(X_ts_comid, X_attr_comid)
+        actuals = comid_data[comid]['actual']
+        
+        all_preds.extend(preds)
+        all_actuals.extend(actuals)
+    
+    # Create scatter plot
+    plt.scatter(all_actuals, all_preds, alpha=0.5)
+    
+    # Add 1:1 line
+    max_val = max(max(all_actuals), max(all_preds))
+    min_val = min(min(all_actuals), min(all_preds))
+    plt.plot([min_val, max_val], [min_val, max_val], 'k--', label='1:1 Line')
+    
+    # Calculate metrics
+    mse = np.mean((np.array(all_actuals) - np.array(all_preds))**2)
+    rmse = np.sqrt(mse)
+    r2 = np.corrcoef(all_actuals, all_preds)[0, 1]**2
+    
+    # Add metrics to plot
+    plt.text(0.05, 0.95, f'RMSE: {rmse:.3f}\nR²: {r2:.3f}', 
+             transform=plt.gca().transAxes, fontsize=12,
+             verticalalignment='top', bbox=dict(boxstyle='round', facecolor='white', alpha=0.5))
+    
+    # Set labels and title
+    plt.xlabel(f'Actual {target_col}')
+    plt.ylabel(f'Predicted {target_col}')
+    
+    # Include date range in title if specified
+    if date_range:
+        date_info = f" ({start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')})"
+    else:
+        date_info = ""
+        
+    plt.title(f'A0 Model Verification - All Stations{date_info}')
+    
+    # Equal aspect ratio
+    plt.axis('equal')
+    plt.grid(True)
+    plt.tight_layout()
+    
+    # Save the plot with date range info if specified
+    filename = 'a0_verification_all_stations'
+    if date_range:
+        filename += f"_{start_date.strftime('%Y%m%d')}_to_{end_date.strftime('%Y%m%d')}"
+    
+    plt.savefig(os.path.join(output_dir, f'{filename}.png'), dpi=300)
+    plt.close()
+    
+    print(f"All verification plots saved to {output_dir}")
 
 def check_existing_flow_routing_results(
     iteration: int, 
@@ -103,7 +314,8 @@ def prepare_training_data_for_head_segments(
     """
     # 筛选头部河段
     with TimingAndMemoryContext("Finding Head Stations"):
-        attr_df_head_upstream = attr_df[attr_df['order_'] <= 2]
+        # attr_df_head_upstream = attr_df[attr_df['order_'] <= 2]
+        attr_df_head_upstream = attr_df.copy()
         df_head_upstream = df[df['COMID'].isin(attr_df_head_upstream['COMID'])]
         
         comid_list_head = list(set(df_head_upstream['COMID'].unique().tolist()) 
@@ -786,6 +998,7 @@ def check_dataframe_abnormalities(df, iteration, target_cols, max_value=1e6,
         report["无穷值计数"][col] = inf_count
         
         # 计数极端值（排除NaN和无穷）
+
         valid_values = values.dropna()
         valid_values = valid_values[valid_values.abs() != float('inf')]
         
@@ -1037,7 +1250,267 @@ def iterative_training_procedure(
             train_data=train_val_data,
             context_name="Initial Model Creation"
         )
+
+        def verify_initial_model(
+            model, 
+            df, 
+            attr_dict, 
+            input_cols,  # Pass this explicitly from the main function
+            comids_to_verify,
+            output_dir='a0_verification_plots',
+            target_col='TN',
+            time_window=10,  # Same window size used in training
+            date_range=None
+        ):
+            """
+            Verifies the initial A0 model by creating time series plots 
+            of actual vs predicted values for specific stations.
+            """
+            import os
+            import matplotlib.pyplot as plt
+            import numpy as np
+            
+            # Create output directory
+            os.makedirs(output_dir, exist_ok=True)
+            
+            # Make sure input_cols is not None
+            if input_cols is None:
+                raise ValueError("input_cols must be specified - use the same columns used during model training")
+            
+            # Process each COMID
+            for comid in comids_to_verify:
+                # Get data for this COMID
+                comid_data = df[df['COMID'] == comid].copy()
+                
+                if len(comid_data) == 0:
+                    print(f"No data found for COMID {comid}")
+                    continue
+                    
+                # Ensure date column is properly formatted
+                date_col = 'date' if 'date' in comid_data.columns else 'Date'
+                comid_data[date_col] = pd.to_datetime(comid_data[date_col])
+                
+                # Filter by date range if specified
+                if date_range:
+                    start_date = pd.to_datetime(date_range[0])
+                    end_date = pd.to_datetime(date_range[1])
+                    comid_data = comid_data[(comid_data[date_col] >= start_date) & 
+                                        (comid_data[date_col] <= end_date)]
+                    
+                if len(comid_data) == 0:
+                    print(f"No data in specified date range for COMID {comid}")
+                    continue
+                    
+                # Sort by date
+                comid_data = comid_data.sort_values(date_col)
+                
+                # Make sure all required input columns exist
+                missing_cols = [col for col in input_cols if col not in comid_data.columns]
+                if missing_cols:
+                    print(f"Missing input columns for COMID {comid}: {missing_cols}")
+                    continue
+                
+                # Create sliding windows directly using build_sliding_windows_for_subset function
+                from PGRWQI.data_processing import build_sliding_windows_for_subset
+                
+                X_ts_comid, _, _, dates_comid = build_sliding_windows_for_subset(
+                    df = comid_data, 
+                    comid_list=[comid],  # List with single COMID
+                    input_cols=None, 
+                    target_col=target_col,
+                    all_target_cols=all_target_cols,
+                    time_window=time_window,
+                    skip_missing_targets=True
+                )
+                
+                if X_ts_comid is None or len(X_ts_comid) == 0:
+                    print(f"No valid window data for COMID {comid}")
+                    continue
+                    
+                # Get attribute data
+                attr_vec = attr_dict.get(str(comid), np.zeros_like(next(iter(attr_dict.values()))))
+                X_attr = np.tile(attr_vec, (len(X_ts_comid), 1))
+                
+                # Get predictions
+                predictions = model.predict_simple(X_ts_comid, X_attr)
+                # Create DataFrame with dates and predictions
+                pred_df = pd.DataFrame({
+                    'date': dates_comid,
+                    'predicted': predictions
+
+                })
+                
+                # Merge with actual values
+                plot_df = pd.merge(
+                    comid_data[[date_col, target_col]],
+                    pred_df,
+                    left_on=date_col,
+                    right_on='date',
+                    how='left'
+                )
+                
+                # Create plot
+                plt.figure(figsize=(12, 6))
+                
+                # Plot actual values
+                plt.plot(plot_df[date_col], plot_df[target_col], 'o-', 
+                        color='blue', label='Actual')
+                
+                # Plot predicted values (where available)
+                mask = ~plot_df['predicted'].isna()
+                plt.plot(plot_df.loc[mask, date_col], plot_df.loc[mask, 'predicted'], 'x-', 
+                        color='orange', label='Predicted (A0)')
+                
+                # Set labels and title
+                plt.xlabel('Date')
+                plt.ylabel(f'{target_col} Value')
+                
+                # Include date range in title if specified
+                title = f'Station {comid} - A0 Model Verification'
+                if date_range:
+                    title += f" ({date_range[0]} to {date_range[1]})"
+                plt.title(title)
+                
+                # Add legend and grid
+                plt.legend()
+                plt.grid(True, linestyle='--', alpha=0.7)
+                
+                # Format dates nicely
+                plt.gcf().autofmt_xdate()
+                plt.tight_layout()
+                
+                # Save the plot
+                filename = f'a0_verification_{comid}'
+                if date_range:
+                    filename += f"_{date_range[0].replace('-', '')}_{date_range[1].replace('-', '')}"
+                plt.savefig(os.path.join(output_dir, f'{filename}.png'), dpi=300)
+                plt.close()
+                
+                print(f"Created verification plot for COMID {comid}")
+            
+            print(f"All verification plots saved to {output_dir}")
+
+        # # Call the function to verify specific stations
+        # verify_initial_model(
+        #     model=model,
+        #     df=df,  # Original dataset
+        #     attr_dict=attr_dict,
+        #     input_cols=input_cols,  # Pass the same input_cols used for training
+        #     comids_to_verify=[43049975],  # Your COMIDs of interest
+        #     output_dir=os.path.join(output_dir, "initial_model_verification"),
+        #     target_col=target_col,
+        #     time_window=10,  # Same time window used in training
+        #     date_range=("2022-01-01", "2023-08-31")  # Optional
+        # )
+
+
+#################################==================
+
+
+        # ====== 用户设置部分 ======
+        target_comids = [43049975]  # 指定要画图的站点编号
+        start_date = '2022-01-01'         # 指定起始日期
+        end_date   = '2023-09-01'         # 指定结束日期
+        # ==========================
+
+
+        test_loaded = np.load("flow_results\\upstreams_trainval_lstm_v2_0421.npz", allow_pickle=True)
+        X_ts_test = test_loaded["X"]
+        Y_test_all = test_loaded["Y"]
+        Y_test = Y_test_all       # 0th column
+        comid_test = test_loaded["COMID"]
+        date_test  = test_loaded["Date"]
         
+        # 标准化数据
+        X_ts_test, __ , ts_scaler, attr_scaler = standardize_data(X_ts_test, attr_dict)
+
+        # 提取测试集内容
+        test_X = X_ts_test
+        test_Y = Y_test
+        test_comids = comid_test
+        test_dates = date_test
+
+
+        # 如果是字符串形式，先转换成 datetime
+        if isinstance(test_dates[0], str):
+            test_dates = np.array([datetime.strptime(d, "%Y-%m-%d") for d in test_dates])
+
+        # 转换日期边界
+        start_date = datetime.strptime(start_date, "%Y-%m-%d")
+        end_date   = datetime.strptime(end_date, "%Y-%m-%d")
+
+        # 过滤目标站点
+        unique_test_comids = np.unique(test_comids)
+        filtered_comids = [cid for cid in unique_test_comids if cid in target_comids]
+        num_stations = len(filtered_comids)
+        print(f"There are {num_stations} target stations in the test set.")
+
+        # 创建子图
+        fig, axes = plt.subplots(num_stations, 1, figsize=(10, 4 * num_stations), sharex=False)
+        if num_stations == 1:
+            axes = [axes]
+
+        for idx, station_id in enumerate(filtered_comids):
+            logging.info(f"Plotting station {station_id}...")
+            # 获取该站点对应样本索引
+            station_indices = np.where(test_comids == station_id)[0]
+            station_X_ts = test_X[station_indices]
+            station_Y_true = test_Y[station_indices]
+            station_dates = test_dates[station_indices]
+
+            # 日期筛选
+            mask = (station_dates >= start_date) & (station_dates <= end_date)
+            if not np.any(mask):
+                print(f"No data for station {station_id} in specified date range.")
+                continue
+
+            station_X_ts = station_X_ts[mask]
+            station_Y_true = station_Y_true[mask]
+            station_dates = station_dates[mask]
+
+            # 构建属性向量
+            station_attr_list = []
+            for i in station_indices[mask]:
+                comid_str = str(test_comids[i])
+                if comid_str in attr_dict:
+                    station_attr_list.append(attr_dict[comid_str])
+                else:
+                    station_attr_list.append(np.zeros_like(next(iter(attr_dict.values()))))
+            station_attr = np.array(station_attr_list, dtype=np.float32)
+
+            # 按时间排序
+            sort_idx = np.argsort(station_dates)
+            station_X_ts = station_X_ts[sort_idx]
+            station_Y_true = station_Y_true[sort_idx]
+            station_dates = station_dates[sort_idx]
+            station_attr = station_attr[sort_idx]
+
+            # 推理
+            x_ts_torch = torch.from_numpy(station_X_ts).float().to(device)
+            x_attr_torch = torch.from_numpy(station_attr).float().to(device)
+            with torch.no_grad():
+                preds = model.predict(x_ts_torch, x_attr_torch)
+            preds = preds
+            # 绘图
+            ax = axes[idx]
+            ax.plot(station_dates, station_Y_true, label="Actual", marker='o')
+            ax.plot(station_dates, preds, label="Predicted", marker='x')
+            ax.set_title(f"Station {station_id} - Actual vs. Predicted")
+            ax.set_xlabel("Date")
+            ax.set_ylabel("Y value")
+            ax.legend()
+            ##保存图片
+            plt.savefig(f"flow_results\\{station_id}_testinmaincode_regression.png")
+            plt.close()
+
+
+
+##=========================================================
+
+
+
+
+
         # 执行初始汇流计算（或加载已有结果）
         exists, flow_result_path = check_existing_flow_routing_results(0, model_version, output_dir)
         df_flow = perform_flow_routing_calculation(

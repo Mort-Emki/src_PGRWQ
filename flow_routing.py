@@ -83,7 +83,7 @@ def calculate_river_width(Q: pd.Series) -> pd.Series:
 # ============================================================================
 def compute_temperature_factor(temperature: pd.Series, parameter: str = "TN") -> pd.Series:
     """
-    计算温度调整因子 f(t) = α^(t-20) * (t - 20)
+    计算温度调整因子 f(t) = α^(t-20) 
     
     参数:
         temperature: 温度序列 (°C)
@@ -96,8 +96,8 @@ def compute_temperature_factor(temperature: pd.Series, parameter: str = "TN") ->
     else:  # TP
         alpha = 1.06    # TP的α值
     
-    # 计算 α^(t-20) * (t - 20) 
-    return np.power(alpha, temperature - 20) * (temperature - 20)
+    # 计算 α^(t-20)
+    return np.power(alpha, temperature - 20) 
 
 def compute_nitrogen_concentration_factor(N_concentration: pd.Series) -> pd.Series:
     """
@@ -151,6 +151,7 @@ def compute_retainment_factor(v_f: float, Q_up: pd.Series, Q_down: pd.Series,
     计算保留系数，并存储中间结果用于调试
     R(Ωj, Ωi) = (1-exp(-v_f·S(Ωj)/(2·Q(Ωj)))) · (1-exp(-v_f·S(Ωi)/(2·Q(Ωi))))
 
+    更正：R(Ωj, Ωi) = exp(-v_f·S(Ωj)/(2·Q(Ωj)) · exp(-v_f·S(Ωi)/(2·Q(Ωi)))
     参数:
         v_f: 基础吸收速率参数 (m/yr)
         Q_up: 上游流量序列 (m³/s)
@@ -230,8 +231,8 @@ def compute_retainment_factor(v_f: float, Q_up: pd.Series, Q_down: pd.Series,
     exp_down = exp_down_raw.clip(-50, 50)
     
     # 计算保留系数
-    R_up = 1 - np.exp(exp_up)
-    R_down = 1 - np.exp(exp_down)
+    R_up =  np.exp(exp_up)
+    R_down = np.exp(exp_down)
     R = R_up * R_down
     
     # 检查NaN和无穷大值

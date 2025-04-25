@@ -227,8 +227,8 @@ class BranchLSTMModel(CatchmentModel):
             print(f" - {name}: {param.device}")
         
     def train_model(self, attr_dict, comid_arr_train, X_ts_train, Y_train, 
-                   comid_arr_val=None, X_ts_val=None, Y_val=None, 
-                   epochs=10, lr=1e-3, patience=3, batch_size=32):
+                comid_arr_val=None, X_ts_val=None, Y_val=None, 
+                epochs=10, lr=1e-3, patience=3, batch_size=32, early_stopping=False):
         """
         训练分支LSTM模型
         
@@ -246,6 +246,7 @@ class BranchLSTMModel(CatchmentModel):
             lr: 学习率
             patience: 早停耐心值
             batch_size: 批处理大小
+            early_stopping: 是否启用早停机制，默认为False
         """
         import torch.optim as optim
         
@@ -267,6 +268,7 @@ class BranchLSTMModel(CatchmentModel):
         # 初始化早停变量
         best_val_loss = float('inf')
         no_improve = 0
+        best_model_state = None
         
         # 按轮次进行训练
         for ep in range(epochs):
@@ -276,7 +278,7 @@ class BranchLSTMModel(CatchmentModel):
             
             # 训练阶段
             with TimingAndMemoryContext(f"轮次 {ep+1} 训练", 
-                                       log_memory=(ep % self.memory_check_interval == 0)):
+                                    log_memory=(ep % self.memory_check_interval == 0)):
                 self.base_model.train()
                 total_loss = 0.0
                 
@@ -307,7 +309,7 @@ class BranchLSTMModel(CatchmentModel):
             # 验证阶段
             if val_loader is not None:
                 with TimingAndMemoryContext(f"轮次 {ep+1} 验证", 
-                                           log_memory=(ep % self.memory_check_interval == 0)):
+                                        log_memory=(ep % self.memory_check_interval == 0)):
                     self.base_model.eval()
                     total_val_loss = 0.0
                     total_val_mape = 0.0
@@ -335,25 +337,33 @@ class BranchLSTMModel(CatchmentModel):
                     # 打印训练和验证指标
                     print(f"轮次 [{ep+1}/{epochs}]")
                     print(" 验证  | "
-                          f"训练损失={avg_train_loss:.4f}, "
-                          f"验证损失={avg_val_loss:.4f}, "
-                          f"验证MAPE={avg_val_mape:.4f}, "
-                          f"验证NSE={avg_val_nse:.4f}")
+                        f"训练损失={avg_train_loss:.4f}, "
+                        f"验证损失={avg_val_loss:.4f}, "
+                        f"验证MAPE={avg_val_mape:.4f}, "
+                        f"验证NSE={avg_val_nse:.4f}")
 
-                    # 早停检查
-                    if avg_val_loss < best_val_loss:
-                        best_val_loss = avg_val_loss
-                        no_improve = 0
-                    else:
-                        no_improve += 1
-                    
-                    if no_improve >= patience:
-                        print("触发早停!")
+                    # 早停检查 - 仅在启用early_stopping时执行
+                    if early_stopping:
+                        if avg_val_loss < best_val_loss:
+                            best_val_loss = avg_val_loss
+                            no_improve = 0
+                            # 保存最佳模型状态
+                            best_model_state = self.base_model.state_dict().copy()
+                        else:
+                            no_improve += 1
                         
-                        # 早停前的最终内存检查
-                        if self.device == 'cuda':
-                            log_memory_usage("[早停触发] ")
-                        break
+                        if no_improve >= patience:
+                            print(f"触发早停! {patience}轮未改善验证损失")
+                            
+                            # 早停前的最终内存检查
+                            if self.device == 'cuda':
+                                log_memory_usage("[早停触发] ")
+                            
+                            # 恢复最佳模型状态
+                            if best_model_state is not None:
+                                self.base_model.load_state_dict(best_model_state)
+                            
+                            break
             else:
                 print(f"[轮次 {ep+1}/{epochs}] 训练MSE: {avg_train_loss:.4f}")
             
@@ -361,10 +371,16 @@ class BranchLSTMModel(CatchmentModel):
             if self.device == 'cuda':
                 torch.cuda.empty_cache()
 
+        # 如果启用了早停但未触发，仍然加载最佳模型
+        if early_stopping and best_model_state is not None and no_improve < patience:
+            self.base_model.load_state_dict(best_model_state)
+            print(f"训练完成，加载验证损失最低的模型（第 {epochs - no_improve} 轮）")
+
         # 训练完成后的最终内存使用情况
         if self.device == 'cuda':
             log_memory_usage("[训练完成] ")
-    
+
+
     def predict(self, X_ts, X_attr):
         """
         批量预测
@@ -447,6 +463,28 @@ class BranchLSTMModel(CatchmentModel):
                 
             return np.concatenate(all_preds)
     
+    def predict_simple(self, X_ts, X_attr):
+        """
+        简化版本的预测函数（无批量处理）
+
+        参数:
+            X_ts: 时间序列输入, 形状为(N, T, D)
+            X_attr: 属性输入, 形状为(N, attr_dim)
+
+        返回:
+            预测结果, 形状为(N,)
+        """
+        self.base_model.eval()
+
+        # 将数据移动到模型所在设备
+        X_ts_torch = torch.tensor(X_ts, dtype=torch.float32, device=self.device)
+        X_attr_torch = torch.tensor(X_attr, dtype=torch.float32, device=self.device)
+
+        with torch.no_grad():
+            preds = self.base_model(X_ts_torch, X_attr_torch)
+
+        return preds.cpu().numpy()
+
     def save_model(self, path):
         """
         保存模型
