@@ -439,8 +439,8 @@ class BranchLSTMModel(CatchmentModel):
                     i = end_idx
                     
                     # 定期记录进度
-                    if i % (10 * current_batch_size) == 0 or i == total_samples:
-                        print(f"已处理 {i}/{total_samples} 个样本 ({i/total_samples*100:.1f}%)")
+                    # if i % (10 * current_batch_size) == 0 or i == total_samples:
+                    #     # print(f"已处理 {i}/{total_samples} 个样本 ({i/total_samples*100:.1f}%)")
                     
                 except RuntimeError as e:
                     # 检查是否是内存不足错误

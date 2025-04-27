@@ -1,20 +1,10 @@
 import numpy as np
 import pandas as pd
-from PGRWQI.model_training.models.models import CatchmentModel
 import logging
 import time
 import os
-import sys
-import json
 import torch
-import torch.nn as nn
-from data_processing import build_sliding_windows_for_subset, standardize_time_series_all, standardize_attributes
-
-# 尝试导入支持日志记录的tqdm，如果不可用则使用标准tqdm
-try:
-    from tqdm_logging import tqdm
-except ImportError:
-    from tqdm import tqdm
+from tqdm import tqdm
 
 # ============================================================================
 # 河道几何模块: 处理河段长度、宽度等几何属性
@@ -141,17 +131,15 @@ def compute_nitrogen_concentration_factor(N_concentration: pd.Series) -> pd.Seri
     return result
 
 def compute_retainment_factor(v_f: float, Q_up: pd.Series, Q_down: pd.Series, 
-                             W_up: pd.Series, W_down: pd.Series,
-                             length_up: float, length_down: float,
-                             temperature: pd.Series = None,
-                             N_concentration: pd.Series = None,
-                             parameter: str = "TN",
-                             debug_info=None) -> pd.Series:
+                            W_up: pd.Series, W_down: pd.Series,
+                            length_up: float, length_down: float,
+                            temperature: pd.Series = None,
+                            N_concentration: pd.Series = None,
+                            parameter: str = "TN") -> pd.Series:
     """
-    计算保留系数，并存储中间结果用于调试
-    R(Ωj, Ωi) = (1-exp(-v_f·S(Ωj)/(2·Q(Ωj)))) · (1-exp(-v_f·S(Ωi)/(2·Q(Ωi))))
-
-    更正：R(Ωj, Ωi) = exp(-v_f·S(Ωj)/(2·Q(Ωj)) · exp(-v_f·S(Ωi)/(2·Q(Ωi)))
+    计算保留系数
+    R(Ωj, Ωi) = exp(-v_f·S(Ωj)/(2·Q(Ωj))) · exp(-v_f·S(Ωi)/(2·Q(Ωi)))
+    
     参数:
         v_f: 基础吸收速率参数 (m/yr)
         Q_up: 上游流量序列 (m³/s)
@@ -163,117 +151,51 @@ def compute_retainment_factor(v_f: float, Q_up: pd.Series, Q_down: pd.Series,
         temperature: 温度序列 (°C)，若提供则计算温度调整因子
         N_concentration: 氮浓度序列 (mg/L)，若提供且参数为TN，则计算浓度调整因子
         parameter: 水质参数，"TN"或"TP"
-        debug_info: 存储中间结果的字典，若为None则不存储
 
     返回:
         保留系数序列
     """
-    # 复制原始流量用于调试
-    Q_up_orig = Q_up.copy()
-    Q_down_orig = Q_down.copy()
-    
-    # 避免除以0错误，设置最小流量阈值
+    # 1. 单位转换
     min_flow = 0.001  # 最小流量阈值，1 L/s
     Q_up_adj = Q_up.replace(0, min_flow).clip(lower=min_flow)
     Q_down_adj = Q_down.replace(0, min_flow).clip(lower=min_flow)
     
-    # 记录有多少值被裁剪
-    up_clipped = (Q_up < min_flow).sum()
-    down_clipped = (Q_down < min_flow).sum()
-    if up_clipped > 0 or down_clipped > 0:
-        logging.info(f"流量裁剪: {up_clipped}个上游和{down_clipped}个下游值 < {min_flow}")
+    # 长度从km转成m
+    length_up_m = length_up * 1000.0
+    length_down_m = length_down * 1000.0
     
-    # 单位转换:
-    # 1. 长度从km转成m
-    length_up_m = length_up * 1000.0  # km -> m
-    length_down_m = length_down * 1000.0  # km -> m
+    # v_f从m/yr转成m/s
+    seconds_per_year = 365.25 * 24 * 60 * 60
+    v_f_m_per_second = v_f / seconds_per_year
     
-    # 2. v_f从m/yr转成m/s
-    seconds_per_year = 365.25 * 24 * 60 * 60  # 31,557,600秒
-    v_f_m_per_second = v_f / seconds_per_year  # m/yr -> m/s
-    
-    # 存储基础v_f值用于调试
-    base_v_f = v_f_m_per_second
-    
-    # 应用温度调整因子（如果提供温度数据）
+    # 2. 应用调整因子
+    # 温度调整
     if temperature is not None:
-        # 使用已有函数计算温度因子
         temp_factor = compute_temperature_factor(temperature, parameter)
         v_f_adjusted = v_f_m_per_second * temp_factor
     else:
-        temp_factor = None
         v_f_adjusted = v_f_m_per_second
     
-    # 应用浓度调整因子（如果提供浓度数据且参数为TN）
+    # 浓度调整（仅适用于TN）
     if parameter == "TN" and N_concentration is not None:
-        # 使用已有函数计算浓度因子
         conc_factor = compute_nitrogen_concentration_factor(N_concentration)
         v_f_adjusted = v_f_adjusted * conc_factor
-    else:
-        conc_factor = None
     
-    # 计算河段面积 (宽度*长度)
-    S_up = W_up * length_up_m  # 面积单位：m²
-    S_down = W_down * length_down_m  # 面积单位：m²
+    # 3. 计算河段面积
+    S_up = W_up * length_up_m
+    S_down = W_down * length_down_m
     
-    # 计算指数项（原始值，用于调试）
-    exp_up_raw = -v_f_adjusted * S_up / (2 * Q_up_adj)
-    exp_down_raw = -v_f_adjusted * S_down / (2 * Q_down_adj)
+    # 4. 计算指数项
+    exp_up = (-v_f_adjusted * S_up / (2 * Q_up_adj)).clip(-50, 50)
+    exp_down = (-v_f_adjusted * S_down / (2 * Q_down_adj)).clip(-50, 50)
     
-    # 检查极端值并记录
-    extreme_up = (exp_up_raw < -50).sum() + (exp_up_raw > 50).sum()
-    extreme_down = (exp_down_raw < -50).sum() + (exp_down_raw > 50).sum()
-    if extreme_up > 0 or extreme_down > 0:
-        logging.warning(f"检测到极端指数值: {extreme_up}个上游, {extreme_down}个下游")
-        
-    # 裁剪极端值以防止溢出
-    exp_up = exp_up_raw.clip(-50, 50)
-    exp_down = exp_down_raw.clip(-50, 50)
-    
-    # 计算保留系数
-    R_up =  np.exp(exp_up)
+    # 5. 计算保留系数
+    R_up = np.exp(exp_up)
     R_down = np.exp(exp_down)
     R = R_up * R_down
     
-    # 检查NaN和无穷大值
-    nan_count = R.isna().sum()
-    inf_mask = ~R.isna() & (R.abs() == float('inf'))
-    inf_count = inf_mask.sum()
-    if nan_count > 0 or inf_count > 0:
-        logging.warning(f"保留系数中发现{nan_count}个NaN和{inf_count}个无穷大值")
-        
-        # 替换无穷大值为有限值
-        if inf_count > 0:
-            R.loc[inf_mask] = np.sign(R.loc[inf_mask]) * 0.99  # 替换为接近1的值，保持符号
-    
-    # 如果提供debug_info字典，存储中间结果
-    if debug_info is not None and isinstance(debug_info, dict):
-        debug_info['Q_up_orig'] = Q_up_orig
-        debug_info['Q_down_orig'] = Q_down_orig
-        debug_info['Q_up_adj'] = Q_up_adj
-        debug_info['Q_down_adj'] = Q_down_adj
-        debug_info['W_up'] = W_up
-        debug_info['W_down'] = W_down
-        debug_info['S_up'] = S_up
-        debug_info['S_down'] = S_down
-        debug_info['base_v_f'] = base_v_f
-        debug_info['v_f_adjusted'] = v_f_adjusted
-        debug_info['exp_up_raw'] = exp_up_raw
-        debug_info['exp_down_raw'] = exp_down_raw
-        debug_info['exp_up'] = exp_up
-        debug_info['exp_down'] = exp_down
-        debug_info['R_up'] = R_up
-        debug_info['R_down'] = R_down
-        
-        if temp_factor is not None:
-            debug_info['temp_factor'] = temp_factor
-        if conc_factor is not None:
-            debug_info['conc_factor'] = conc_factor
-    
-    # 填充可能的NaN值
-    R_filled = R.fillna(0.0)
-    
-    return R_filled
+    # 6. 填充可能的NaN值
+    return R.fillna(0.0)
 
 # ============================================================================
 # 河网拓扑模块: 处理河网拓扑结构相关的功能
@@ -455,8 +377,8 @@ def apply_e_values(groups, comid_data, e_df, target_col, missing_data_comids):
     
     return comid_data
 
-def calculate_e_values(groups, comid_data, model_func, attr_dict, model, all_target_cols,target_col, missing_data_comids, 
-                     iteration, e_save, e_save_path):
+def calculate_e_values(groups, comid_data, model_func, attr_dict, model, all_target_cols, target_col, 
+                     missing_data_comids, iteration, e_save, e_save_path):
     """
     使用模型计算E值
     
@@ -466,6 +388,7 @@ def calculate_e_values(groups, comid_data, model_func, attr_dict, model, all_tar
         model_func: 预测模型函数
         attr_dict: 河段属性字典
         model: 预测模型
+        all_target_cols: 所有可能的目标列列表
         target_col: 目标列
         missing_data_comids: 缺失数据的河段ID集合
         iteration: 当前迭代次数
@@ -497,11 +420,9 @@ def calculate_e_values(groups, comid_data, model_func, attr_dict, model, all_tar
             
             # 过滤掉缺失数据的河段
             valid_batch_comids = [comid for comid in batch_comids if str(comid) not in missing_data_comids]
-            if len(valid_batch_comids) < len(batch_comids):
-                logging.debug(f"批次 {batch_idx+1}: 过滤掉 {len(batch_comids) - len(valid_batch_comids)} 个缺失数据的河段")
             
             # 批量计算当前批次所有有效河段的E值
-            batch_results = model_func(valid_batch_comids, groups, attr_dict, model,all_target_cols = all_target_cols, target_col=target_col)
+            batch_results = model_func(valid_batch_comids, groups, attr_dict, model, all_target_cols=all_target_cols, target_col=target_col)
             
             # 处理结果并存入数据字典
             for comid in batch_comids:
@@ -519,16 +440,6 @@ def calculate_e_values(groups, comid_data, model_func, attr_dict, model, all_tar
                     group[f'y_up_{target_col}'] = 0.0
                     group[f'y_n_{target_col}'] = 0.0
                 else:
-                    # 检查Qout是否存在异常值
-                    if group['Qout'].isnull().values.any():
-                        print(f"Qout存在零值，comid={comid}")
-                        sys.exit()
-                    if (group['Qout']<0).values.any():
-                        print(f"Qout存在负值，comid={comid}")
-                        ##统计Qout负值的比例
-                        print(group['Qout'][group['Qout']<0].count()/group['Qout'].count())
-                        sys.exit()
-
                     # 计算河道宽度
                     group['width'] = calculate_river_width(group['Qout'])
                     
@@ -550,26 +461,12 @@ def calculate_e_values(groups, comid_data, model_func, attr_dict, model, all_tar
                 group = group.set_index("date")
                 comid_data[comid] = group
             
-            # 计算并记录批次处理时间
-            batch_time = time.time() - batch_start_time
-            
-            # 定期记录批次处理信息和内存使用情况
-            if batch_idx % 5 == 0 or batch_idx == num_batches - 1:
-                logging.info(f"批次 {batch_idx+1}/{num_batches}: 处理了 {len(valid_batch_comids)} 个COMID，用时 {batch_time:.2f}秒")
-                
-                # 监控GPU内存使用
-                if torch.cuda.is_available():
-                    allocated = torch.cuda.memory_allocated() / (1024 * 1024)
-                    reserved = torch.cuda.memory_reserved() / (1024 * 1024)
-                    logging.info(f"GPU内存: {allocated:.2f}MB已分配, {reserved:.2f}MB已保留")
-                    
-                    # 内存占用过高时释放缓存
-                    if allocated > 6000:  # 6GB阈值
-                        torch.cuda.empty_cache()
-                        logging.info("已清理GPU缓存")
-            
             # 更新进度条
             pbar.update(len(batch_comids))
+            
+            # 定期检查内存使用（每5批次一次）
+            if batch_idx % 5 == 0 and torch.cuda.is_available():
+                torch.cuda.empty_cache()
     
     # 如果需要保存E值
     if e_save == 1 and e_save_path and e_values_to_save:
@@ -612,9 +509,9 @@ def process_headwater_segments(comid_data, queue, target_col):
 
 def execute_flow_routing(comid_data, queue, indegree, next_down_ids, load_acc, 
                         target_col, attr_dict, river_info, v_f_TN, v_f_TP, 
-                        store_debug_info=True):
+                        check_anomalies=False):
     """
-    执行汇流计算的主要逻辑，并存储关键中间结果
+    执行汇流计算的主要逻辑
     
     参数:
         comid_data: 存储河段数据的字典
@@ -627,22 +524,14 @@ def execute_flow_routing(comid_data, queue, indegree, next_down_ids, load_acc,
         river_info: 河网信息DataFrame
         v_f_TN: TN的吸收速率参数
         v_f_TP: TP的吸收速率参数
-        store_debug_info: 是否存储调试信息
+        check_anomalies: 是否检查和处理异常值
     
     返回:
-        更新后的comid_data和调试信息
+        更新后的comid_data
     """
     logging.info("开始汇流计算...")
     processed_count = 0
     has_temperature_data = any('temperature_2m_mean' in data.columns for data in comid_data.values())
-    
-    # 存储调试信息的字典
-    debug_segments = {}
-    
-    # 设置调试标志点和周期
-    debug_segment_ids = set()  # 特别需要调试的河段ID集合
-    debug_interval = 1000      # 每处理多少个河段记录一次详细信息
-    problem_segments = []      # 记录出现问题的河段
     
     while queue:
         # 从队列中取出下一个要处理的河段
@@ -650,7 +539,7 @@ def execute_flow_routing(comid_data, queue, indegree, next_down_ids, load_acc,
         processed_count += 1
         
         # 周期性地记录处理进度
-        if processed_count % debug_interval == 0:
+        if processed_count % 1000 == 0:
             logging.info(f"已处理 {processed_count} 个河段")
         
         # 获取当前河段数据和下游河段ID
@@ -668,9 +557,6 @@ def execute_flow_routing(comid_data, queue, indegree, next_down_ids, load_acc,
             logging.warning(f"警告: 日期不对齐，COMID {current} 与 COMID {next_down}")
             continue
         
-        # 调试标志：是否为需要特别关注的河段
-        is_debug_segment = current in debug_segment_ids or next_down in debug_segment_ids
-        
         # 计算当前河段对下游的贡献
         if len(common_dates) > 0: 
             # 提取共同日期的数据
@@ -684,8 +570,6 @@ def execute_flow_routing(comid_data, queue, indegree, next_down_ids, load_acc,
                 temperature = current_data['temperature_2m_mean'].reindex(common_dates)
             else:
                 temperature = None
-            # 初始化调试信息字典
-            segment_debug = {} if store_debug_info else None
             
             try:
                 # 选择合适的吸收速率参数
@@ -706,21 +590,21 @@ def execute_flow_routing(comid_data, queue, indegree, next_down_ids, load_acc,
                 # 提取当前参数的y_n值
                 y_n_current = current_data[f'y_n_{target_col}'].reindex(common_dates)
                 
-                # 检查y_n_current是否包含NaN或异常值
-                nan_count = y_n_current.isna().sum()
-                extreme_count = (~y_n_current.isna() & (y_n_current.abs() > 1e6)).sum()
-                if nan_count > 0 or extreme_count > 0:
-                    logging.warning(f"COMID {current} 的 y_n_{target_col} 包含 {nan_count} 个NaN和 {extreme_count} 个异常值")
-                    if extreme_count > 0:
-                        # 裁剪极端值
-                        y_n_current = y_n_current.clip(-1e6, 1e6)
-                        logging.info(f"已将 COMID {current} 的 y_n_{target_col} 极端值裁剪到 ±1e6 范围内")
+                # 检查异常值（如果需要）
+                if check_anomalies:
+                    nan_count = y_n_current.isna().sum()
+                    extreme_count = (~y_n_current.isna() & (y_n_current.abs() > 1e6)).sum()
+                    if nan_count > 0 or extreme_count > 0:
+                        logging.warning(f"COMID {current} 的 y_n_{target_col} 包含 {nan_count} 个NaN和 {extreme_count} 个异常值")
+                        if extreme_count > 0:
+                            # 裁剪极端值
+                            y_n_current = y_n_current.clip(-1e6, 1e6)
 
                 # 获取河段长度
                 length_current = get_river_length(current, attr_dict, river_info)
                 length_down = get_river_length(next_down, attr_dict, river_info)
 
-                # 计算保留系数，并存储调试信息
+                # 计算保留系数
                 R_series = compute_retainment_factor(
                     v_f=v_f, 
                     Q_up=Q_current, 
@@ -731,58 +615,33 @@ def execute_flow_routing(comid_data, queue, indegree, next_down_ids, load_acc,
                     length_down=length_down,
                     temperature=temperature,
                     N_concentration=N_concentration,
-                    parameter=target_col,
-                    debug_info=segment_debug
+                    parameter=target_col
                 )
                 
                 # 计算贡献并累加到下游负荷累加器
                 contribution = y_n_current * R_series * Q_current
                 
-                # 检查贡献是否包含异常值
-                contribution_nan = contribution.isna().sum()
-                contribution_extreme = (~contribution.isna() & (contribution.abs() > 1e6)).sum()
-                
-                if contribution_nan > 0 or contribution_extreme > 0:
-                    logging.warning(f"COMID {current} -> {next_down} 的贡献包含 {contribution_nan} 个NaN和 {contribution_extreme} 个异常值")
-                    # 裁剪异常贡献值
-                    if contribution_extreme > 0:
-                        contribution = contribution.clip(-1e6, 1e6)
-                        logging.info(f"已将贡献极端值裁剪到 ±1e6 范围内")
+                # 检查异常值（如果需要）
+                if check_anomalies:
+                    contribution_nan = contribution.isna().sum()
+                    contribution_extreme = (~contribution.isna() & (contribution.abs() > 1e6)).sum()
                     
-                    # 记录问题河段
-                    problem_segments.append((current, next_down, target_col))
+                    if contribution_nan > 0 or contribution_extreme > 0:
+                        logging.warning(f"COMID {current} -> {next_down} 的贡献包含 {contribution_nan} 个NaN和 {contribution_extreme} 个异常值")
+                        # 裁剪异常贡献值
+                        if contribution_extreme > 0:
+                            contribution = contribution.clip(-1e6, 1e6)
                 
                 # 累加贡献
                 load_acc[target_col][next_down] = load_acc[target_col][next_down].add(contribution, fill_value=0.0)
                 
-                # 存储额外的调试列
-                if store_debug_info:
-                    segment_debug[f'y_n_current_{target_col}'] = y_n_current
-                    segment_debug[f'contribution_{target_col}'] = contribution
-                    segment_debug[f'R_series_{target_col}'] = R_series
             except Exception as e:
                 # 捕获计算过程中的异常
                 logging.error(f"处理 COMID {current} -> {next_down} 的 {target_col} 时出错: {str(e)}")
-                # 将此河段对添加到问题列表
-                problem_segments.append((current, next_down, target_col))
                 
                 # 使用安全值作为默认贡献
                 contribution = pd.Series(0.0, index=common_dates)
                 load_acc[target_col][next_down] = load_acc[target_col][next_down].add(contribution, fill_value=0.0)
-            
-            # 存储调试信息
-            if store_debug_info and (is_debug_segment or processed_count % debug_interval == 0):
-                segment_debug['common_dates'] = common_dates
-                segment_debug['Q_current'] = Q_current
-                segment_debug['Q_down'] = Q_down
-                segment_debug['S_current'] = S_current
-                segment_debug['S_down'] = S_down
-                if temperature is not None:
-                    segment_debug['temperature'] = temperature
-                    
-                # 保存调试信息
-                debug_key = f"{current}_{next_down}"
-                debug_segments[debug_key] = segment_debug
         
         # 减少下游河段的入度
         indegree[next_down] -= 1
@@ -795,16 +654,16 @@ def execute_flow_routing(comid_data, queue, indegree, next_down_ids, load_acc,
                 # 计算上游贡献浓度
                 y_up_down = load_acc[target_col][next_down] / down_data['Qout'].replace(0, np.nan)
                 
-                # 检查y_up是否包含异常值
-                y_up_nan = y_up_down.isna().sum()
-                y_up_extreme = (~y_up_down.isna() & (y_up_down.abs() > 1e6)).sum()
-                
-                if y_up_nan > 0 or y_up_extreme > 0:
-                    logging.warning(f"COMID {next_down} 的 y_up_{target_col} 包含 {y_up_nan} 个NaN和 {y_up_extreme} 个异常值")
-                    # 处理异常值
-                    if y_up_extreme > 0:
-                        y_up_down = y_up_down.clip(-1e6, 1e6)
-                        logging.info(f"已将 COMID {next_down} 的 y_up_{target_col} 极端值裁剪到 ±1e6 范围内")
+                # 检查异常值（如果需要）
+                if check_anomalies:
+                    y_up_nan = y_up_down.isna().sum()
+                    y_up_extreme = (~y_up_down.isna() & (y_up_down.abs() > 1e6)).sum()
+                    
+                    if y_up_nan > 0 or y_up_extreme > 0:
+                        logging.warning(f"COMID {next_down} 的 y_up_{target_col} 包含 {y_up_nan} 个NaN和 {y_up_extreme} 个异常值")
+                        # 处理异常值
+                        if y_up_extreme > 0:
+                            y_up_down = y_up_down.clip(-1e6, 1e6)
                 
                 # 填充NaN值
                 y_up_down = y_up_down.fillna(0.0)
@@ -814,25 +673,21 @@ def execute_flow_routing(comid_data, queue, indegree, next_down_ids, load_acc,
                 
                 # 计算y_n并检查异常值
                 y_n_down = down_data[f'E_{target_col}'] + down_data[f'y_up_{target_col}']
-                y_n_extreme = (y_n_down.abs() > 1e6).sum()
                 
-                if y_n_extreme > 0:
-                    logging.warning(f"COMID {next_down} 的 y_n_{target_col} 包含 {y_n_extreme} 个异常值")
-                    y_n_down = y_n_down.clip(-1e6, 1e6)
-                    logging.info(f"已将 y_n_{target_col} 极端值裁剪到 ±1e6 范围内")
+                if check_anomalies:
+                    y_n_extreme = (y_n_down.abs() > 1e6).sum()
+                    
+                    if y_n_extreme > 0:
+                        logging.warning(f"COMID {next_down} 的 y_n_{target_col} 包含 {y_n_extreme} 个异常值")
+                        y_n_down = y_n_down.clip(-1e6, 1e6)
                 
                 down_data[f'y_n_{target_col}'] = y_n_down
                 
-                # 存储调试列
-                if store_debug_info:
-                    down_data[f'debug_load_acc_{target_col}'] = load_acc[target_col][next_down]
-                    down_data[f'debug_E_{target_col}'] = down_data[f'E_{target_col}']
             except Exception as e:
                 logging.error(f"计算 COMID {next_down} 的 y_up 和 y_n 时出错: {str(e)}")
                 # 使用安全值
                 down_data[f'y_up_{target_col}'] = 0.0
                 down_data[f'y_n_{target_col}'] = down_data[f'E_{target_col}']
-                problem_segments.append((next_down, 0, target_col))
             
             # 更新数据字典
             comid_data[next_down] = down_data
@@ -840,19 +695,7 @@ def execute_flow_routing(comid_data, queue, indegree, next_down_ids, load_acc,
             # 将下游河段加入队列
             queue.append(next_down)
     
-    # 报告问题河段的统计信息
-    if problem_segments:
-        logging.warning(f"汇流计算中有 {len(problem_segments)} 个问题河段对")
-        
-        # 统计每个参数的问题数量
-        param_problems = {}
-        for _, _, param in problem_segments:
-            param_problems[param] = param_problems.get(param, 0) + 1
-            
-        for param, count in param_problems.items():
-            logging.warning(f"参数 {param} 有 {count} 个问题河段")
-    
-    return comid_data, debug_segments
+    return comid_data
 
 def format_results(comid_data, iteration, target_col):
     """
@@ -891,9 +734,6 @@ def format_results(comid_data, iteration, target_col):
         rename_dict = {k: v for k, v in rename_dict.items() if k in result_df.columns}   
 
     result_df = result_df.rename(columns=rename_dict)
-
-    # 添加调试日志，显示重命名后的列
-    logging.info(f"重命名后的列: {result_df.columns.tolist()}")   
     
     return result_df
 
@@ -907,14 +747,15 @@ def flow_routing_calculation(df: pd.DataFrame,
                             v_f_TN: float = 35.0,
                             v_f_TP: float = 44.5,
                             attr_dict: dict = None, 
-                            model: CatchmentModel = None,
+                            model = None,
                             all_target_cols=["TN", "TP"],
                             target_col="TN",
                             attr_df: pd.DataFrame = None,
                             E_exist: int = 0,
                             E_exist_path: str = None,
                             E_save: int = 0,
-                            E_save_path: str = None) -> pd.DataFrame:
+                            E_save_path: str = None,
+                            check_anomalies: bool = False) -> pd.DataFrame:
     """
     汇流计算函数
     
@@ -936,6 +777,7 @@ def flow_routing_calculation(df: pd.DataFrame,
         E_exist_path: E值读取路径
         E_save: 是否保存计算得到的E值，0表示不保存，1表示保存
         E_save_path: E值保存路径
+        check_anomalies: 是否检查和处理异常值，默认为False
         
     返回:
         DataFrame，增加了新列:
@@ -946,14 +788,6 @@ def flow_routing_calculation(df: pd.DataFrame,
     # =========================================================================
     # 1. 初始化与数据准备
     # =========================================================================
-    # 验证模型是否在正确的设备上
-    if model and hasattr(model, 'base_model') and hasattr(model.base_model, 'parameters'):
-        device = next(model.base_model.parameters()).device
-        print(f"===== 模型设备检查 =====")
-        print(f"模型在设备: {device}")
-        print(f"模型类型: {type(model.base_model)}")
-        print(f"======================")
-
     # 复制数据框以避免修改原始数据
     df = df.copy()
     logging.info(f"迭代 {iteration} 的汇流计算开始")
@@ -996,13 +830,17 @@ def flow_routing_calculation(df: pd.DataFrame,
         else:
             # 没有加载到E值，使用模型计算
             logging.info(f"未找到E值，使用模型计算河段E值 (迭代 {iteration})")
-            comid_data = calculate_e_values(groups=groups, comid_data=comid_data, model_func=model_func, attr_dict=attr_dict, model=model, all_target_cols=all_target_cols,target_col = target_col, 
-                                         missing_data_comids=missing_data_comids, iteration=iteration, e_save=E_save, e_save_path=E_save_path)
+            comid_data = calculate_e_values(groups=groups, comid_data=comid_data, model_func=model_func, 
+                                          attr_dict=attr_dict, model=model, all_target_cols=all_target_cols,
+                                          target_col=target_col, missing_data_comids=missing_data_comids, 
+                                          iteration=iteration, e_save=E_save, e_save_path=E_save_path)
     else:
         # 没有加载E值，使用模型计算
         logging.info(f"使用模型计算河段E值 (迭代 {iteration})")
-        comid_data = calculate_e_values(groups=groups, comid_data=comid_data, model_func=model_func, attr_dict=attr_dict, model=model, all_target_cols=all_target_cols,target_col = target_col, 
-                                         missing_data_comids=missing_data_comids, iteration=iteration, e_save=E_save, e_save_path=E_save_path)
+        comid_data = calculate_e_values(groups=groups, comid_data=comid_data, model_func=model_func, 
+                                      attr_dict=attr_dict, model=model, all_target_cols=all_target_cols,
+                                      target_col=target_col, missing_data_comids=missing_data_comids, 
+                                      iteration=iteration, e_save=E_save, e_save_path=E_save_path)
    
     
     # =========================================================================
@@ -1021,8 +859,9 @@ def flow_routing_calculation(df: pd.DataFrame,
     # =========================================================================
     # 4. 执行汇流计算
     # =========================================================================
-    comid_data, debug_segments = execute_flow_routing(comid_data, queue, indegree, next_down_ids, load_acc, 
-                                     target_col, attr_dict, river_info, v_f_TN, v_f_TP)
+    comid_data = execute_flow_routing(comid_data, queue, indegree, next_down_ids, load_acc, 
+                                     target_col, attr_dict, river_info, v_f_TN, v_f_TP, 
+                                     check_anomalies=check_anomalies)
     
     # =========================================================================
     # 5. 格式化结果
