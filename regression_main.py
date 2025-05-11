@@ -30,7 +30,7 @@ logging.getLogger().setLevel(logging.DEBUG)
 
 # 导入自定义模块
 from PGRWQI.data_processing import load_daily_data, load_river_attributes, detect_and_handle_anomalies, check_river_network_consistency
-from PGRWQI.model_training.train import iterative_training_procedure
+from PGRWQI.model_training.iterative_train.iterative_training import iterative_training_procedure
 from PGRWQI.logging_utils import setup_logging, restore_stdout_stderr, ensure_dir_exists
 from PGRWQI.tqdm_logging import tqdm
 from PGRWQI.model_training.gpu_memory_utils import (
