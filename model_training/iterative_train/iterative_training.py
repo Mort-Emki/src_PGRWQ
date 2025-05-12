@@ -14,7 +14,7 @@ from typing import Dict, List, Tuple, Optional, Any, Union
 from datetime import datetime
 
 # 导入项目中的函数
-from PGRWQI.flow_routing import flow_routing_calculation
+from PGRWQI.flow_routing_modules.flow_routing import flow_routing_calculation
 from PGRWQI.logging_utils import ensure_dir_exists
 from PGRWQI.model_training.gpu_memory_utils import (
     log_memory_usage, 
@@ -26,7 +26,7 @@ from PGRWQI.model_training.gpu_memory_utils import (
 # 导入自定义组件
 from .data_handler import DataHandler
 from .model_manager import ModelManager
-from .evaluation import ConvergenceChecker, DataValidator
+from .evaluation import ConvergenceChecker, DataValidator, ModelVisualizer
 from .utils import (
     check_existing_flow_routing_results,
     create_batch_model_func,
@@ -176,6 +176,19 @@ def iterative_training_procedure(
                 train_data=train_val_data
             )
             
+            # 在初始模型训练后添加验证
+            ModelVisualizer.verify_initial_model(
+                model=model,
+                data_handler=data_handler,
+                model_manager=model_manager,
+                comid_wq_list=comid_wq_list,
+                all_target_cols=all_target_cols,
+                target_col=target_col,
+                model_save_dir=model_save_dir,
+                model_version=model_version
+            )
+            
+
             # 创建批处理函数
             batch_func = create_batch_model_func(
                 data_handler=data_handler,
@@ -215,6 +228,17 @@ def iterative_training_procedure(
                         E_save_path=f"{output_dir}/E_values_{model_version}"
                     )
                     
+                    # 汇流计算完成后验证结果
+                    ModelVisualizer.verify_flow_results(
+                        iteration=0,
+                        model_version=model_version,
+                        df_flow=df_flow,
+                        original_df=df,
+                        target_col=target_col,
+                        comid_wq_list=comid_wq_list,
+                        output_dir=flow_results_dir
+                    )
+
                     # 保存汇流计算结果
                     save_flow_results(df_flow, 0, model_version, output_dir)
         else:
@@ -379,6 +403,18 @@ def iterative_training_procedure(
                             E_save=1,  # 保存E值
                             E_save_path=f"{output_dir}/E_values_{model_version}"
                         )
+                        
+                        # 执行新一轮汇流计算后验证结果
+                        if 'df_flow' in locals():  # 确保df_flow已定义
+                            ModelVisualizer.verify_flow_results(
+                                iteration=it+1,
+                                model_version=model_version,
+                                df_flow=df_flow,
+                                original_df=df,
+                                target_col=target_col,
+                                comid_wq_list=comid_wq_list,
+                                output_dir=flow_results_dir
+                            )
                         
                         # 保存汇流计算结果
                         save_flow_results(df_flow, it+1, model_version, output_dir)

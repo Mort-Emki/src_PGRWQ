@@ -107,8 +107,10 @@ class DataHandler:
             self.df, 
             sample_comids, 
             input_cols=self.input_features, 
-            target_cols=["TN"],
-            time_window=10
+            target_col="TN",                    # 修改参数名，从target_cols改为target_col
+            all_target_cols=["TN", "TP"],       # 添加缺少的参数
+            time_window=10,
+            skip_missing_targets=True           # 可选，增加清晰度
         )
         
         if X_sample is None:

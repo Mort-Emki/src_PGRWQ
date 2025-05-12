@@ -4,12 +4,13 @@ evaluation.py - 评估和收敛检查模块
 该模块提供评估模型性能、检查训练收敛性以及验证数据质量的功能。
 负责监控训练进度、检测异常值并确保数据一致性。
 """
-
+import os
 import numpy as np
 import pandas as pd
 import logging
+import matplotlib.pyplot as plt
 from typing import Dict, List, Tuple, Optional, Any, Set
-
+from PGRWQI.model_training.gpu_memory_utils import TimingAndMemoryContext
 
 class ConvergenceChecker:
     """收敛性检查器，负责监控迭代训练的收敛情况"""
@@ -363,3 +364,234 @@ class DataValidator:
                 logging.info(f"已重新计算 {y_n_col} 列")
         
         return df_fixed
+    
+
+
+class ModelVisualizer:
+    """
+    模型验证可视化器，负责生成模型验证图表
+    
+    提供两种主要功能：
+    1. 初始模型(A0)的验证图表：直接比较模型输出与实际观测值
+    2. 汇流计算结果的验证图表：比较汇流计算的水质预测与实际观测值
+    """
+    
+    @staticmethod
+    def create_overall_scatter_plot(df_flow, original_df, comids, actual_col, predicted_col, 
+                                  target_param, output_dir, iteration, model_version):
+        """创建所有站点的汇流结果vs实测值散点图"""
+        # 合并数据
+        merged_data = pd.merge(
+            df_flow[['COMID', 'date', predicted_col]],
+            original_df[['COMID', 'date', actual_col]],
+            on=['COMID', 'date'], how='inner'
+        )
+        
+        # 筛选指定COMID的数据
+        merged_data = merged_data[merged_data['COMID'].isin(comids)]
+        
+        # 删除缺失值
+        merged_data = merged_data.dropna(subset=[actual_col, predicted_col])
+        
+        if len(merged_data) == 0:
+            logging.warning(f"没有找到足够的数据进行验证")
+            return
+        
+        # 计算性能指标
+        actuals = merged_data[actual_col].values
+        predictions = merged_data[predicted_col].values
+        mse = np.mean((actuals - predictions)**2)
+        rmse = np.sqrt(mse)
+        r2 = np.corrcoef(actuals, predictions)[0, 1]**2 if len(actuals) > 1 else 0
+        
+        # 创建散点图
+        plt.figure(figsize=(10, 8))
+        plt.scatter(actuals, predictions, alpha=0.6)
+        
+        # 添加1:1线
+        max_val = max(max(actuals), max(predictions))
+        min_val = min(min(actuals), min(predictions))
+        plt.plot([min_val, max_val], [min_val, max_val], 'k--', label='1:1 Line')
+        
+        # 添加性能指标
+        plt.text(0.05, 0.95, f'RMSE: {rmse:.4f}\nR²: {r2:.4f}\nData points: {len(actuals)}', 
+                transform=plt.gca().transAxes, fontsize=12, 
+                verticalalignment='top', 
+                bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+        
+        # 设置标题和标签
+        plt.title(f'{target_param} - 迭代{iteration}汇流结果验证 (版本: {model_version})', fontsize=14)
+        plt.xlabel(f'观测值 ({target_param})', fontsize=12)
+        plt.ylabel(f'预测值 ({target_param})', fontsize=12)
+        plt.grid(True, alpha=0.3)
+        
+        # 保存图表
+        plt.tight_layout()
+        filename = f'overall_verification_iter{iteration}_{model_version}.png'
+        plt.savefig(os.path.join(output_dir, filename), dpi=300)
+        plt.close()
+    
+    @staticmethod
+    def create_station_time_series_plot(df_flow, original_df, comid, actual_col, predicted_col, 
+                                      target_param, output_dir, iteration, model_version):
+        """为单个站点创建时间序列对比图"""
+        # 筛选数据
+        flow_data = df_flow[df_flow['COMID'] == comid]
+        original_data = original_df[original_df['COMID'] == comid]
+        
+        # 合并数据
+        merged_data = pd.merge(
+            flow_data[['date', predicted_col]],
+            original_data[['date', actual_col]],
+            on='date', how='inner'
+        ).sort_values('date')
+        
+        if len(merged_data) == 0:
+            logging.warning(f"站点 {comid} 没有找到足够的数据进行验证")
+            return
+        
+        # 创建时间序列图
+        plt.figure(figsize=(12, 6))
+        
+        # 绘制实际观测值
+        plt.plot(merged_data['date'], merged_data[actual_col], 'o-', color='blue', label='观测值')
+        
+        # 绘制预测值
+        plt.plot(merged_data['date'], merged_data[predicted_col], 'x-', color='red', label='汇流预测值')
+        
+        # 计算相关指标
+        mse = np.mean((merged_data[actual_col] - merged_data[predicted_col])**2)
+        rmse = np.sqrt(mse)
+        
+        # 添加指标文本
+        plt.text(0.05, 0.95, f'RMSE: {rmse:.4f}\nData points: {len(merged_data)}', 
+                transform=plt.gca().transAxes, fontsize=10, 
+                verticalalignment='top', 
+                bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+        
+        # 设置标题和标签
+        plt.title(f'站点 {comid} - {target_param} 时间序列对比 (迭代{iteration}, 版本: {model_version})', fontsize=14)
+        plt.xlabel('日期', fontsize=12)
+        plt.ylabel(f'{target_param}', fontsize=12)
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        
+        # 格式化日期轴
+        plt.gcf().autofmt_xdate()
+        
+        # 保存图表
+        plt.tight_layout()
+        filename = f'ts_comid{comid}_iter{iteration}_{model_version}.png'
+        plt.savefig(os.path.join(output_dir, filename), dpi=300)
+        plt.close()
+    
+    @classmethod
+    def verify_flow_results(cls,
+        iteration: int,
+        model_version: str,
+        df_flow: pd.DataFrame,  # 汇流结果
+        original_df: pd.DataFrame,  # 包含实际观测值的原始数据
+        target_col: str,
+        comid_wq_list: List,  # 具有水质观测数据的河段
+        output_dir: str
+    ):
+        """
+        验证模型汇流结果，基于汇流计算结果和实际观测值
+        
+        参数:
+            iteration: 当前迭代轮次
+            model_version: 模型版本号
+            df_flow: 汇流计算结果DataFrame
+            original_df: 原始数据，包含实际观测值
+            target_col: 目标水质参数名称
+            comid_wq_list: 水质监测站点COMID列表
+            output_dir: 输出目录
+        """
+        # 创建验证图表目录
+        verification_dir = os.path.join(output_dir, f"results_verification_iter{iteration}_{model_version}")
+        os.makedirs(verification_dir, exist_ok=True)
+        
+        # 准备列名
+        actual_col = target_col
+        predicted_col = f'y_n_{iteration}_{target_col}'
+        
+        # 标准化日期列名
+        if 'date' in original_df.columns and 'Date' in df_flow.columns:
+            df_flow = df_flow.rename(columns={'Date': 'date'})
+        elif 'Date' in original_df.columns and 'date' in df_flow.columns:
+            original_df = original_df.rename(columns={'Date': 'date'})
+        
+        # 准备验证数据 - 只使用有水质观测站的河段
+        validation_comids = list(set(comid_wq_list) & set(df_flow['COMID'].unique()))
+        validation_comids = validation_comids[:min(20, len(validation_comids))]  # 最多使用20个站点
+        
+        with TimingAndMemoryContext(f"生成迭代{iteration}结果验证图"):
+            # 创建散点图比较所有站点
+            cls.create_overall_scatter_plot(
+                df_flow, original_df, validation_comids, 
+                actual_col, predicted_col, target_col,
+                verification_dir, iteration, model_version
+            )
+            
+            # 为每个站点创建时间序列图
+            for comid in validation_comids:
+                cls.create_station_time_series_plot(
+                    df_flow, original_df, comid,
+                    actual_col, predicted_col, target_col,
+                    verification_dir, iteration, model_version
+                )
+        
+        logging.info(f"迭代{iteration}结果验证图表已保存至 {verification_dir}")
+    
+    @classmethod
+    def verify_initial_model(cls,
+        model,
+        data_handler,
+        model_manager,
+        comid_wq_list,
+        all_target_cols,
+        target_col,
+        model_save_dir,
+        model_version
+    ):
+        """
+        为初始模型生成验证图表
+        
+        参数:
+            model: 训练好的模型
+            data_handler: 数据处理器实例
+            model_manager: 模型管理器实例
+            comid_wq_list: 水质站点COMID列表
+            all_target_cols: 所有目标列
+            target_col: 主目标列
+            model_save_dir: 模型保存目录
+            model_version: 模型版本号
+        """
+        # 选择一部分河段进行验证
+        # verification_comids = list(set(comid_wq_list))[:min(10, len(comid_wq_list))]
+        verification_comids = ['43049975']
+        initial_verification_dir = os.path.join(model_save_dir, f"model_verification_iter0_{model_version}")
+        os.makedirs(initial_verification_dir, exist_ok=True)
+        
+        # 准备验证数据
+        X_ts_val, attr_dict_val, Y_val, COMIDs_val, Dates_val = data_handler.get_standardized_data(
+            verification_comids, all_target_cols, target_col
+        )
+        
+        if X_ts_val is not None and len(X_ts_val) > 0:
+            # 使用标准的模型验证
+            with TimingAndMemoryContext(f"生成初始模型验证图"):
+                model_manager.verify_model(
+                    model=model,
+                    test_data=(X_ts_val, Y_val, COMIDs_val, Dates_val),
+                    attr_dict=attr_dict_val,
+                    comids_to_verify=verification_comids,
+                    target_col=target_col,
+                    output_dir=initial_verification_dir,
+                    model_iteration=0,
+                    model_version=model_version
+                )
+            logging.info(f"初始模型验证图表已保存至 {initial_verification_dir}")
+        else:
+            logging.warning("无法生成初始模型验证图：验证数据不足")
+            logging.warning(f"验证数据：{len(X_ts_val)}条")

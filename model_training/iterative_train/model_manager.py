@@ -235,7 +235,9 @@ class ModelManager:
                     comids_to_verify: List[int],
                     target_col: str = 'TN',
                     output_dir: str = 'model_verification',
-                    date_range: Tuple[str, str] = None):
+                    date_range: Tuple[str, str] = None,
+                    model_iteration: int = None,
+                    model_version: str = None):
         """
         创建模型验证图，对比真实值和预测值
         
@@ -247,6 +249,8 @@ class ModelManager:
             target_col: 目标参数名称
             output_dir: 输出目录
             date_range: 日期范围元组 (开始日期, 结束日期)
+            model_iteration: 模型迭代轮次(可选)
+            model_version: 模型版本号(可选)
         """
         # 解包测试数据
         X_ts_test, Y_test, COMIDs_test, Dates_test = test_data
@@ -354,12 +358,20 @@ class ModelManager:
             
             logging.info(f"为COMID {comid}创建了验证图")
         
-        # 创建所有数据点的散点图
-        if comid_data:
-            self._create_verification_scatter_plot(
-                comid_data, model, X_ts_test, attr_dict, target_col, 
-                output_dir, start_date, end_date
-            )
+            model_info = ""
+            if model_iteration is not None:
+                model_info += f"_iter{model_iteration}"
+            if model_version is not None:
+                model_info += f"_{model_version}"
+            
+            # ... 使用model_info处理文件名 ...
+            
+            # 创建所有数据点的散点图
+            if comid_data:
+                self._create_verification_scatter_plot(
+                    comid_data, model, X_ts_test, attr_dict, target_col, 
+                    output_dir, start_date, end_date, model_info
+                )
         
         logging.info(f"所有验证图保存到 {output_dir}")
     
@@ -371,7 +383,8 @@ class ModelManager:
                                         target_col, 
                                         output_dir, 
                                         start_date=None, 
-                                        end_date=None):
+                                        end_date=None,
+                                        model_info=""):
         """创建验证散点图"""
         plt.figure(figsize=(8, 8))
         
@@ -418,17 +431,21 @@ class ModelManager:
         plt.xlabel(f'真实 {target_col}')
         plt.ylabel(f'预测 {target_col}')
         
-        # 如果指定了日期范围，在标题中包含
-        date_info = f" ({start_date.strftime('%Y-%m-%d')} 到 {end_date.strftime('%Y-%m-%d')})" if start_date and end_date else ""
-        plt.title(f'模型验证 - 所有站点{date_info}')
+        # 修改，使用model_info参数
+        title_text = f'模型验证 - 所有站点'
+        if model_info:
+            title_text += f" {model_info}"
+        if start_date and end_date:
+            title_text += f" ({start_date.strftime('%Y-%m-%d')} 到 {end_date.strftime('%Y-%m-%d')})"
+        plt.title(title_text)
         
         # 等比例坐标轴
         plt.axis('equal')
         plt.grid(True)
         plt.tight_layout()
         
-        # 保存图
-        filename = 'verification_all_stations'
+        # 修改，文件名添加model_info
+        filename = f'verification_all_stations{model_info}'
         if start_date and end_date:
             filename += f"_{start_date.strftime('%Y%m%d')}_to_{end_date.strftime('%Y%m%d')}"
         
