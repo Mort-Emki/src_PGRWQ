@@ -1,3 +1,4 @@
+
 """
 PG-RWQ 水质预测模型训练主程序
 
@@ -29,7 +30,7 @@ logging.getLogger().setLevel(logging.DEBUG)
 
 # 导入自定义模块
 from PGRWQI.data_processing import load_daily_data, load_river_attributes, detect_and_handle_anomalies, check_river_network_consistency
-from PGRWQI.model_training.train import iterative_training_procedure
+from PGRWQI.model_training.iterative_train.iterative_training import iterative_training_procedure
 from PGRWQI.logging_utils import setup_logging, restore_stdout_stderr, ensure_dir_exists
 from PGRWQI.tqdm_logging import tqdm
 from PGRWQI.model_training.gpu_memory_utils import (
@@ -268,17 +269,49 @@ def load_data(data_config: Dict[str, str]) -> Tuple[pd.DataFrame, pd.DataFrame, 
 # 设备检测与初始化
 #============================================================================
 
-def initialize_device() -> str:
+def initialize_device(model_type: str, config_device: str = None, cmd_device: str = None) -> str:
     """
-    检查GPU可用性并初始化计算设备
+    检查GPU可用性并初始化计算设备，考虑模型类型的限制
     
+    参数:
+        model_type: 模型类型（如'lstm', 'rf', 'regression'等）
+        config_device: 配置文件中指定的设备（如有）
+        cmd_device: 命令行指定的设备（如有）
+        
     返回:
         device: 计算设备类型字符串，'cuda'或'cpu'
     """
     with TimingAndMemoryContext("设备初始化"):
-        # 检查CUDA是否可用
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        logging.info(f"使用设备: {device}")
+        # 首先检查模型类型是否只能在CPU上运行
+        cpu_only_models = ['rf', 'regression', 'regression_ridge', 'regression_lasso', 'regression_elasticnet']
+        is_cpu_only = model_type in cpu_only_models or model_type.startswith('regression_')
+        
+        # 然后处理设备选择逻辑
+        if is_cpu_only:
+            # 强制使用CPU，不管其他设置如何
+            device = "cpu"
+            
+            # 确定用户请求的设备（命令行优先于配置文件）
+            requested_device = cmd_device if cmd_device is not None else config_device
+            
+            if requested_device == "cuda" or (requested_device is None and torch.cuda.is_available()):
+                logging.warning(f"模型类型 '{model_type}' 只能在CPU上运行，强制使用CPU而非请求的GPU")
+                print(f"警告: 模型类型 '{model_type}' 只能在CPU上运行，已自动切换到CPU")
+        else:
+            # 对于其他模型类型，按优先级确定设备：命令行 > 配置文件 > 自动检测
+            if cmd_device is not None:
+                device = cmd_device
+            elif config_device is not None:
+                device = config_device
+            else:
+                device = "cuda" if torch.cuda.is_available() else "cpu"
+            
+            # 如果请求的是cuda但不可用，回退到cpu
+            if device == "cuda" and not torch.cuda.is_available():
+                logging.warning("请求使用CUDA但GPU不可用，回退到CPU")
+                device = "cpu"
+        
+        logging.info(f"使用设备: {device} (模型类型: {model_type})")
         
         # 如果使用GPU，记录详细信息
         if device == "cuda":
@@ -312,12 +345,15 @@ def main():
     # 1. 解析命令行参数
     #------------------------------------------------------------------------
     parser = argparse.ArgumentParser(description="PG-RWQ 水质预测模型训练程序")
-    parser.add_argument("--config", type=str, default="PGRWQI\\config.json",
+    parser.add_argument("--config", type=str, default="PGRWQI\\Lstmconfig.json",
                         help="JSON配置文件路径")
     parser.add_argument("--data_dir", type=str, default=None, 
                         help="数据目录路径（覆盖配置中的路径）")
     parser.add_argument("--override_model_type", type=str, ##default='lstm',
                         help="覆盖配置中指定的模型类型")
+    parser.add_argument("--device", type=str, default=None, choices=['cpu', 'cuda'],
+                    help="指定计算设备（cpu或cuda）")
+    
     args = parser.parse_args()
     
     #------------------------------------------------------------------------
@@ -334,7 +370,8 @@ def main():
     basic_config = config['basic']
     feature_config = config['features']
     data_config = config['data']
-    
+    config_device = basic_config.get('device', None)
+
     # 获取基于选定模型类型的特定配置
     model_type = basic_config['model_type']
     model_params = get_model_params(config, model_type)
@@ -410,7 +447,7 @@ def main():
         #--------------------------------------------------------------------
         # 8. 检查GPU可用性和初始化设备
         #--------------------------------------------------------------------
-        device = initialize_device()
+        device = initialize_device(model_type, config_device, args.device)
         
         #--------------------------------------------------------------------
         # 9. 加载数据

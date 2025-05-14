@@ -569,7 +569,7 @@ class ModelVisualizer:
         """
         # 选择一部分河段进行验证
         # verification_comids = list(set(comid_wq_list))[:min(10, len(comid_wq_list))]
-        verification_comids = ['43049975']
+        verification_comids = [43049975]
         initial_verification_dir = os.path.join(model_save_dir, f"model_verification_iter0_{model_version}")
         os.makedirs(initial_verification_dir, exist_ok=True)
         

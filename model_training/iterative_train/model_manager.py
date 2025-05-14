@@ -324,18 +324,18 @@ class ModelManager:
             plt.figure(figsize=(12, 6))
             
             # 绘制真实值
-            plt.plot(df_plot['date'], df_plot['actual'], 'o-', color='blue', label='真实值')
+            plt.plot(df_plot['date'], df_plot['actual'], 'o-', color='blue', label='Actual')
             
             # 绘制预测值
-            plt.plot(df_plot['date'], df_plot['predicted'], 'x-', color='orange', label='预测值')
+            plt.plot(df_plot['date'], df_plot['predicted'], 'x-', color='orange', label='Predicted')
             
             # 设置标签和标题
-            plt.xlabel('日期')
-            plt.ylabel(f'{target_col} 值')
+            plt.xlabel('Date')
+            plt.ylabel(f'{target_col} Value')
             
             # 如果指定了日期范围，在标题中包含
-            date_info = f" ({start_date.strftime('%Y-%m-%d')} 到 {end_date.strftime('%Y-%m-%d')})" if date_range else ""
-            plt.title(f'站点 {comid} - 模型验证{date_info}')
+            date_info = f" ({start_date.strftime('%Y-%m-%d')}_to_{end_date.strftime('%Y-%m-%d')})" if date_range else ""
+            plt.title(f'Station {comid} - Model Validation{date_info}')
             
             # 添加图例
             plt.legend()
@@ -415,7 +415,7 @@ class ModelManager:
         # 添加1:1线
         max_val = max(max(all_actuals), max(all_preds))
         min_val = min(min(all_actuals), min(all_preds))
-        plt.plot([min_val, max_val], [min_val, max_val], 'k--', label='1:1 线')
+        plt.plot([min_val, max_val], [min_val, max_val], 'k--', label='1:1 Line')
         
         # 计算指标
         mse = np.mean((np.array(all_actuals) - np.array(all_preds))**2)
@@ -428,15 +428,15 @@ class ModelManager:
                 verticalalignment='top', bbox=dict(boxstyle='round', facecolor='white', alpha=0.5))
         
         # 设置标签和标题
-        plt.xlabel(f'真实 {target_col}')
-        plt.ylabel(f'预测 {target_col}')
+        plt.xlabel(f'Actual {target_col}')
+        plt.ylabel(f'Predicted {target_col}')
         
         # 修改，使用model_info参数
-        title_text = f'模型验证 - 所有站点'
+        title_text = f'Model Validation - All Stations'
         if model_info:
             title_text += f" {model_info}"
         if start_date and end_date:
-            title_text += f" ({start_date.strftime('%Y-%m-%d')} 到 {end_date.strftime('%Y-%m-%d')})"
+            title_text += f" ({start_date.strftime('%Y-%m-%d')}_to_{end_date.strftime('%Y-%m-%d')})"
         plt.title(title_text)
         
         # 等比例坐标轴
