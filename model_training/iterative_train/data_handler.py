@@ -69,12 +69,16 @@ class DataHandler:
         # 构建原始属性字典
         self._raw_attr_dict = self._build_attribute_dictionary()
         
-        # 创建并保存标准化器(但不应用)
+        # 构建并保存标准化器(但不应用)
         sample_data = self._get_sample_data()
         if sample_data is not None:
             X_sample, attr_dict_sample = sample_data
+            # 确保样本数据足够大以创建健壮的标准化器
             _, self.ts_scaler = standardize_time_series_all(X_sample)
             _, self.attr_scaler = standardize_attributes(attr_dict_sample)
+            logging.info("初始化了数据标准化器，将在所有预测中一致使用")
+        else:
+            logging.warning("无法初始化数据标准化器，这可能导致不一致的预测结果")
         
         self.initialized = True
         logging.info("数据处理器初始化完成")
@@ -94,31 +98,57 @@ class DataHandler:
             attr_dict[comid] = np.array(attrs, dtype=np.float32)
         return attr_dict
     
-    def _get_sample_data(self) -> Optional[Tuple[np.ndarray, Dict[str, np.ndarray]]]:
-        """获取一小部分样本数据，用于创建标准化器"""
+    def _get_sample_data(self, use_all_data=True) -> Optional[Tuple[np.ndarray, Dict[str, np.ndarray]]]:
+        """
+        获取样本数据用于创建标准化器
+        
+        参数:
+            use_all_data: 是否使用所有可用数据创建标准化器，默认为True
+        
+        返回:
+            样本数据元组 (X_sample, attr_dict_sample)，如果无法创建则返回None
+        """
         if self.df is None or self.attr_df is None:
             return None
-            
-        # 选择少量COMID用于样本生成
-        sample_comids = self.df['COMID'].unique()[:min(10, len(self.df['COMID'].unique()))]
+        
+        # 选择要使用的COMID列表
+        if use_all_data:
+            # 使用所有可用的COMID
+            sample_comids = self.df['COMID'].unique()
+            logging.info(f"使用全部 {len(sample_comids)} 个COMID数据创建标准化器")
+        else:
+            # 仅选择少量COMID用于样本生成
+            sample_comids = self.df['COMID'].unique()[:min(10, len(self.df['COMID'].unique()))]
+            logging.info(f"使用 {len(sample_comids)} 个样本COMID创建标准化器")
+        
+        # # 对于大数据集，可能需要限制每个COMID的数据量以防止内存不足
+        # if use_all_data and len(sample_comids) > 100:
+        #     # 如果COMID太多，可能需要随机抽样
+        #     import random
+        #     random.seed(42)  # 确保结果可重现
+        #     sample_comids = random.sample(list(sample_comids), 100)
+        #     logging.info(f"COMID过多，随机抽样 100 个用于创建标准化器")
         
         # 构建样本滑动窗口
         X_sample, _, _, _ = build_sliding_windows_for_subset(
             self.df, 
             sample_comids, 
             input_cols=self.input_features, 
-            target_col="TN",                    # 修改参数名，从target_cols改为target_col
-            all_target_cols=["TN", "TP"],       # 添加缺少的参数
+            target_col="TN",               
+            all_target_cols=["TN", "TP"],  
             time_window=10,
-            skip_missing_targets=True           # 可选，增加清晰度
+            skip_missing_targets=True      
         )
         
         if X_sample is None:
+            logging.warning("无法创建滑动窗口样本数据，标准化器创建失败")
             return None
-            
-        # 获取样本属性字典
-        attr_dict_sample = {k: v for k, v in self._raw_attr_dict.items() if k in [str(c) for c in sample_comids]}
         
+        # 获取样本属性字典
+        attr_dict_sample = {k: v for k, v in self._raw_attr_dict.items() 
+                            if k in [str(c) for c in sample_comids]}
+        
+        logging.info(f"成功创建标准化样本数据: X_sample.shape={X_sample.shape}, attr_dict_sample大小={len(attr_dict_sample)}")
         return X_sample, attr_dict_sample
     
     def get_standardized_data(self, 
@@ -158,13 +188,20 @@ class DataHandler:
             if X_ts is None:
                 return None, None, None, None, None
             
-            # 2. 标准化X_ts
-            X_ts_scaled, _ = standardize_time_series_all(X_ts)
+            # 2. 标准化X_ts - 使用初始化时创建的ts_scaler
+            N, T, input_dim = X_ts.shape
+            X_ts_2d = X_ts.reshape(-1, input_dim)
+            X_ts_scaled_2d = self.ts_scaler.transform(X_ts_2d)
+            X_ts_scaled = X_ts_scaled_2d.reshape(N, T, input_dim)
             
             # 3. 为这些COMID提取属性字典并标准化
             comid_strs = [str(comid) for comid in COMIDs]
             attr_dict_subset = {k: self._raw_attr_dict[k] for k in comid_strs if k in self._raw_attr_dict}
-            attr_dict_scaled, _ = standardize_attributes(attr_dict_subset)
+            
+            # 使用初始化时创建的attr_scaler
+            attr_matrix = np.vstack([attr_dict_subset[k] for k in attr_dict_subset.keys()])
+            attr_matrix_scaled = self.attr_scaler.transform(attr_matrix)
+            attr_dict_scaled = {k: attr_matrix_scaled[i] for i, k in enumerate(attr_dict_subset.keys())}
             
             return X_ts_scaled, attr_dict_scaled, Y, COMIDs, Dates
     
@@ -173,8 +210,12 @@ class DataHandler:
         if not self.initialized:
             raise ValueError("数据处理器尚未初始化")
             
-        attr_dict_scaled, _ = standardize_attributes(self._raw_attr_dict)
-        return attr_dict_scaled
+        # 使用初始化时创建的scaler，而不是重新拟合
+        attr_matrix = np.vstack([self._raw_attr_dict[k] for k in self._raw_attr_dict.keys()])
+        attr_matrix_scaled = self.attr_scaler.transform(attr_matrix)
+        scaled_attr_dict = {k: attr_matrix_scaled[i] for i, k in enumerate(self._raw_attr_dict.keys())}
+        
+        return scaled_attr_dict
     
     def prepare_training_data_for_head_segments(self,
                                               comid_wq_list: List,
@@ -310,12 +351,16 @@ class DataHandler:
         if not all_data['X_ts_list']:
             return None
         
-        # 堆叠所有X_ts数据并标准化
+        # 堆叠所有X_ts数据并标准化 - 使用初始化时创建的scaler
         X_ts_batch = np.vstack(all_data['X_ts_list'])
-        X_ts_scaled, _ = standardize_time_series_all(X_ts_batch)
+        N, T, input_dim = X_ts_batch.shape
+        X_ts_2d = X_ts_batch.reshape(-1, input_dim)
+        X_ts_scaled_2d = self.ts_scaler.transform(X_ts_2d)
+        X_ts_scaled = X_ts_scaled_2d.reshape(N, T, input_dim)
         
-        # 准备属性数据
+        # 准备属性数据 - 使用初始化时创建的scaler
         attr_dict_scaled = self.get_standardized_attr_dict()
+        
         attr_dim = next(iter(attr_dict_scaled.values())).shape[0]
         X_attr_batch = np.zeros((X_ts_scaled.shape[0], attr_dim), dtype=np.float32)
         
@@ -396,6 +441,15 @@ class DataHandler:
         if X_ts is None:
             return None, None, None, None, None
         
+
+        # 标准化数据 - 使用初始化时创建的scaler
+        N, T, input_dim = X_ts.shape
+        X_ts_2d = X_ts.reshape(-1, input_dim)
+        X_ts_scaled_2d = self.ts_scaler.transform(X_ts_2d)
+        X_ts_scaled = X_ts_scaled_2d.reshape(N, T, input_dim)
+        
+        attr_dict_scaled = self.get_standardized_attr_dict()
+
         # 从merged中提取E_label值
         Y_label = []
         for cid, date_val in zip(COMIDs, Dates):
@@ -408,8 +462,5 @@ class DataHandler:
         
         Y_label = np.array(Y_label, dtype=np.float32)
         
-        # 标准化数据
-        X_ts_scaled, _ = standardize_time_series_all(X_ts)
-        attr_dict_scaled = self.get_standardized_attr_dict()
         
         return X_ts_scaled, attr_dict_scaled, Y_label, COMIDs, Dates
