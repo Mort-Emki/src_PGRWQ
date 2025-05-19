@@ -192,9 +192,7 @@ def iterative_training_procedure(
             # 创建批处理函数
             batch_func = create_batch_model_func(
                 data_handler=data_handler,
-                model_manager=model_manager,
-                all_target_cols=all_target_cols,
-                target_col=target_col
+                model_manager=model_manager
             )
             
             # 执行初始汇流计算（或加载已有结果）

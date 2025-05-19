@@ -38,7 +38,7 @@ def check_existing_flow_routing_results(
     return exists, file_path
 
 
-def create_batch_model_func(data_handler, model_manager, all_target_cols, target_col):
+def create_batch_model_func(data_handler, model_manager):
     """
     创建用于批量处理的模型函数
     
