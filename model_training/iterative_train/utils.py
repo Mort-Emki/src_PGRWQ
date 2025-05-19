@@ -38,74 +38,10 @@ def check_existing_flow_routing_results(
     return exists, file_path
 
 
-def create_batch_model_func(data_handler, model_manager):
-    """
-    创建用于批量处理的模型函数
-    
-    参数:
-        data_handler: 数据处理器实例
-        model_manager: 模型管理器实例
-        all_target_cols: 所有目标列列表
-        target_col: 主目标列
-        
-    返回:
-        批处理函数
-    """
-    def batch_model_func(comid_batch, groups, attr_dict_local, model, all_target_cols, target_col):
-        """批量处理河段预测函数"""
-        # 准备批处理数据
-        batch_data = data_handler.prepare_batch_prediction_data(
-            comid_batch, all_target_cols, target_col
-        )
-        
-        # 处理批量预测结果
-        results = model_manager.process_batch_prediction(batch_data)
-        
-        return results
-    
-    return batch_model_func
-
-
-def create_updated_model_func(data_handler, model_manager, target_col, device):
-    """
-    创建更新的模型预测函数
-    
-    参数:
-        data_handler: 数据处理器实例
-        model_manager: 模型管理器实例
-        target_col: 目标列
-        device: 计算设备
-        
-    返回:
-        更新的预测函数
-    """
-    def updated_model_func(group):
-        """单一河段预测函数"""
-        comid = group.iloc[0]['COMID']
-        
-        # 准备数据
-        batch_data = data_handler.prepare_batch_prediction_data(
-            [comid], [target_col], target_col
-        )
-        
-        if batch_data is None:
-            # 如果数据准备失败，返回零序列
-            group_sorted = group.sort_values("date")
-            return pd.Series(0.0, index=group_sorted["date"])
-        
-        # 执行预测并获取结果
-        results = model_manager.process_batch_prediction(batch_data)
-        
-        # 返回此COMID的预测序列
-        if comid in results:
-            return results[comid]
-        else:
-            # 预测失败，返回零序列
-            group_sorted = group.sort_values("date")
-            return pd.Series(0.0, index=group_sorted["date"])
-    
-    return updated_model_func
-
+def create_predictor(data_handler, model_manager, all_target_cols, target_col):
+    """创建预测器实例"""
+    from .predictor import CatchmentPredictor
+    return CatchmentPredictor(data_handler, model_manager, all_target_cols, target_col)
 
 def save_flow_results(df_flow, iteration, model_version, output_dir):
     """

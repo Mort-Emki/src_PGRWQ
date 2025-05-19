@@ -29,12 +29,10 @@ from .model_manager import ModelManager
 from .evaluation import ConvergenceChecker, DataValidator, ModelVisualizer
 from .utils import (
     check_existing_flow_routing_results,
-    create_batch_model_func,
-    create_updated_model_func,
+    create_predictor,
     save_flow_results,
     split_train_val_data
 )
-
 
 def iterative_training_procedure(
     df: pd.DataFrame,
@@ -190,10 +188,7 @@ def iterative_training_procedure(
             
 
             # 创建批处理函数
-            batch_func = create_batch_model_func(
-                data_handler=data_handler,
-                model_manager=model_manager
-            )
+            predictor = create_predictor(data_handler, model_manager, all_target_cols, target_col)
             
             # 执行初始汇流计算（或加载已有结果）
             exists, flow_result_path = check_existing_flow_routing_results(0, model_version, output_dir)
@@ -213,7 +208,7 @@ def iterative_training_procedure(
                     df_flow = flow_routing_calculation(
                         df=df.copy(), 
                         iteration=0, 
-                        model_func=batch_func, 
+                        model_func=predictor.predict_batch,
                         river_info=river_info, 
                         v_f_TN=35.0,
                         v_f_TP=44.5,
@@ -364,13 +359,9 @@ def iterative_training_procedure(
                 # 6. 执行新一轮汇流计算
                 # ======================================================================
                 # 创建更新后的模型预测函数
-                updated_model_func = create_updated_model_func(
-                    data_handler=data_handler, 
-                    model_manager=model_manager,
-                    target_col=target_col,
-                    device=device
-                )
-                
+                ##predictor 已经创建，不需要重新创建
+
+
                 # 执行新一轮汇流计算（或加载已有结果）
                 exists, flow_result_path = check_existing_flow_routing_results(it+1, model_version, output_dir)
                 
@@ -389,7 +380,7 @@ def iterative_training_procedure(
                         df_flow = flow_routing_calculation(
                             df=df.copy(), 
                             iteration=it+1, 
-                            model_func=updated_model_func, 
+                            model_func=predictor.predict_single,
                             river_info=river_info, 
                             v_f_TN=35.0,
                             v_f_TP=44.5,

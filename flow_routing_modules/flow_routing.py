@@ -490,8 +490,9 @@ def flow_routing_calculation(df: pd.DataFrame,
     else:
         logging.info("无温度数据，使用基础沉降速率")
     
-    # 按河段ID分组并排序，为每个河段创建时间序列
-    groups = {comid: group.sort_values("date").copy() for comid, group in df.groupby("COMID")}
+    # 注意：这里不再直接分组，而是从model_func的data_handler获取预分组数据
+    # 临时获取分组数据以了解可用的COMID，这个仅仅是为了获取COMID列表
+    temp_groups = {comid: group.sort_values("date").copy() for comid, group in df.groupby("COMID")}
     comid_data = {}
     
     # =========================================================================
@@ -507,30 +508,25 @@ def flow_routing_calculation(df: pd.DataFrame,
         # 如果成功加载了E值，则为每个河段设置E值
         if e_df is not None:
             comid_data = apply_e_values(
-                groups, comid_data, e_df, target_col, missing_data_comids,
+                temp_groups, comid_data, e_df, target_col, missing_data_comids,
                 debug_collector
             )
         else:
             # 没有加载到E值，使用模型计算
             logging.info(f"未找到E值，使用模型计算河段E值 (迭代 {iteration})")
             comid_data = calculate_e_values(
-                groups=groups, comid_data=comid_data, model_func=model_func, 
-                attr_dict=attr_dict, model=model, all_target_cols=all_target_cols,
-                target_col=target_col, missing_data_comids=missing_data_comids, 
-                iteration=iteration, e_save=E_save, e_save_path=E_save_path,
-                debug_collector=debug_collector
+                groups_dict=temp_groups, comid_data=comid_data, model_func=model_func,
+                target_col=target_col, missing_data_comids=missing_data_comids, iteration=iteration, 
+                e_save=E_save, e_save_path=E_save_path, debug_collector=debug_collector
             )
     else:
         # 没有加载E值，使用模型计算
         logging.info(f"使用模型计算河段E值 (迭代 {iteration})")
         comid_data = calculate_e_values(
-            groups=groups, comid_data=comid_data, model_func=model_func, 
-            attr_dict=attr_dict, model=model, all_target_cols=all_target_cols,
-            target_col=target_col, missing_data_comids=missing_data_comids, 
-            iteration=iteration, e_save=E_save, e_save_path=E_save_path,
-            debug_collector=debug_collector
+            groups_dict=temp_groups, comid_data=comid_data, model_func=model_func,
+            target_col=target_col, missing_data_comids=missing_data_comids, iteration=iteration, 
+            e_save=E_save, e_save_path=E_save_path, debug_collector=debug_collector
         )
-   
     
     # =========================================================================
     # 3. 构建河网拓扑结构

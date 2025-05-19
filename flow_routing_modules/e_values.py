@@ -59,13 +59,12 @@ def load_e_values(e_exist_path, iteration, target_col):
         logging.warning(f"找不到参数 {target_col} 的E值文件: {e_file_path}")
         return None
     
-
-def apply_e_values(groups, comid_data, e_df, target_col, missing_data_comids, debug_collector=None):
+def apply_e_values(groups_dict, comid_data, e_df, target_col, missing_data_comids, debug_collector=None):
     """
     为河段应用已加载的E值
     
     参数:
-        groups: 按COMID分组的数据字典
+        groups_dict: 预分组的数据字典（从DataHandler获取）
         comid_data: 存储处理结果的字典
         e_df: 加载的E值DataFrame
         target_col: 目标列(水质参数)
@@ -75,11 +74,13 @@ def apply_e_values(groups, comid_data, e_df, target_col, missing_data_comids, de
     返回:
         dict: 更新后的comid_data字典
     """
-    for comid, group in tqdm(groups.items(), desc=f"设置E值"):
+    for comid in tqdm(groups_dict.keys(), desc=f"设置E值"):
         # 跳过缺失数据的河段
         if str(comid) in missing_data_comids:
             continue
-            
+        
+        group = groups_dict[comid].copy()
+        
         # 计算河道宽度
         group['width'] = calculate_river_width(group['Qout'])
         
@@ -132,13 +133,13 @@ def apply_e_values(groups, comid_data, e_df, target_col, missing_data_comids, de
     return comid_data
 
 
-def calculate_e_values(groups, comid_data, model_func, attr_dict, model, all_target_cols, target_col, 
+def calculate_e_values(groups_dict, comid_data, model_func,target_col, 
                      missing_data_comids, iteration, e_save, e_save_path, debug_collector=None):
     """
     使用模型计算E值
     
     参数:
-        groups: 按COMID分组的数据字典
+        groups_dict: 预分组的数据字典（从DataHandler获取）
         comid_data: 存储处理结果的字典
         model_func: 预测模型函数
         attr_dict: 河段属性字典
@@ -157,15 +158,15 @@ def calculate_e_values(groups, comid_data, model_func, attr_dict, model, all_tar
     # 需要保存的E值
     e_values_to_save = [] if e_save == 1 else None
     
-    logging.info(f"处理 {len(groups)} 个河段，批量计算...")
+    comid_list = list(groups_dict.keys())
+    logging.info(f"处理 {len(comid_list)} 个河段，批量计算...")
     
     # 设定批次大小并计算批次数
     batch_size = 1000  # 每批处理1000个COMID
-    comid_list = list(groups.keys())
     num_batches = (len(comid_list) + batch_size - 1) // batch_size
     
     # 使用进度条处理所有河段
-    with tqdm(total=len(groups), desc=f"处理河段，迭代 {iteration}") as pbar:
+    with tqdm(total=len(comid_list), desc=f"处理河段，迭代 {iteration}") as pbar:
         for batch_idx in range(num_batches):
             batch_start_time = time.time()
             
@@ -178,15 +179,15 @@ def calculate_e_values(groups, comid_data, model_func, attr_dict, model, all_tar
             valid_batch_comids = [comid for comid in batch_comids if str(comid) not in missing_data_comids]
             
             # 批量计算当前批次所有有效河段的E值
-            batch_results = model_func(valid_batch_comids, groups, attr_dict, model, all_target_cols=all_target_cols, target_col=target_col)
-            
+            batch_results = model_func(valid_batch_comids)
+
             # 处理结果并存入数据字典
             for comid in batch_comids:
                 # 跳过缺失数据的河段
                 if str(comid) in missing_data_comids:
                     continue
                     
-                group = groups[comid]
+                group = groups_dict[comid].copy()
                 E_series = batch_results.get(comid)
                 
                 if E_series is None:
