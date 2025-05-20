@@ -108,7 +108,7 @@ class CatchmentModel(ABC):
         """
         pass
 
-    def predict_single(self, X_ts_single, X_attr_single):
+    def predict_single_sample(self, X_ts_single, X_attr_single):
         """
         对单个样本预测
         
@@ -188,3 +188,103 @@ class CatchmentModel(ABC):
             batch_size = 1000
         
         return batch_size
+    
+
+    def _check_nan_in_input(self, X_ts, X_attr=None):
+        """
+        检查输入数据中是否包含NaN值，但不进行替换
+        
+        参数:
+            X_ts: 时间序列输入, 形状为(N, T, D)
+            X_attr: 属性输入, 形状为(N, attr_dim) （可选）
+                
+        返回:
+            tuple: (has_nan, nan_info)
+                has_nan: 布尔值，指示输入数据是否包含NaN
+                nan_info: 字典，包含NaN值的详细统计信息
+        """
+        # 初始化结果
+        has_nan = False
+        nan_info = {
+            'has_nan_in_ts': False,
+            'has_nan_in_attr': False,
+            'ts_nan_count': 0,
+            'ts_nan_percent': 0.0,
+            'attr_nan_count': 0,
+            'attr_nan_percent': 0.0,
+            'total_nan_count': 0,
+            'total_nan_percent': 0.0
+        }
+        
+        # 检查时间序列数据中的NaN
+        ts_nan_mask = np.isnan(X_ts)
+        ts_nan_count = np.sum(ts_nan_mask)
+        ts_elements = X_ts.size
+        
+        if ts_nan_count > 0:
+            has_nan = True
+            nan_info['has_nan_in_ts'] = True
+            nan_info['ts_nan_count'] = int(ts_nan_count)
+            nan_info['ts_nan_percent'] = (ts_nan_count / ts_elements) * 100
+            
+            # 可以进一步获取NaN出现的位置
+            nan_indices = np.where(ts_nan_mask)
+            nan_info['ts_nan_locations'] = list(zip(*nan_indices))
+            
+            # 在日志中记录NaN信息
+            logging.warning(f"时间序列输入包含 {ts_nan_count} 个NaN值 ({nan_info['ts_nan_percent']:.2f}%)")
+        
+        # 检查属性数据中的NaN（如果提供）
+        if X_attr is not None:
+            attr_nan_mask = np.isnan(X_attr)
+            attr_nan_count = np.sum(attr_nan_mask)
+            attr_elements = X_attr.size
+            
+            if attr_nan_count > 0:
+                has_nan = True
+                nan_info['has_nan_in_attr'] = True
+                nan_info['attr_nan_count'] = int(attr_nan_count)
+                nan_info['attr_nan_percent'] = (attr_nan_count / attr_elements) * 100
+                
+                # 可以进一步获取NaN出现的位置
+                attr_nan_indices = np.where(attr_nan_mask)
+                nan_info['attr_nan_locations'] = list(zip(*attr_nan_indices))
+                
+                # 在日志中记录NaN信息
+                logging.warning(f"属性输入包含 {attr_nan_count} 个NaN值 ({nan_info['attr_nan_percent']:.2f}%)")
+        
+        # 计算总体NaN统计信息
+        if has_nan:
+            total_elements = ts_elements + (X_attr.size if X_attr is not None else 0)
+            total_nan_count = ts_nan_count + (attr_nan_count if X_attr is not None else 0)
+            nan_info['total_nan_count'] = int(total_nan_count)
+            nan_info['total_nan_percent'] = (total_nan_count / total_elements) * 100
+            
+            logging.warning(f"输入数据总共包含 {total_nan_count} 个NaN值 ({nan_info['total_nan_percent']:.2f}%)")
+        
+        return has_nan, nan_info
+    
+    def predict_with_input_check(self, X_ts, X_attr=None, deal_nan=False):
+        """
+        带输入检查的预测函数，包装了子类实现的predict方法
+        
+        参数:
+            X_ts: 时间序列特征, 形状为(N, T, D)
+            X_attr: 属性特征, 形状为(N, attr_dim)
+                
+        返回:
+            预测结果, 形状为(N,)
+            """
+        # 检查输入数据是否包含NaN值
+        has_nan, nan_info = self._check_nan_in_input(X_ts, X_attr)
+        
+        if (has_nan)&(deal_nan):
+            # 清理NaN值
+            X_ts = np.nan_to_num(X_ts, nan=0.0)
+            if X_attr is not None:
+                X_attr = np.nan_to_num(X_attr, nan=0.0)
+            logging.info(f"已清理NaN值，总共 {nan_info['total_nan_count']} 个，占比 {nan_info['total_nan_percent']:.2f}%")
+
+        # 预测
+        return self.predict(X_ts, X_attr)
+    

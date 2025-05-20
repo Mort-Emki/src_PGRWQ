@@ -208,7 +208,7 @@ def iterative_training_procedure(
                     df_flow = flow_routing_calculation(
                         df=df.copy(), 
                         iteration=0, 
-                        model_func=predictor.predict_batch,
+                        model_func=predictor.predict_batch_comids,
                         river_info=river_info, 
                         v_f_TN=35.0,
                         v_f_TP=44.5,
@@ -380,7 +380,7 @@ def iterative_training_procedure(
                         df_flow = flow_routing_calculation(
                             df=df.copy(), 
                             iteration=it+1, 
-                            model_func=predictor.predict_single,
+                            model_func=predictor.predict_batch_comids,
                             river_info=river_info, 
                             v_f_TN=35.0,
                             v_f_TP=44.5,

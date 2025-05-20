@@ -40,7 +40,7 @@ class CatchmentPredictor:
         
         logging.info(f"预测器初始化完成，目标列: {target_col}")
     
-    def predict_batch(self, comid_batch: List) -> Dict:
+    def predict_batch_comids(self, comid_batch: List) -> Dict:
         """
         批量预测多个河段
         
@@ -61,11 +61,11 @@ class CatchmentPredictor:
                 return {}
             
             # 处理批量预测结果
-            results = self.model_manager.process_batch_prediction(batch_data)
+            results = self.model_manager.process_batch_samples_prediction(batch_data)
             
             return results
     
-    def predict_single(self, group: pd.DataFrame) -> pd.Series:
+    def predict_single_comid(self, group: pd.DataFrame) -> pd.Series:
         """
         单一河段预测
         
@@ -78,7 +78,7 @@ class CatchmentPredictor:
         comid = group.iloc[0]['COMID']
         
         # 使用批量预测处理单个河段
-        results = self.predict_batch([comid])
+        results = self.predict_batch_comids([comid])
         
         # 返回预测结果
         if comid in results:
@@ -113,7 +113,7 @@ class CatchmentPredictor:
             batch_comids = comid_list[start_idx:end_idx]
             
             # 预测当前批次
-            batch_results = self.predict_batch(batch_comids)
+            batch_results = self.predict_batch_comids(batch_comids)
             total_results.update(batch_results)
             
             # 记录进度
@@ -158,29 +158,3 @@ class CatchmentPredictor:
         
         return info
 
-
-# 便捷函数，用于向后兼容
-def create_optimized_batch_func(predictor: CatchmentPredictor):
-    """
-    创建优化的批处理函数（使用预测器类）
-    
-    参数:
-        predictor: CatchmentPredictor实例
-        
-    返回:
-        批处理函数
-    """
-    return predictor.predict_batch
-
-
-def create_optimized_single_func(predictor: CatchmentPredictor):
-    """
-    创建优化的单一预测函数（使用预测器类）
-    
-    参数:
-        predictor: CatchmentPredictor实例
-        
-    返回:
-        单一预测函数
-    """
-    return predictor.predict_single

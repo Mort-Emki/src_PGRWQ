@@ -102,7 +102,7 @@ class ModelManager:
             self.model = model
             return model
     
-    def batch_predict(self, X_ts: np.ndarray, X_attr: np.ndarray) -> np.ndarray:
+    def batch_samples_predict(self, X_ts: np.ndarray, X_attr: np.ndarray) -> np.ndarray:
         """
         批量预测
         
@@ -123,7 +123,7 @@ class ModelManager:
             
             try:
                 # 使用模型进行预测
-                predictions = self.model.predict(X_ts, X_attr)
+                predictions = self.model.predict_with_input_check(X_ts, X_attr)
                 
                 # 清理资源
                 if self.device == 'cuda' and torch.cuda.is_available():
@@ -161,7 +161,7 @@ class ModelManager:
             batch_X_attr = X_attr[i:end_idx]
             
             try:
-                batch_preds = self.model.predict(batch_X_ts, batch_X_attr)
+                batch_preds = self.model.predict_with_input_check(batch_X_ts, batch_X_attr)
                 predictions[i:end_idx] = batch_preds
             except Exception as e:
                 logging.error(f"处理批次 {i}:{end_idx} 失败: {str(e)}")
@@ -174,7 +174,7 @@ class ModelManager:
         
         return predictions
             
-    def process_batch_prediction(self, 
+    def process_batch_samples_prediction(self, 
                                batch_data: Dict,
                                results_dict: Dict[int, pd.Series] = None) -> Dict[int, pd.Series]:
         """
@@ -201,7 +201,7 @@ class ModelManager:
         
         # 执行批量预测
         try:
-            all_preds = self.batch_predict(X_ts, X_attr)
+            all_preds = self.batch_samples_predict(X_ts, X_attr)
             
             # 将预测结果映射回河段
             for comid in valid_comids:
@@ -304,7 +304,7 @@ class ModelManager:
             X_attr_comid = np.tile(attr_vec, (len(indices), 1))
             
             # 获取预测结果
-            predictions = model.predict(X_ts_comid, X_attr_comid)
+            predictions = model.predict_with_input_check(X_ts_comid, X_attr_comid)
             
             # 获取真实值和日期
             actuals = comid_data[comid]['actual']
@@ -403,7 +403,7 @@ class ModelManager:
             X_attr_comid = np.tile(attr_vec, (len(indices), 1))
             
             # 获取预测
-            preds = model.predict(X_ts_comid, X_attr_comid)
+            preds = model.predict_with_input_check(X_ts_comid, X_attr_comid)
             actuals = comid_data[comid]['actual']
             
             all_preds.extend(preds)
