@@ -247,7 +247,15 @@ def load_data(data_config: Dict[str, str],
         logging.info("=" * 60)
         logging.info("开始全面数据质量检查")
         logging.info("=" * 60)
-        
+
+        available_attr_features = [col for col in attr_features if col in attr_df.columns]
+        if available_attr_features:
+            # 获取ERA5_exist=0的COMID列表，这些河段不进行异常检测
+            exclude_comids = []
+            if 'ERA5_exist' in attr_df.columns:
+                exclude_comids = attr_df[attr_df['ERA5_exist'] == 0]['COMID'].tolist()
+                logging.info(f"将排除 {len(exclude_comids)} 个ERA5_exist=0的河段进行属性数据检测")
+
         # 1. 检查日尺度数据中的流量数据
         logging.info("1. 检查流量数据 (Qout)...")
         df, qout_results = detect_and_handle_anomalies(
@@ -279,7 +287,8 @@ def load_data(data_config: Dict[str, str],
                 outlier_method='iqr',
                 outlier_threshold=2.0,  # 输入特征使用更严格的阈值
                 verbose=True,
-                logger=logging
+                logger=logging,
+                exclude_comids=exclude_comids,
             )
         else:
             logging.warning("未找到可检查的输入特征列")
@@ -292,6 +301,7 @@ def load_data(data_config: Dict[str, str],
             df, target_results = detect_and_handle_anomalies(
                 df,
                 columns_to_check=available_target_cols,
+                check_nan = False,
                 fix_negative=fix_anomalies,
                 fix_outliers=fix_anomalies,
                 fix_nan=False, ## 水质数据不填充NaN
@@ -320,7 +330,8 @@ def load_data(data_config: Dict[str, str],
                 outlier_method='iqr',
                 outlier_threshold=2.0,
                 verbose=True,
-                logger=logging
+                logger=logging,
+                exclude_comids=exclude_comids,
             )
         else:
             logging.warning("未找到可检查的属性特征列")

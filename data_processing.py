@@ -244,6 +244,7 @@ def detect_and_handle_attr_anomalies(attr_df, attr_features,
                                    fix_negative=False, fix_outliers=False, fix_nan=False,
                                    negative_replacement=0.001, nan_replacement=0.0,
                                    outlier_method='iqr', outlier_threshold=1.5,
+                                   exclude_comids=None,
                                    verbose=True, logger=None):
     """
     检测并可选地修复属性数据中的异常值
@@ -261,6 +262,7 @@ def detect_and_handle_attr_anomalies(attr_df, attr_features,
         nan_replacement: 替换NaN值时使用的值
         outlier_method: 检测异常值的方法 ('iqr', 'zscore', 'percentile')
         outlier_threshold: 异常值检测的阈值
+        exclude_comids: 要排除检测的COMID集合 (如ERA5_exist=0的河段)
         verbose: 是否打印详细信息
         logger: 日志记录器
     
@@ -282,29 +284,57 @@ def detect_and_handle_attr_anomalies(attr_df, attr_features,
     # 创建DataFrame的副本
     attr_df_result = attr_df.copy()
     
+    # 处理排除的COMID
+    if exclude_comids is None:
+        exclude_comids = set()
+    else:
+        exclude_comids = set(str(comid) for comid in exclude_comids)
+    
+    # 过滤出需要检测的数据
+    if 'COMID' in attr_df.columns:
+        # 排除指定的COMID
+        mask_include = ~attr_df['COMID'].astype(str).isin(exclude_comids)
+        attr_df_filtered = attr_df[mask_include].copy()
+        
+        excluded_count = len(attr_df) - len(attr_df_filtered)
+        if excluded_count > 0:
+            log_message(f"排除了 {excluded_count} 个COMID的属性数据检测 (如ERA5_exist=0的河段)")
+        log_message(f"对 {len(attr_df_filtered)} 个河段进行属性数据异常检测")
+    else:
+        attr_df_filtered = attr_df.copy()
+        log_message("警告: 属性数据中没有COMID列，无法排除指定河段", 'warning')
+    
     # 初始化结果字典
     results = {
         'has_anomalies': False,
         'columns_with_anomalies': [],
         'negative_counts': {},
         'outlier_counts': {},
-        'nan_counts': {},  # 新增NaN统计
+        'nan_counts': {},
         'fixed_negative_counts': {},
         'fixed_outlier_counts': {},
-        'fixed_nan_counts': {},  # 新增NaN修复统计
+        'fixed_nan_counts': {},
         'zero_counts': {},
-        'extreme_counts': {}
+        'extreme_counts': {},
+        'total_records': len(attr_df),
+        'checked_records': len(attr_df_filtered),
+        'excluded_records': len(attr_df) - len(attr_df_filtered)
     }
     
     log_message("开始检查属性数据异常值...")
     
+    # 如果没有数据需要检测，直接返回
+    if len(attr_df_filtered) == 0:
+        log_message("没有数据需要检测", 'warning')
+        return attr_df_result, results
+    
     # 检查每个属性特征
     for feature in attr_features:
-        if feature not in attr_df.columns:
+        if feature not in attr_df_filtered.columns:
             log_message(f"警告: 属性特征 '{feature}' 不在数据中", 'warning')
             continue
         
-        feature_data = attr_df[feature]
+        feature_data = attr_df_filtered[feature]
         
         # 检查NaN值
         if check_nan:
@@ -318,17 +348,19 @@ def detect_and_handle_attr_anomalies(attr_df, attr_features,
                 if feature not in results['columns_with_anomalies']:
                     results['columns_with_anomalies'].append(feature)
                 
-                nan_percent = (nan_count / len(attr_df)) * 100
+                nan_percent = (nan_count / len(attr_df_filtered)) * 100
                 log_message(f"属性 '{feature}' 包含 {nan_count} 个NaN值 ({nan_percent:.2f}%)", 'warning')
                 
                 # 显示一些包含NaN值的COMID
-                if 'COMID' in attr_df.columns:
-                    nan_comids = attr_df.loc[nan_mask, 'COMID'].head(5).tolist()
+                if 'COMID' in attr_df_filtered.columns:
+                    nan_comids = attr_df_filtered.loc[nan_mask, 'COMID'].head(5).tolist()
                     log_message(f"包含NaN值的COMID示例: {nan_comids}")
                 
-                # 修复NaN值
+                # 修复NaN值 (只修复未被排除的数据)
                 if fix_nan:
-                    attr_df_result.loc[nan_mask, feature] = nan_replacement
+                    # 需要在原始DataFrame中找到对应的索引进行修复
+                    nan_indices = attr_df_filtered[nan_mask].index
+                    attr_df_result.loc[nan_indices, feature] = nan_replacement
                     results['fixed_nan_counts'][feature] = nan_count
                     log_message(f"已修复属性 '{feature}' 中的 {nan_count} 个NaN值")
         
@@ -336,7 +368,7 @@ def detect_and_handle_attr_anomalies(attr_df, attr_features,
         zero_count = (feature_data == 0).sum()
         results['zero_counts'][feature] = zero_count
         if zero_count > 0:
-            zero_percent = (zero_count / len(attr_df)) * 100
+            zero_percent = (zero_count / len(attr_df_filtered)) * 100
             log_message(f"属性 '{feature}' 包含 {zero_count} 个零值 ({zero_percent:.2f}%)")
         
         # 检查负值
@@ -351,12 +383,12 @@ def detect_and_handle_attr_anomalies(attr_df, attr_features,
                 if feature not in results['columns_with_anomalies']:
                     results['columns_with_anomalies'].append(feature)
                 
-                negative_percent = (negative_count / len(attr_df)) * 100
+                negative_percent = (negative_count / len(attr_df_filtered)) * 100
                 log_message(f"属性 '{feature}' 包含 {negative_count} 个负值 ({negative_percent:.2f}%)", 'warning')
                 
                 # 显示一些负值的COMID和统计信息
-                if 'COMID' in attr_df.columns:
-                    negative_comids = attr_df.loc[negative_mask, 'COMID'].head(5).tolist()
+                if 'COMID' in attr_df_filtered.columns:
+                    negative_comids = attr_df_filtered.loc[negative_mask, 'COMID'].head(5).tolist()
                     log_message(f"包含负值的COMID示例: {negative_comids}")
                 
                 negative_values = feature_data[negative_mask]
@@ -364,7 +396,8 @@ def detect_and_handle_attr_anomalies(attr_df, attr_features,
                 
                 # 修复负值
                 if fix_negative:
-                    attr_df_result.loc[negative_mask, feature] = negative_replacement
+                    negative_indices = attr_df_filtered[negative_mask].index
+                    attr_df_result.loc[negative_indices, feature] = negative_replacement
                     results['fixed_negative_counts'][feature] = negative_count
                     log_message(f"已修复属性 '{feature}' 中的 {negative_count} 个负值")
         
@@ -379,7 +412,7 @@ def detect_and_handle_attr_anomalies(attr_df, attr_features,
                 log_message(f"属性 '{feature}' 没有有效数据进行异常值检测", 'warning')
                 continue
                 
-            outlier_mask = np.zeros(len(feature_data), dtype=bool)
+            outlier_mask_filtered = np.zeros(len(feature_data), dtype=bool)
             
             if outlier_method == 'iqr':
                 Q1 = valid_data.quantile(0.25)
@@ -390,16 +423,16 @@ def detect_and_handle_attr_anomalies(attr_df, attr_features,
                     continue
                 lower_bound = Q1 - outlier_threshold * IQR
                 upper_bound = Q3 + outlier_threshold * IQR
-                outlier_mask = (feature_data < lower_bound) | (feature_data > upper_bound)
+                outlier_mask_filtered = (feature_data < lower_bound) | (feature_data > upper_bound)
                 # 排除NaN值的影响
-                outlier_mask = outlier_mask & ~feature_data.isna()
+                outlier_mask_filtered = outlier_mask_filtered & ~feature_data.isna()
             
             elif outlier_method == 'zscore':
                 from scipy import stats
                 try:
                     z_scores = np.abs(stats.zscore(valid_data, nan_policy='omit'))
                     outlier_indices = valid_data.index[z_scores > outlier_threshold]
-                    outlier_mask[outlier_indices] = True
+                    outlier_mask_filtered[outlier_indices] = True
                 except Exception as e:
                     log_message(f"属性 '{feature}' Z-score计算失败: {str(e)}", 'warning')
                     continue
@@ -409,11 +442,11 @@ def detect_and_handle_attr_anomalies(attr_df, attr_features,
                 upper_percentile = 100 - outlier_threshold
                 lower_bound = valid_data.quantile(lower_percentile / 100)
                 upper_bound = valid_data.quantile(upper_percentile / 100)
-                outlier_mask = (feature_data < lower_bound) | (feature_data > upper_bound)
+                outlier_mask_filtered = (feature_data < lower_bound) | (feature_data > upper_bound)
                 # 排除NaN值的影响
-                outlier_mask = outlier_mask & ~feature_data.isna()
+                outlier_mask_filtered = outlier_mask_filtered & ~feature_data.isna()
             
-            outlier_count = outlier_mask.sum()
+            outlier_count = outlier_mask_filtered.sum()
             
             if outlier_count > 0:
                 results['has_anomalies'] = True
@@ -422,23 +455,24 @@ def detect_and_handle_attr_anomalies(attr_df, attr_features,
                 if feature not in results['columns_with_anomalies']:
                     results['columns_with_anomalies'].append(feature)
                 
-                outlier_percent = (outlier_count / len(attr_df)) * 100
+                outlier_percent = (outlier_count / len(attr_df_filtered)) * 100
                 log_message(f"属性 '{feature}' 包含 {outlier_count} 个异常值 ({outlier_percent:.2f}%)", 'warning')
                 
                 # 显示异常值的统计信息
-                outlier_values = feature_data[outlier_mask]
+                outlier_values = feature_data[outlier_mask_filtered]
                 log_message(f"异常值范围: {outlier_values.min():.6f} 到 {outlier_values.max():.6f}")
                 log_message(f"有效数据范围: {valid_data.min():.6f} 到 {valid_data.max():.6f}")
                 
                 # 显示一些包含异常值的COMID
-                if 'COMID' in attr_df.columns:
-                    outlier_comids = attr_df.loc[outlier_mask, 'COMID'].head(5).tolist()
+                if 'COMID' in attr_df_filtered.columns:
+                    outlier_comids = attr_df_filtered.loc[outlier_mask_filtered, 'COMID'].head(5).tolist()
                     log_message(f"包含异常值的COMID示例: {outlier_comids}")
                 
                 # 修复异常值
                 if fix_outliers:
                     median_value = valid_data.median()
-                    attr_df_result.loc[outlier_mask, feature] = median_value
+                    outlier_indices = attr_df_filtered[outlier_mask_filtered].index
+                    attr_df_result.loc[outlier_indices, feature] = median_value
                     results['fixed_outlier_counts'][feature] = outlier_count
                     log_message(f"已修复属性 '{feature}' 中的 {outlier_count} 个异常值 (使用中位数 {median_value:.6f})")
         
@@ -484,8 +518,7 @@ def detect_and_handle_attr_anomalies(attr_df, attr_features,
         log_message("属性数据未检测到异常值", 'info')
     
     # 添加整体统计信息
-    total_records = len(attr_df)
-    log_message(f"属性数据检查完成。总记录数: {total_records}", 'info')
+    log_message(f"属性数据检查完成。总记录数: {results['total_records']}, 检测记录数: {results['checked_records']}, 排除记录数: {results['excluded_records']}", 'info')
     
     return attr_df_result, results
 

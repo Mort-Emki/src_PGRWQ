@@ -10,7 +10,7 @@
       "memory_check_interval": 30,
       "memory_log_verbosity": 1,
       "disable_monitoring": false,
-      "model_version": "regression_v1_0528",
+      "model_version": "regression_v2_0528",
       "flow_results_dir": "flow_results",
       "model_dir": "models",
       "reuse_existing_flow_results": true,
