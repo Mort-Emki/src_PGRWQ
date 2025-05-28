@@ -91,9 +91,6 @@ def iterative_training_procedure(
     if model_params is None:
         model_params = {}
     
-    # 使用input_features作为input_cols（如果未指定）
-    if input_cols is None:
-        input_cols = input_features
     
     # 初始化内存监控
     memory_tracker = MemoryTracker(interval_seconds=120)

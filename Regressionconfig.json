@@ -10,12 +10,14 @@
       "memory_check_interval": 30,
       "memory_log_verbosity": 1,
       "disable_monitoring": false,
-      "model_version": "regression_v1_0516",
+      "model_version": "regression_v1_0528",
       "flow_results_dir": "flow_results",
       "model_dir": "models",
       "reuse_existing_flow_results": true,
       "start_iteration": 0,
-      "data_dir": "D:\\PGRWQ\\data"
+      "data_dir": "D:\\PGRWQ\\data",
+      "enable_data_check": true,
+      "fix_anomalies": false
     },
     "features": {
       "input_features": [

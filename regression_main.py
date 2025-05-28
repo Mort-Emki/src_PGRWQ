@@ -29,7 +29,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 logging.getLogger().setLevel(logging.DEBUG)
 
 # 导入自定义模块
-from PGRWQI.data_processing import load_daily_data, load_river_attributes, detect_and_handle_anomalies, check_river_network_consistency
+from PGRWQI.data_processing import load_daily_data, load_river_attributes, detect_and_handle_anomalies, check_river_network_consistency,detect_and_handle_attr_anomalies
 from PGRWQI.model_training.iterative_train.iterative_training import iterative_training_procedure
 from PGRWQI.logging_utils import setup_logging, restore_stdout_stderr, ensure_dir_exists
 from PGRWQI.tqdm_logging import tqdm
@@ -190,12 +190,22 @@ def create_memory_monitor_file(interval_seconds: int = 300, log_dir: str = "logs
 # 数据处理模块
 #============================================================================
 
-def load_data(data_config: Dict[str, str]) -> Tuple[pd.DataFrame, pd.DataFrame, List[int], List[int]]:
+def load_data(data_config: Dict[str, str], 
+              input_features: List[str], 
+              attr_features: List[str],
+              all_target_cols: List[str],
+              enable_data_check: bool = True,
+              fix_anomalies: bool = False) -> Tuple[pd.DataFrame, pd.DataFrame, List[int], List[int]]:
     """
-    加载训练所需的各种数据
+    加载训练所需的各种数据，并进行全面的数据质量检查
     
     参数:
         data_config: 包含数据文件路径的配置字典
+        input_features: 输入特征列表
+        attr_features: 属性特征列表
+        all_target_cols: 所有目标列列表
+        enable_data_check: 是否启用数据质量检查
+        fix_anomalies: 是否修复检测到的异常数据
     
     返回:
         df: 日尺度数据DataFrame
@@ -231,25 +241,119 @@ def load_data(data_config: Dict[str, str]) -> Tuple[pd.DataFrame, pd.DataFrame, 
     with TimingAndMemoryContext("加载日尺度数据"):
         df = load_daily_data(data_config['daily_csv'])
         logging.info(f"日尺度数据形状: {df.shape}")
+    
+    # 数据质量检查和修复
+    if enable_data_check:
+        logging.info("=" * 60)
+        logging.info("开始全面数据质量检查")
+        logging.info("=" * 60)
         
-        # 检查异常值
-        logging.info("检查数据中的异常值...")
-        df, anomaly_results = detect_and_handle_anomalies(
+        # 1. 检查日尺度数据中的流量数据
+        logging.info("1. 检查流量数据 (Qout)...")
+        df, qout_results = detect_and_handle_anomalies(
             df, 
             columns_to_check=['Qout'], 
-            fix_negative=True,
+            fix_negative=fix_anomalies,
+            fix_outliers=fix_anomalies,
+            fix_nan=fix_anomalies,
             negative_replacement=0.001,
+            nan_replacement=0.001,
             outlier_method='iqr',
             outlier_threshold=3.0,
             verbose=True,
             logger=logging
         )
         
-        # 汇报修复结果
-        if 'fixed_negative_counts' in anomaly_results:
-            if 'Qout' in anomaly_results['fixed_negative_counts']:
-                fixed_count = anomaly_results['fixed_negative_counts']['Qout']
-                logging.info(f"已修复{fixed_count}个负Qout值（替换为0.001）")
+        # 2. 检查日尺度数据中的输入特征
+        logging.info("2. 检查日尺度输入特征...")
+        available_input_features = [col for col in input_features if col in df.columns]
+        if available_input_features:
+            df, input_results = detect_and_handle_anomalies(
+                df,
+                columns_to_check=available_input_features,
+                fix_negative=False, ## 输入特征ymin可能为负，不应修复
+                fix_outliers=fix_anomalies,
+                fix_nan=fix_anomalies,
+                negative_replacement=0.0,  # 输入特征用0填充可能更合适
+                nan_replacement=0.0,  # 输入特征用0填充可能更合适
+                outlier_method='iqr',
+                outlier_threshold=2.0,  # 输入特征使用更严格的阈值
+                verbose=True,
+                logger=logging
+            )
+        else:
+            logging.warning("未找到可检查的输入特征列")
+            input_results = {'has_anomalies': False}
+        
+        # 3. 检查水质目标数据
+        logging.info("3. 检查水质目标数据...")
+        available_target_cols = [col for col in all_target_cols if col in df.columns]
+        if available_target_cols:
+            df, target_results = detect_and_handle_anomalies(
+                df,
+                columns_to_check=available_target_cols,
+                fix_negative=fix_anomalies,
+                fix_outliers=fix_anomalies,
+                fix_nan=False, ## 水质数据不填充NaN
+                negative_replacement=0.001,  # 水质数据最小值设为0.001
+                outlier_method='iqr',
+                outlier_threshold=2.5,
+                verbose=True,
+                logger=logging
+            )
+        else:
+            logging.warning("未找到可检查的水质目标列")
+            target_results = {'has_anomalies': False}
+        
+        # 4. 检查属性数据
+        logging.info("4. 检查河段属性数据...")
+        available_attr_features = [col for col in attr_features if col in attr_df.columns]
+        if available_attr_features:
+            attr_df, attr_results = detect_and_handle_attr_anomalies(
+                attr_df,
+                attr_features=available_attr_features,
+                fix_negative=False,
+                fix_outliers=fix_anomalies,
+                fix_nan=fix_anomalies,
+                negative_replacement=0.001,
+                nan_replacement=0.001,
+                outlier_method='iqr',
+                outlier_threshold=2.0,
+                verbose=True,
+                logger=logging
+            )
+        else:
+            logging.warning("未找到可检查的属性特征列")
+            attr_results = {'has_anomalies': False}
+        
+        # 5. 数据完整性检查
+        logging.info("5. 检查数据完整性...")
+        
+        # 检查缺失值
+        df_missing = df.isnull().sum()
+        attr_missing = attr_df.isnull().sum()
+        
+        if df_missing.sum() > 0:
+            logging.warning("日尺度数据中的缺失值统计:")
+            for col, count in df_missing[df_missing > 0].items():
+                pct = (count / len(df)) * 100
+                logging.warning(f"  {col}: {count} 个缺失值 ({pct:.2f}%)")
+        
+        if attr_missing.sum() > 0:
+            logging.warning("属性数据中的缺失值统计:")
+            for col, count in attr_missing[attr_missing > 0].items():
+                pct = (count / len(attr_df)) * 100
+                logging.warning(f"  {col}: {count} 个缺失值 ({pct:.2f}%)")
+        
+        # 6. 汇总数据质量检查结果
+        logging.info("=" * 60)
+        logging.info("数据质量检查结果汇总:")
+        logging.info(f"  流量数据异常: {'是' if qout_results['has_anomalies'] else '否'}")
+        logging.info(f"  输入特征异常: {'是' if input_results['has_anomalies'] else '否'}")
+        logging.info(f"  水质数据异常: {'是' if target_results['has_anomalies'] else '否'}")
+        logging.info(f"  属性数据异常: {'是' if attr_results['has_anomalies'] else '否'}")
+        logging.info(f"  数据修复模式: {'开启' if fix_anomalies else '关闭'}")
+        logging.info("=" * 60)
         
         # 检查河网拓扑结构一致性
         with TimingAndMemoryContext("检查河网拓扑结构一致性"):
@@ -452,8 +556,18 @@ def main():
         #--------------------------------------------------------------------
         # 9. 加载数据
         #--------------------------------------------------------------------
-        df, attr_df, comid_wq_list, comid_era5_list, river_info = load_data(data_config)
+        # 从配置中获取数据检查选项
+        enable_data_check = basic_config.get('enable_data_check', True)
+        fix_anomalies = basic_config.get('fix_anomalies', False)
         
+        df, attr_df, comid_wq_list, comid_era5_list, river_info = load_data(
+            data_config=data_config,
+            input_features=input_features,
+            attr_features=attr_features,
+            all_target_cols=basic_config.get('target_cols', ['TN', 'TP']),
+            enable_data_check=enable_data_check,
+            fix_anomalies=fix_anomalies
+        )
         #--------------------------------------------------------------------
         # 10. 执行迭代训练流程
         #--------------------------------------------------------------------
