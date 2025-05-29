@@ -378,7 +378,7 @@ class ModelVisualizer:
     
     @staticmethod
     def create_overall_scatter_plot(df_flow, original_df, comids, actual_col, predicted_col, 
-                                  target_param, output_dir, iteration, model_version):
+                                target_param, output_dir, iteration, model_version):
         """创建所有站点的汇流结果vs实测值散点图"""
         # 合并数据
         merged_data = pd.merge(
@@ -420,9 +420,9 @@ class ModelVisualizer:
                 bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
         
         # 设置标题和标签
-        plt.title(f'{target_param} - 迭代{iteration}汇流结果验证 (版本: {model_version})', fontsize=14)
-        plt.xlabel(f'观测值 ({target_param})', fontsize=12)
-        plt.ylabel(f'预测值 ({target_param})', fontsize=12)
+        plt.title(f'{target_param} - Iteration {iteration} Flow Routing Validation (Version: {model_version})', fontsize=14)
+        plt.xlabel(f'Observed {target_param}', fontsize=12)
+        plt.ylabel(f'Predicted {target_param}', fontsize=12)
         plt.grid(True, alpha=0.3)
         
         # 保存图表
@@ -430,10 +430,10 @@ class ModelVisualizer:
         filename = f'overall_verification_iter{iteration}_{model_version}.png'
         plt.savefig(os.path.join(output_dir, filename), dpi=300)
         plt.close()
-    
+
     @staticmethod
     def create_station_time_series_plot(df_flow, original_df, comid, actual_col, predicted_col, 
-                                      target_param, output_dir, iteration, model_version):
+                                    target_param, output_dir, iteration, model_version):
         """为单个站点创建时间序列对比图"""
         # 筛选数据
         flow_data = df_flow[df_flow['COMID'] == comid]
@@ -454,10 +454,10 @@ class ModelVisualizer:
         plt.figure(figsize=(12, 6))
         
         # 绘制实际观测值
-        plt.plot(merged_data['date'], merged_data[actual_col], 'o-', color='blue', label='观测值')
+        plt.plot(merged_data['date'], merged_data[actual_col], 'o-', color='blue', label='Observed')
         
         # 绘制预测值
-        plt.plot(merged_data['date'], merged_data[predicted_col], 'x-', color='red', label='汇流预测值')
+        plt.plot(merged_data['date'], merged_data[predicted_col], 'x-', color='red', label='Flow-routed Prediction')
         
         # 计算相关指标
         mse = np.mean((merged_data[actual_col] - merged_data[predicted_col])**2)
@@ -470,8 +470,8 @@ class ModelVisualizer:
                 bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
         
         # 设置标题和标签
-        plt.title(f'站点 {comid} - {target_param} 时间序列对比 (迭代{iteration}, 版本: {model_version})', fontsize=14)
-        plt.xlabel('日期', fontsize=12)
+        plt.title(f'Station {comid} - {target_param} Time Series Comparison (Iteration {iteration}, Version: {model_version})', fontsize=14)
+        plt.xlabel('Date', fontsize=12)
         plt.ylabel(f'{target_param}', fontsize=12)
         plt.legend()
         plt.grid(True, alpha=0.3)
