@@ -29,7 +29,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 logging.getLogger().setLevel(logging.DEBUG)
 
 # 导入自定义模块
-from PGRWQI.data_processing import load_daily_data, load_river_attributes, detect_and_handle_anomalies, check_river_network_consistency,detect_and_handle_attr_anomalies
+from PGRWQI.data_processing import load_daily_data, load_river_attributes, detect_and_handle_anomalies, check_river_network_consistency
 from PGRWQI.model_training.iterative_train.iterative_training import iterative_training_procedure
 from PGRWQI.logging_utils import setup_logging, restore_stdout_stderr, ensure_dir_exists
 from PGRWQI.tqdm_logging import tqdm
@@ -267,8 +267,9 @@ def load_data(data_config: Dict[str, str],
             negative_replacement=0.001,
             nan_replacement=0.001,
             outlier_method='iqr',
-            outlier_threshold=3.0,
+            outlier_threshold=4,
             verbose=True,
+            data_type='timeseries',
             logger=logging
         )
         
@@ -279,15 +280,17 @@ def load_data(data_config: Dict[str, str],
             df, input_results = detect_and_handle_anomalies(
                 df,
                 columns_to_check=available_input_features,
-                fix_negative=False, ## 输入特征ymin可能为负，不应修复
-                fix_outliers=fix_anomalies,
+                check_negative=False, ## 输入特征ymin可能为负，不应检查
+                # fix_negative=False, ## 输入特征ymin可能为负，不应修复
+                # fix_outliers=fix_anomalies,
                 fix_nan=fix_anomalies,
                 negative_replacement=0.0,  # 输入特征用0填充可能更合适
                 nan_replacement=0.0,  # 输入特征用0填充可能更合适
                 outlier_method='iqr',
-                outlier_threshold=2.0,  # 输入特征使用更严格的阈值
+                outlier_threshold=6.0,  # 输入特征使用更严格的阈值
                 verbose=True,
                 logger=logging,
+                data_type='timeseries',
                 exclude_comids=exclude_comids,
             )
         else:
@@ -302,13 +305,14 @@ def load_data(data_config: Dict[str, str],
                 df,
                 columns_to_check=available_target_cols,
                 check_nan = False,
-                fix_negative=fix_anomalies,
-                fix_outliers=fix_anomalies,
+                # fix_negative=fix_anomalies,
+                # fix_outliers=fix_anomalies,
                 fix_nan=False, ## 水质数据不填充NaN
                 negative_replacement=0.001,  # 水质数据最小值设为0.001
                 outlier_method='iqr',
-                outlier_threshold=2.5,
+                outlier_threshold=6.0,
                 verbose=True,
+                data_type='timeseries',
                 logger=logging
             )
         else:
@@ -319,42 +323,44 @@ def load_data(data_config: Dict[str, str],
         logging.info("4. 检查河段属性数据...")
         available_attr_features = [col for col in attr_features if col in attr_df.columns]
         if available_attr_features:
-            attr_df, attr_results = detect_and_handle_attr_anomalies(
+            attr_df, attr_results = detect_and_handle_anomalies(
                 attr_df,
-                attr_features=available_attr_features,
-                fix_negative=False,
-                fix_outliers=fix_anomalies,
+                columns_to_check=available_attr_features,
+                check_negative=False,
+                # fix_negative=False,
+                # fix_outliers=fix_anomalies,
                 fix_nan=fix_anomalies,
                 negative_replacement=0.001,
                 nan_replacement=0.001,
                 outlier_method='iqr',
-                outlier_threshold=2.0,
+                outlier_threshold=4,
                 verbose=True,
                 logger=logging,
+                data_type='attributes',
                 exclude_comids=exclude_comids,
             )
         else:
             logging.warning("未找到可检查的属性特征列")
             attr_results = {'has_anomalies': False}
         
-        # 5. 数据完整性检查
-        logging.info("5. 检查数据完整性...")
+        # # 5. 数据完整性检查
+        # logging.info("5. 检查数据完整性...")
         
-        # 检查缺失值
-        df_missing = df.isnull().sum()
-        attr_missing = attr_df.isnull().sum()
+        # # 检查缺失值
+        # df_missing = df.isnull().sum()
+        # attr_missing = attr_df.isnull().sum()
         
-        if df_missing.sum() > 0:
-            logging.warning("日尺度数据中的缺失值统计:")
-            for col, count in df_missing[df_missing > 0].items():
-                pct = (count / len(df)) * 100
-                logging.warning(f"  {col}: {count} 个缺失值 ({pct:.2f}%)")
+        # if df_missing.sum() > 0:
+        #     logging.warning("日尺度数据中的缺失值统计:")
+        #     for col, count in df_missing[df_missing > 0].items():
+        #         pct = (count / len(df)) * 100
+        #         logging.warning(f"  {col}: {count} 个缺失值 ({pct:.2f}%)")
         
-        if attr_missing.sum() > 0:
-            logging.warning("属性数据中的缺失值统计:")
-            for col, count in attr_missing[attr_missing > 0].items():
-                pct = (count / len(attr_df)) * 100
-                logging.warning(f"  {col}: {count} 个缺失值 ({pct:.2f}%)")
+        # if attr_missing.sum() > 0:
+        #     logging.warning("属性数据中的缺失值统计:")
+        #     for col, count in attr_missing[attr_missing > 0].items():
+        #         pct = (count / len(attr_df)) * 100
+        #         logging.warning(f"  {col}: {count} 个缺失值 ({pct:.2f}%)")
         
         # 6. 汇总数据质量检查结果
         logging.info("=" * 60)

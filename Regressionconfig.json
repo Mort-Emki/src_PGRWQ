@@ -17,7 +17,7 @@
       "start_iteration": 0,
       "data_dir": "D:\\PGRWQ\\data",
       "enable_data_check": true,
-      "fix_anomalies": false
+      "fix_anomalies": true
     },
     "features": {
       "input_features": [
