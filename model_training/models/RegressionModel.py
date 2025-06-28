@@ -313,7 +313,7 @@ class RegressionModel(CatchmentModel):
             else:
                 # Just include the coefficients
                 info['coefficients'] = self.base_model.coef_.tolist()
-            
+             
             # Include intercept if available
             if hasattr(self.base_model, 'intercept_'):
                 info['intercept'] = float(self.base_model.intercept_)

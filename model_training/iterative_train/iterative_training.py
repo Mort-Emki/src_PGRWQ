@@ -14,7 +14,7 @@ from typing import Dict, List, Tuple, Optional, Any, Union
 from datetime import datetime
 
 # 导入项目中的函数
-from PGRWQI.flow_routing_modules.flow_routing import flow_routing_calculation
+from PGRWQI.flow_routing_modules import flow_routing_calculation
 from PGRWQI.logging_utils import ensure_dir_exists
 from PGRWQI.model_training.gpu_memory_utils import (
     log_memory_usage, 
@@ -215,7 +215,10 @@ def iterative_training_procedure(
                         target_col=target_col,
                         attr_df=attr_df,
                         E_save=1,  # 保存E值
-                        E_save_path=f"{output_dir}/E_values_{model_version}"
+                        E_save_path=f"{output_dir}/E_values_{model_version}",
+                        E_exist= 1,
+                        E_exist_path= f"{output_dir}/E_values_{model_version}",
+                        enable_debug= True
                     )
                     
                     # 汇流计算完成后验证结果

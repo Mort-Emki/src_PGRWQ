@@ -375,7 +375,7 @@ class ModelVisualizer:
     1. 初始模型(A0)的验证图表：直接比较模型输出与实际观测值
     2. 汇流计算结果的验证图表：比较汇流计算的水质预测与实际观测值
     """
-    
+
     @staticmethod
     def create_overall_scatter_plot(df_flow, original_df, comids, actual_col, predicted_col, 
                                 target_param, output_dir, iteration, model_version):
@@ -450,7 +450,10 @@ class ModelVisualizer:
             logging.warning(f"站点 {comid} 没有找到足够的数据进行验证")
             return
         
-        # 创建时间序列图
+        # 确保date列是datetime类型
+        merged_data['date'] = pd.to_datetime(merged_data['date'])
+        
+        # 创建图表
         plt.figure(figsize=(12, 6))
         
         # 绘制实际观测值
@@ -469,18 +472,23 @@ class ModelVisualizer:
                 verticalalignment='top', 
                 bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
         
-        # 设置标题和标签
-        plt.title(f'Station {comid} - {target_param} Time Series Comparison (Iteration {iteration}, Version: {model_version})', fontsize=14)
-        plt.xlabel('Date', fontsize=12)
-        plt.ylabel(f'{target_param}', fontsize=12)
-        plt.legend()
-        plt.grid(True, alpha=0.3)
+        # 设置标签和标题
+        plt.xlabel('Date')
+        plt.ylabel(f'{target_param} Value')
+        plt.title(f'Station {comid} - {target_param} Time Series Comparison (Iteration {iteration}, Version: {model_version})')
         
-        # 格式化日期轴
+        # 添加图例
+        plt.legend()
+        
+        # 添加网格
+        plt.grid(True, linestyle='--', alpha=0.7)
+        
+        # 格式化x轴以便更好地显示日期
         plt.gcf().autofmt_xdate()
+        plt.tight_layout()
         
         # 保存图表
-        plt.tight_layout()
+
         filename = f'ts_comid{comid}_iter{iteration}_{model_version}.png'
         plt.savefig(os.path.join(output_dir, filename), dpi=300)
         plt.close()
@@ -569,7 +577,7 @@ class ModelVisualizer:
         """
         # 选择一部分河段进行验证
         # verification_comids = list(set(comid_wq_list))[:min(10, len(comid_wq_list))]
-        verification_comids = [43049975]
+        verification_comids = [43049975,43024441]
         initial_verification_dir = os.path.join(model_save_dir, f"model_verification_iter0_{model_version}")
         os.makedirs(initial_verification_dir, exist_ok=True)
         
